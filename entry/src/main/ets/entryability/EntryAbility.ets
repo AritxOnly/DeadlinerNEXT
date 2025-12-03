@@ -2,13 +2,20 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ThemeControl, window } from '@kit.ArkUI';
 import { gDeadlinerTheme } from '../AppTheme';
+import { SettingsValue } from '../data/settings/SettingsValue';
+import { DatabaseHelper } from '../data/db/DatabaseHelper';
+import { TaskRepository } from '../data/repository/TaskRepository';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
-  onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+  async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+
+      await SettingsValue.getInstance().init(this.context);
+      await DatabaseHelper.getInstance().init(this.context);
+      TaskRepository.getInstance().setContext(this.context)
     } catch (err) {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }

@@ -220,7 +220,7 @@ export struct DDLItemCardSwipeable {
             // 向右滑 -> 完成 (StartToEnd)
             Row() {
               Stack({ alignContent: Alignment.Center }) {
-                SymbolGlyph($r('sys.symbol.checkmark'))
+                SymbolGlyph($r('sys.symbol.checkmark_circle'))
                   .fontSize(24) // 图标的实际大小
                   .fontColor([this.fontColor])
               }
