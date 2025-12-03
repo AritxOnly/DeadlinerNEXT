@@ -54,11 +54,11 @@
     },
     {
       "name": "interactive_active",
-      "value": "#FFABCBEC"
+      "value": "#1661AB"
     },
     {
       "name": "interactive_select",
-      "value": "#4F7681"
+      "value": "#FFABCBEC"
     },
     {
       "name": "interactive_pressed",
@@ -106,7 +106,7 @@
     },
     {
       "name": "background_color_undergo",
-      "value": "#E2E2E2"
+      "value": "#59969696"
     },
     {
       "name": "background_color_near",

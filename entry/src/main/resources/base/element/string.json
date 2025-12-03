@@ -91,6 +91,14 @@
     {
       "name": "excitement_next",
       "value": "完成它！然后大喊：Next！🎤"
+    },
+    {
+      "name": "webdav_reason",
+      "value": "用于 WebDAV 云同步"
+    },
+    {
+      "name": "vibration_reason",
+      "value": "Deadliner 使用振动为用户带来更好的体验"
     }
   ]
 }

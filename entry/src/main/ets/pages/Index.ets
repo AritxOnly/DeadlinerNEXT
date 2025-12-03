@@ -58,7 +58,7 @@ struct Index {
 
   build() {
     Navigation(this.pageStack) {
-      MainHomePage()
+      MainHomePage({ stack: this.pageStack })
     }
     .title("Deadliner")
     .subTitle(this.navSubtitle)

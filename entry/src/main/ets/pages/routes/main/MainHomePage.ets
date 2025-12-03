@@ -11,6 +11,8 @@ enum MainTabIndex {
 
 @Component
 export struct MainHomePage {
+  stack: NavPathStack = new NavPathStack();
+
   @State currentIndex: number = MainTabIndex.TASKS
   @State selectedIndexes: Array<number> = [MainTabIndex.TASKS]
 
@@ -23,7 +25,7 @@ export struct MainHomePage {
   @State fabIconColor: ResourceColor = '#FFFFFFFF'
 
   onWillApplyTheme(theme: Theme) {
-    this.chipSelectedBg = theme.colors.interactiveActive
+    this.chipSelectedBg = theme.colors.interactiveSelect
     this.chipSelectedFont = theme.colors.fontPrimary
     this.chipUnselectedFont = theme.colors.fontSecondary
     this.pageBackground = theme.colors.backgroundPrimary
@@ -81,6 +83,9 @@ export struct MainHomePage {
         FloatingAddButton({
           onClickAdd: () => {
             console.debug('Add Button Clicked')
+            if (this.currentIndex === MainTabIndex.TASKS) {
+              this.stack.pushPathByName('addTask', null);
+            }
           }
         })
           .id('fab')

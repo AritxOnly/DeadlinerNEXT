@@ -7,6 +7,14 @@
       "data": {
         "description": "Deadliner WebDAV 设置页"
       }
+    },
+    {
+      "name": "addTask",
+      "pageSourceFile": "src/main/ets/pages/routes/add/AddTaskPage.ets",
+      "buildFunction": "AddTaskBuilder",
+      "data": {
+        "description": "添加任务页"
+      }
     }
   ]
 }

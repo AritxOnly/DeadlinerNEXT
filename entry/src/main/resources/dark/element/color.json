@@ -54,11 +54,11 @@
     },
     {
       "name": "interactive_active",
-      "value": "#2B445C"
+      "value": "#6BA4D6"
     },
     {
       "name": "interactive_select",
-      "value": "#658A96"
+      "value": "#2B445C"
     },
     {
       "name": "interactive_pressed",
