@@ -1,0 +1,92 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#000000"
+    },
+    {
+      "name": "brand",
+      "value": "#6BA4D6"
+    },
+    {
+      "name": "font_primary",
+      "value": "#E6EDF2"
+    },
+    {
+      "name": "font_secondary",
+      "value": "#9DAAB6"
+    },
+    {
+      "name": "font_emphasize",
+      "value": "#151B22"
+    },
+    {
+      "name": "icon_primary",
+      "value": "#E6EDF2"
+    },
+    {
+      "name": "icon_secondary",
+      "value": "#9DAAB6"
+    },
+    {
+      "name": "icon_emphasize",
+      "value": "#6BA4D6"
+    },
+    {
+      "name": "background_primary",
+      "value": "#000000"
+    },
+    {
+      "name": "background_secondary",
+      "value": "#1F2933"
+    },
+    {
+      "name": "background_tertiary",
+      "value": "#2A3540"
+    },
+    {
+      "name": "background_emphasize",
+      "value": "#344B61"
+    },
+    {
+      "name": "comp_divider",
+      "value": "#2F3B47"
+    },
+    {
+      "name": "interactive_active",
+      "value": "#2B445C"
+    },
+    {
+      "name": "interactive_select",
+      "value": "#658A96"
+    },
+    {
+      "name": "interactive_pressed",
+      "value": "#4A6372"
+    },
+    {
+      "name": "warning",
+      "value": "#D99E73"
+    },
+    {
+      "name": "confirm",
+      "value": "#86B580"
+    },
+    {
+      "name": "chart_red",
+      "value": "#FFF77E66"
+    },
+    {
+      "name": "chart_green",
+      "value": "#FFBFD1C4"
+    },
+    {
+      "name": "chart_orange",
+      "value": "#FFFED59E"
+    },
+    {
+      "name": "chart_blue",
+      "value": "#FFB3CAD8"
+    }
+  ]
+}

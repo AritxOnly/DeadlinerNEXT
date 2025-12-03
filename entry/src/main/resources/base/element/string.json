@@ -1,0 +1,96 @@
+{
+  "string": [
+    {
+      "name": "module_desc",
+      "value": "module description"
+    },
+    {
+      "name": "EntryAbility_desc",
+      "value": "description"
+    },
+    {
+      "name": "EntryAbility_label",
+      "value": "Deadliner待办日历"
+    },
+    {
+      "name": "excitement_deadline_chasing",
+      "value": "Deadline 在追杀你！快跑💨"
+    },
+    {
+      "name": "excitement_progress_1_to_99",
+      "value": "任务完成度：1% → 99%🤯"
+    },
+    {
+      "name": "excitement_ddl_bite",
+      "value": "再拖？DDL要咬人了！🦖"
+    },
+    {
+      "name": "excitement_submit",
+      "value": "你离「完成」只差一个「提交」🚀"
+    },
+    {
+      "name": "excitement_get_up",
+      "value": "提醒：别躺了，起来肝！🛏️→💻"
+    },
+    {
+      "name": "excitement_5min_5h",
+      "value": "「先玩5分钟」→ 5小时😱"
+    },
+    {
+      "name": "excitement_todo_on_fire",
+      "value": "你的待办列表：📜🔥（烧起来了）"
+    },
+    {
+      "name": "excitement_today_task",
+      "value": "今日任务：活着 + 搞定它💪"
+    },
+    {
+      "name": "excitement_ddl_near",
+      "value": "DDL越近，手速越快⚡"
+    },
+    {
+      "name": "excitement_classic_flag",
+      "value": "「我明天做」→ 经典flag🚩"
+    },
+    {
+      "name": "excitement_reward_sleep",
+      "value": "任务完成 ✔️ 奖励：睡大觉！😴"
+    },
+    {
+      "name": "excitement_detect_anxiety",
+      "value": "检测到：你在焦虑🌀"
+    },
+    {
+      "name": "excitement_stop_scrolling",
+      "value": "别刷手机了！📱→❌"
+    },
+    {
+      "name": "excitement_last_minute",
+      "value": "「最后亿分钟」⌛"
+    },
+    {
+      "name": "excitement_mountains",
+      "value": "任务堆积如山？愚公移山！⛰️"
+    },
+    {
+      "name": "excitement_ddl_power",
+      "value": "DDL是你的敌人？不，是动力！💥"
+    },
+    {
+      "name": "excitement_im_okay",
+      "value": "「我好了」→「我装的」😏"
+    },
+    {
+      "name": "excitement_today_achievement",
+      "value": "今日成就：没放弃！🏆"
+    },
+    {
+      "name": "excitement_do_hard_first",
+      "value": "建议：先做最难的！🎯"
+    },
+    {
+      "name": "excitement_next",
+      "value": "完成它！然后大喊：Next！🎤"
+    }
+  ]
+}
