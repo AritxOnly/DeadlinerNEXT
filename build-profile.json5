@@ -1,0 +1,56 @@
+{
+  "app": {
+    "signingConfigs": [
+      {
+        "name": "default",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001B68FB990AE54320AFA1380616152FAB3969CA6B18B82C94A77D270D634265C058CB398C150EB7C7",
+          "profile": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p12",
+          "storePassword": "0000001B5759B74CFBA91B4B193DDBC45E3BCC035AF1F9DB4104C7735B0D894C05FDDFEDED4CCDB7D897EE"
+        }
+      }
+    ],
+    "products": [
+      {
+        "name": "default",
+        "signingConfig": "default",
+        "targetSdkVersion": "6.0.1(21)",
+        "compatibleSdkVersion": "6.0.1(21)",
+        "runtimeOS": "HarmonyOS",
+        "buildOption": {
+          "strictMode": {
+            "caseSensitiveCheck": true,
+            "useNormalizedOHMUrl": true
+          }
+        }
+      }
+    ],
+    "buildModeSet": [
+      {
+        "name": "debug",
+      },
+      {
+        "name": "release"
+      }
+    ]
+  },
+  "modules": [
+    {
+      "name": "entry",
+      "srcPath": "./entry",
+      "targets": [
+        {
+          "name": "default",
+          "applyToProducts": [
+            "default"
+          ]
+        }
+      ]
+    }
+  ]
+}

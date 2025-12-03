@@ -1,0 +1,124 @@
+{
+  "color": [
+    {
+      "name": "start_window_background",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "brand",
+      "value": "#1661AB"
+    },
+    {
+      "name": "font_primary",
+      "value": "#1D2A34"
+    },
+    {
+      "name": "font_secondary",
+      "value": "#5A6D7E"
+    },
+    {
+      "name": "font_emphasize",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "icon_primary",
+      "value": "#000000"
+    },
+    {
+      "name": "icon_secondary",
+      "value": "#5A6D7E"
+    },
+    {
+      "name": "icon_emphasize",
+      "value": "#F0F0F0"
+    },
+    {
+      "name": "background_primary",
+      "value": "#FFFFFF"
+    },
+    {
+      "name": "background_secondary",
+      "value": "#F0F4F7"
+    },
+    {
+      "name": "background_tertiary",
+      "value": "#F8FAFB"
+    },
+    {
+      "name": "background_emphasize",
+      "value": "#A7C6E3"
+    },
+    {
+      "name": "comp_divider",
+      "value": "#B1C1D1"
+    },
+    {
+      "name": "interactive_active",
+      "value": "#FFABCBEC"
+    },
+    {
+      "name": "interactive_select",
+      "value": "#4F7681"
+    },
+    {
+      "name": "interactive_pressed",
+      "value": "#335D6F"
+    },
+    {
+      "name": "warning",
+      "value": "#F28C48"
+    },
+    {
+      "name": "confirm",
+      "value": "#7EBC72"
+    },
+    {
+      "name": "chart_red",
+      "value": "#FFF77E66"
+    },
+    {
+      "name": "chart_green",
+      "value": "#FF82ABA3"
+    },
+    {
+      "name": "chart_orange",
+      "value": "#FFFEC37D"
+    },
+    {
+      "name": "chart_blue",
+      "value": "#FF97A5C0"
+    },
+    {
+      "name": "indicator_color_undergo",
+      "value": "#FF98ADD6"
+    },
+    {
+      "name": "indicator_color_near",
+      "value": "#D8C8A3"
+    },
+    {
+      "name": "indicator_color_passed",
+      "value": "#B8A398"
+    },
+    {
+      "name": "indicator_color_completed",
+      "value": "#A4B3B0"
+    },
+    {
+      "name": "background_color_undergo",
+      "value": "#E2E2E2"
+    },
+    {
+      "name": "background_color_near",
+      "value": "#F0E5D8"
+    },
+    {
+      "name": "background_color_passed",
+      "value": "#F1E4E0"
+    },
+    {
+      "name": "background_color_completed",
+      "value": "#D4E1DD"
+    }
+  ]
+}
