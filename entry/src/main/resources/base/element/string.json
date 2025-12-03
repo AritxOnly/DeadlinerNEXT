@@ -99,6 +99,22 @@
     {
       "name": "vibration_reason",
       "value": "Deadliner 使用振动为用户带来更好的体验"
+    },
+    {
+      "name": "EntryFormAbility_desc",
+      "value": "form_description"
+    },
+    {
+      "name": "EntryFormAbility_label",
+      "value": "form_label"
+    },
+    {
+      "name": "widget_desc",
+      "value": "This is a service widget."
+    },
+    {
+      "name": "widget_display_name",
+      "value": "widget"
     }
   ]
 }
