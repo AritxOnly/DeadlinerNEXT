@@ -17,10 +17,13 @@ interface TaskUIModel {
 
 @Component
 export struct TaskListSection {
+  scroller: Scroller = new Scroller()
+
   @State taskList: Array<TaskUIModel> = [];
   @State isRefreshing: boolean = false; // 控制下拉刷新状态
 
   @State isLoading: boolean = true;
+  @Prop topAvoidHeight: number = 0;
 
   private repo = TaskRepository.getInstance();
 
@@ -230,6 +233,22 @@ export struct TaskListSection {
     })
   }
 
+  @Builder RefreshHeader() {
+    Stack({ alignContent: Alignment.Bottom }) {
+      LoadingProgress()
+        .width(24)
+        .height(24)
+        .color($r('app.color.brand'))
+    }
+    .width("100%")
+    .height(64) // 保持标准的触发高度
+    // 【核心技巧】
+    // 使用 translate 仅仅改变视觉位置，不改变布局占位。
+    // 这样 Refresh 组件认为 Header 还在顶部，正常触发刷新；
+    // 但用户看到的转圈圈已经被移到了标题栏下方。
+    .translate({ y: this.topAvoidHeight })
+  }
+
   build() {
     Column() {
       if (this.isLoading && this.taskList.length === 0) {
@@ -240,8 +259,15 @@ export struct TaskListSection {
       } else {
         Refresh({ refreshing: $$this.isRefreshing }) {
           List({
-            space: 8
+            space: 8,
+            scroller: this.scroller,
           }) {
+            ListItem() {
+              Column()
+                .width('100%')
+                .height(this.topAvoidHeight)
+            }
+
             ForEach(this.taskList, (item: TaskUIModel) => {
               ListItem() {
                 DDLItemCardSwipeable({
@@ -267,6 +293,7 @@ export struct TaskListSection {
               Divider().color(Color.Transparent).height(100)
             }
           }
+          .scrollBar(BarState.Off)
           .width("100%")
           .height("100%")
           .edgeEffect(EdgeEffect.Spring)
@@ -299,13 +326,12 @@ export struct TaskListSection {
         })
         .width("100%")
         .height("100%")
-        // 关键修改3：外层容器也需要允许延伸，否则内部 List 延伸会被截断
+        .clip(false)
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
       }
     }
     .width("100%")
     .height("100%")
-    // 关键修改4：最外层 Column 也要延伸
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
   }
 }

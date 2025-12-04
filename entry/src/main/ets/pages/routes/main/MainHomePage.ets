@@ -1,20 +1,58 @@
-import { Theme } from '@kit.ArkUI'
-import { ChipGroup, ChipSize } from '@kit.ArkUI'
+import { ItemRestriction, LengthMetrics, SegmentButton,
+  SegmentButtonItemTuple,
+  SegmentButtonOptions,
+  SegmentButtonTextItem,
+  Theme } from '@kit.ArkUI'
 import { FloatingAddButton } from '../../components/FloatingAddButton'
 import { HabitListSection } from './HabitListSection'
 import { TaskListSection } from './TaskListSection'
+import { BottomBuilderShowType,
+  DividerShowType,
+  HdsNavigation, HdsNavigationAttribute, ScrollEffectType } from '@kit.UIDesignKit'
 
 enum MainTabIndex {
   TASKS = 0,
   HABITS = 1,
+  SUGGESTS = 2
 }
+
+const EXCITEMENT_MESSAGES: Resource[] = [
+  $r('app.string.excitement_deadline_chasing'),
+  $r('app.string.excitement_progress_1_to_99'),
+  $r('app.string.excitement_ddl_bite'),
+  $r('app.string.excitement_submit'),
+  $r('app.string.excitement_get_up'),
+  $r('app.string.excitement_5min_5h'),
+  $r('app.string.excitement_todo_on_fire'),
+  $r('app.string.excitement_today_task'),
+  $r('app.string.excitement_ddl_near'),
+  $r('app.string.excitement_classic_flag'),
+  $r('app.string.excitement_reward_sleep'),
+  $r('app.string.excitement_detect_anxiety'),
+  $r('app.string.excitement_stop_scrolling'),
+  $r('app.string.excitement_last_minute'),
+  $r('app.string.excitement_mountains'),
+  $r('app.string.excitement_ddl_power'),
+  $r('app.string.excitement_im_okay'),
+  $r('app.string.excitement_today_achievement'),
+  $r('app.string.excitement_do_hard_first'),
+  $r('app.string.excitement_next'),
+]
 
 @Component
 export struct MainHomePage {
-  stack: NavPathStack = new NavPathStack();
+  pageStack: NavPathStack = new NavPathStack();
 
   @State currentIndex: number = MainTabIndex.TASKS
-  @State selectedIndexes: Array<number> = [MainTabIndex.TASKS]
+  @State @Watch('onSegmentChange') selectedIndexes: number[] = [MainTabIndex.TASKS]
+
+  // 定义常量：SegmentButton 区域的高度 (标准高度 + 上下padding)
+  readonly SEGMENT_HEIGHT: number = 44;
+
+  // 获取状态栏高度
+  @StorageProp('statusBarHeight') statusBarHeight: number = 38;
+
+  readonly TITLE_BAR_CONTENT_HEIGHT: number = 100 + this.SEGMENT_HEIGHT;
 
   // 这些 State 由主题驱动
   @State chipSelectedBg: ResourceColor = '#FFFFFF'
@@ -33,73 +71,180 @@ export struct MainHomePage {
     this.fabIconColor = theme.colors.iconEmphasize
   }
 
-  build() {
+  @State navSubtitle: string | undefined = undefined
+
+  aboutToAppear(): void {
+    const ctx = this.getUIContext()
+    const idx = Math.floor(Math.random() * EXCITEMENT_MESSAGES.length)
+    const res = EXCITEMENT_MESSAGES[idx]
+    try {
+      this.navSubtitle = ctx.getHostContext()?.resourceManager.getStringSync(res)
+    } catch (error) {
+      console.error('Unable to get String Resource')
+    }
+  }
+
+  private scroller: Scroller = new Scroller();
+
+  @StorageProp('Event_ScrollToTop_0')
+  @Watch('onScrollToTopEvent')
+  scrollToTopSignal: number = 0;
+
+  onScrollToTopEvent() {
+    console.debug('MainHomePage received scroll to top signal');
+    // 只有当前页面显示时才滚动
+    if (this.currentIndex === MainTabIndex.TASKS) { // 假设你想让任务列表回滚
+      this.scroller.scrollTo({ xOffset: 0, yOffset: 0, animation: { duration: 300 } });
+    }
+  }
+
+  onSegmentChange() {
+    if (this.selectedIndexes.length > 0) {
+      this.currentIndex = this.selectedIndexes[0]
+    }
+  }
+
+  @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
+    buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
+    backgroundBlurStyle: BlurStyle.NONE,
+    buttonPadding: 8
+  })
+
+  updateTabOptions() {
+    this.tabOptions = SegmentButtonOptions.tab({
+      buttons: [
+        { text: '任务' },
+        { text: '习惯' }
+      ] as ItemRestriction<SegmentButtonTextItem>,
+      backgroundBlurStyle: BlurStyle.NONE
+    });
+  }
+
+  @Builder tabSegment() {
     Column() {
-      // 顶部 ChipGroup
-      ChipGroup({
-        items: [
-          { label: { text: '任务' } },
-          { label: { text: '习惯' } },
-        ],
-        itemStyle: {
-          size: ChipSize.NORMAL,
-          selectedBackgroundColor: this.chipSelectedBg,
-          selectedFontColor: this.chipSelectedFont,
-          fontColor: this.chipUnselectedFont,
-        },
-        selectedIndexes: this.selectedIndexes,
-        multiple: false,
-        onChange: (indexes: Array<number>) => {
-          if (indexes.length > 0) {
-            this.selectedIndexes = [...indexes]
-            this.currentIndex = indexes[0]
-          }
-        },
+      SegmentButton({
+        options: this.tabOptions,
+        selectedIndexes: $selectedIndexes,
+        maxFontScale: 2
       })
-
-      RelativeContainer() {
-        // 列表内容：铺满整个容器
-        if (this.currentIndex === MainTabIndex.TASKS) {
-          TaskListSection()
-            .id('content')
-            .alignRules({
-              top: { anchor: '__container__', align: VerticalAlign.Top },
-              bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
-              left: { anchor: '__container__', align: HorizontalAlign.Start },
-              right: { anchor: '__container__', align: HorizontalAlign.End },
-            })
-        } else {
-          HabitListSection()
-            .id('content')
-            .alignRules({
-              top: { anchor: '__container__', align: VerticalAlign.Top },
-              bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
-              left: { anchor: '__container__', align: HorizontalAlign.Start },
-              right: { anchor: '__container__', align: HorizontalAlign.End },
-            })
-        }
-
-        // FAB：相对容器底部 + 水平居中
-        FloatingAddButton({
-          onClickAdd: () => {
-            console.debug('Add Button Clicked')
-            if (this.currentIndex === MainTabIndex.TASKS) {
-              this.stack.pushPathByName('addTask', null);
-            }
-          }
-        })
-          .id('fab')
-          .alignRules({
-            bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
-            middle: { anchor: '__container__', align: HorizontalAlign.Center },
-          })
-          .margin({ bottom: 24 }) // 往上抬一点
-      }
-      .layoutWeight(1)  // 占满 ChipGroup 下方所有剩余高度
-      .width('100%')
+        .width('100%')
+        .height('100%')
     }
     .width('100%')
     .height('100%')
-    .backgroundColor(this.pageBackground)
+    .padding({
+      start: LengthMetrics.vp(16), end: LengthMetrics.vp(16),
+    })
+    .justifyContent(FlexAlign.Center)
+  }
+
+  build() {
+    HdsNavigation(this.pageStack) {
+        RelativeContainer() {
+          // 列表内容：铺满整个容器
+          if (this.currentIndex === MainTabIndex.TASKS) {
+            TaskListSection({
+              scroller: this.scroller,
+              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT
+            })
+              .id('content')
+              .alignRules({
+                top: { anchor: '__container__', align: VerticalAlign.Top },
+                bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                left: { anchor: '__container__', align: HorizontalAlign.Start },
+                right: { anchor: '__container__', align: HorizontalAlign.End },
+              })
+          } else {
+            HabitListSection()
+              .id('content')
+              .alignRules({
+                top: { anchor: '__container__', align: VerticalAlign.Top },
+                bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                left: { anchor: '__container__', align: HorizontalAlign.Start },
+                right: { anchor: '__container__', align: HorizontalAlign.End },
+              })
+          }
+
+          // FAB：相对容器底部 + 水平居中
+          FloatingAddButton({
+            onClickAdd: () => {
+              console.debug('Add Button Clicked')
+              if (this.currentIndex === MainTabIndex.TASKS) {
+                this.pageStack.pushPathByName('addTask', null);
+              }
+            }
+          })
+            .id('fab')
+            .alignRules({
+              bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+              middle: { anchor: '__container__', align: HorizontalAlign.Center },
+            })
+            .margin({ bottom: 40 }) // 往上抬一点
+        }
+        .height('100%')
+        .width('100%')
+        .backgroundColor(this.pageBackground)
+    }
+    .titleBar({
+      style: {
+        // --- 核心：滚动动态模糊配置 ---
+        scrollEffectOpts: {
+          enableScrollEffect: true,
+          scrollEffectType: ScrollEffectType.COMMON_BLUR,
+          blurEffectiveStartOffset: LengthMetrics.vp(0),
+          blurEffectiveEndOffset: LengthMetrics.vp(10)
+        },
+        // --- 初始状态样式 (透明) ---
+        originalStyle: {
+          backgroundStyle: {
+            backgroundColor: $r('app.color.background_primary'),
+          },
+        },
+        // --- 滚动生效后样式 (模糊) ---
+        scrollEffectStyle: {
+          backgroundStyle: {
+            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
+          },
+        }
+      },
+      content: {
+        // --- 标题内容 ---
+        title: {
+          mainTitle: 'Deadliner',
+          subTitle: this.navSubtitle
+        },
+        // --- 菜单按钮 ---
+        menu: {
+          value: [
+            {
+              content: {
+                label: 'Search',
+                icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
+                action: () => {
+                  // TODO: 搜索逻辑
+                }
+              }
+            },
+            {
+              content: {
+                label: 'Settings',
+                icon: $r('sys.symbol.gearshape'),
+                action: () => {
+                  // 使用共享的栈跳转
+                  this.pageStack.pushPathByName('settingsWebDav', null);
+                }
+              }
+            }
+          ]
+        },
+        bottomBuilder: {
+          builder: this.tabSegment.bind(this),
+          height: this.SEGMENT_HEIGHT,
+          showType: BottomBuilderShowType.DIRECTLY_SHOW
+        },
+        divider: { showType: DividerShowType.OFF }
+      }
+    })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
   }
 }
