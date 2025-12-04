@@ -14,6 +14,9 @@ interface TabData {
 @Entry
 @Component
 struct Index {
+  // 全局路由栈
+  @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
+
   @State currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();
 
@@ -80,47 +83,51 @@ struct Index {
   }
 
   build() {
-    Tabs({
-      barPosition: BarPosition.End,
-      index: this.currentIndex,
-      controller: this.tabsController
-    }) {
-      // --- Tab 1: 主页 ---
-      TabContent() {
-        MainHomePage()
-          .width("100%")
-          .height("100%")
-      }
-      .tabBar(this.tabItem(this.tabs[0]))
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    HdsNavigation(this.appPathStack) {
+      Tabs({
+        barPosition: BarPosition.End,
+        index: this.currentIndex,
+        controller: this.tabsController
+      }) {
+        // --- Tab 1: 主页 ---
+        TabContent() {
+          MainHomePage()
+            .width("100%")
+            .height("100%")
+        }
+        .tabBar(this.tabItem(this.tabs[0]))
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
-      // --- Tab 2: 概览 ---
-      TabContent() {
-        OverviewPage()
-      }
-      .tabBar(this.tabItem(this.tabs[1]))
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+        // --- Tab 2: 概览 ---
+        TabContent() {
+          OverviewPage()
+        }
+        .tabBar(this.tabItem(this.tabs[1]))
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
-      // --- Tab 3: AI ---
-      TabContent() {
-        AiPage()
-      }
-      .tabBar(this.tabItem(this.tabs[2]))
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+        // --- Tab 3: AI ---
+        TabContent() {
+          AiPage()
+        }
+        .tabBar(this.tabItem(this.tabs[2]))
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
-      // --- Tab 4: 我的 ---
-      TabContent() {
-        UserPage()
+        // --- Tab 4: 我的 ---
+        TabContent() {
+          UserPage()
+        }
+        .tabBar(this.tabItem(this.tabs[3]))
       }
-      .tabBar(this.tabItem(this.tabs[3]))
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+      .barMode(BarMode.Fixed) // 固定布局
+      .barOverlap(true) // TabBar 与内容叠加，方便做模糊
+      .barBackgroundBlurStyle(BlurStyle.Regular) // TabBar 背景模糊（原生能力）
+      .barBackgroundColor(Color.Transparent)
+      .scrollable(false) // 两个 Tab 不需要横向滚动
+      .height('100%')
+      .width('100%')
     }
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-    .barMode(BarMode.Fixed)                   // 固定布局
-    .barOverlap(true)                         // TabBar 与内容叠加，方便做模糊
-    .barBackgroundBlurStyle(BlurStyle.Regular)   // TabBar 背景模糊（原生能力）
-    .barBackgroundColor(Color.Transparent)
-    .scrollable(false)                        // 两个 Tab 不需要横向滚动
-    .height('100%')
-    .width('100%')
+    .hideTitleBar(true)
+    // .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
   }
 }

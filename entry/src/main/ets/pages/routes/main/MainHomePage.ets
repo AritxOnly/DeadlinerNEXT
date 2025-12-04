@@ -41,7 +41,7 @@ const EXCITEMENT_MESSAGES: Resource[] = [
 
 @Component
 export struct MainHomePage {
-  pageStack: NavPathStack = new NavPathStack();
+  @Consume('appPathStack') appPathStack: NavPathStack;
 
   @State currentIndex: number = MainTabIndex.TASKS
   @State @Watch('onSegmentChange') selectedIndexes: number[] = [MainTabIndex.TASKS]
@@ -107,6 +107,7 @@ export struct MainHomePage {
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
+    selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
     buttonPadding: 8
   })
 
@@ -116,7 +117,9 @@ export struct MainHomePage {
         { text: '任务' },
         { text: '习惯' }
       ] as ItemRestriction<SegmentButtonTextItem>,
-      backgroundBlurStyle: BlurStyle.NONE
+      backgroundBlurStyle: BlurStyle.NONE,
+      selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
+      buttonPadding: 8
     });
   }
 
@@ -139,7 +142,7 @@ export struct MainHomePage {
   }
 
   build() {
-    HdsNavigation(this.pageStack) {
+    HdsNavigation(this.appPathStack) {
         RelativeContainer() {
           // 列表内容：铺满整个容器
           if (this.currentIndex === MainTabIndex.TASKS) {
@@ -155,7 +158,7 @@ export struct MainHomePage {
                 right: { anchor: '__container__', align: HorizontalAlign.End },
               })
           } else {
-            HabitListSection()
+            HabitListSection({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT })
               .id('content')
               .alignRules({
                 top: { anchor: '__container__', align: VerticalAlign.Top },
@@ -170,7 +173,7 @@ export struct MainHomePage {
             onClickAdd: () => {
               console.debug('Add Button Clicked')
               if (this.currentIndex === MainTabIndex.TASKS) {
-                this.pageStack.pushPathByName('addTask', null);
+                this.appPathStack.pushPathByName('addTask', null);
               }
             }
           })
@@ -197,7 +200,7 @@ export struct MainHomePage {
         // --- 初始状态样式 (透明) ---
         originalStyle: {
           backgroundStyle: {
-            backgroundColor: $r('app.color.background_primary'),
+            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
           },
         },
         // --- 滚动生效后样式 (模糊) ---
@@ -231,7 +234,7 @@ export struct MainHomePage {
                 icon: $r('sys.symbol.gearshape'),
                 action: () => {
                   // 使用共享的栈跳转
-                  this.pageStack.pushPathByName('settingsWebDav', null);
+                  this.appPathStack.pushPathByName('settingsWebDav', null);
                 }
               }
             }
