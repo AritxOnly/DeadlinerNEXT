@@ -4,6 +4,7 @@ import { LengthMetrics, promptAction } from "@kit.ArkUI";
 import { DDLItem, DeadlineType } from "../../../model/DDLModels";
 import { TaskRepository } from "../../../data/repository/TaskRepository";
 import { VibrationUtils } from "../../../utils/VibrationUtils";
+import { TopSafeContainer } from "../../components/TopSafeContainer";
 
 interface TaskUIModel {
   title: string;
@@ -257,81 +258,63 @@ export struct TaskListSection {
           .height(50)
           .margin({ top: 100 })
       } else {
-        Refresh({ refreshing: $$this.isRefreshing }) {
-          List({
-            space: 8,
-            scroller: this.scroller,
-          }) {
-            ListItem() {
-              Column()
-                .width('100%')
-                .height(this.topAvoidHeight)
-            }
-
-            ForEach(this.taskList, (item: TaskUIModel) => {
-              ListItem() {
-                DDLItemCardSwipeable({
-                  title: item.title,
-                  remainingTimeAlt: item.remainingTimeAlt,
-                  note: item.note,
-                  progress: item.progress,
-                  isStarred: item.isStarred,
-                  status: item.status,
-                  onComplete: async () => {
-                    this.handleComplete(item.dbId)
-                  },
-                  onDelete: async () => {
-                    this.handleDelete(item.dbId, item.title)
+        // 使用新封装的组件
+        TopSafeContainer({ topAvoidHeight: this.topAvoidHeight }) {
+          Column() {
+            // Refresh 包裹 List
+            Refresh({ refreshing: $$this.isRefreshing }) {
+              List({
+                space: 8,
+                scroller: this.scroller,
+              }) {
+                ForEach(this.taskList, (item: TaskUIModel) => {
+                  ListItem() {
+                    DDLItemCardSwipeable({
+                      title: item.title,
+                      remainingTimeAlt: item.remainingTimeAlt,
+                      note: item.note,
+                      progress: item.progress,
+                      isStarred: item.isStarred,
+                      status: item.status,
+                      onComplete: async () => { this.handleComplete(item.dbId) },
+                      onDelete: async () => { this.handleDelete(item.dbId, item.title) }
+                    })
                   }
-                })
+                }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
+
+                ListItem() {
+                  Divider().color(Color.Transparent).height(100)
+                }
               }
-            }, (item: TaskUIModel) => {
-              return `${item.dbId}_${item.status}_${item.progress}_${item.remainingTimeAlt}`;
-            })
-
-            ListItem() {
-              Divider().color(Color.Transparent).height(100)
+              .width("100%")
+              .height("100%") // 撑满 TopSafeContainer 的剩余空间
+              .scrollBar(BarState.Off)
+              .edgeEffect(EdgeEffect.Spring)
+              .nestedScroll({
+                scrollForward: NestedScrollMode.PARENT_FIRST,
+                scrollBackward: NestedScrollMode.PARENT_FIRST
+              })
+              .padding({
+                start: LengthMetrics.vp(12), end: LengthMetrics.vp(12)
+              })
             }
+            .onRefreshing(async () => {
+              this.isRefreshing = true
+              try {
+                await this.repo.syncNow();
+              } catch (e) {
+                console.error('Manual sync failed');
+              }
+              await this.loadData();
+              this.isRefreshing = false;
+            })
           }
-          .scrollBar(BarState.Off)
-          .width("100%")
-          .height("100%")
-          .edgeEffect(EdgeEffect.Spring)
-          .padding({
-            start: LengthMetrics.vp(12),
-            end: LengthMetrics.vp(12)
-          })
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
-          .nestedScroll({
-            // 手指向上推（查看底部内容）：优先让父组件（Navigation）响应 -> 标题栏收起
-            scrollForward: NestedScrollMode.PARENT_FIRST,
-
-            // 手指下拉（查看顶部内容）：优先让父组件（Navigation）响应 -> 标题栏展开
-            // 原来是 SELF_FIRST (列表先滚，滚顶了再展标题)
-            // 现在改 PARENT_FIRST (列表不动，先展标题，标题全展了列表再动)
-            scrollBackward: NestedScrollMode.PARENT_FIRST
-          })
         }
-        .onRefreshing(async () => {
-          this.isRefreshing = true
-
-          try {
-            await this.repo.syncNow();
-          } catch (e) {
-            console.error('Manual sync failed');
-          }
-
-          await this.loadData();
-          this.isRefreshing = false;
-        })
-        .width("100%")
-        .height("100%")
-        .clip(false)
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
       }
     }
     .width("100%")
     .height("100%")
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
+    // 外部也需要扩展，确保 TopSafeContainer 能拿到全屏空间
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM, SafeAreaEdge.TOP])
   }
 }
