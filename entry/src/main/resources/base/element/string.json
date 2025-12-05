@@ -115,6 +115,18 @@
     {
       "name": "widget_display_name",
       "value": "widget"
+    },
+    {
+      "name": "toast_finished",
+      "value": "恭喜完成Deadline！🎉"
+    },
+    {
+      "name": "toast_definished",
+      "value": "撤销完成Deadline...😭"
+    },
+    {
+      "name": "toast_deletion",
+      "value": "已删除Deadline❌"
     }
   ]
 }

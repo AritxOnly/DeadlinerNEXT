@@ -10,6 +10,8 @@ import { BottomBuilderShowType,
   DividerShowType,
   HdsNavigation, HdsNavigationAttribute, ScrollEffectType } from '@kit.UIDesignKit'
 import { TaskListController } from './TaskListController'
+import { ConfettiController } from '../../components/confetti/ConfettiController'
+import { ConfettiView } from '../../components/confetti/ConfettiView'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -49,6 +51,8 @@ export struct MainHomePage {
 
   @State isTaskSelectionMode: boolean = false;
   private taskController: TaskListController = new TaskListController();
+
+  @State confettiController: ConfettiController = new ConfettiController();
 
   // 定义常量：SegmentButton 区域的高度 (标准高度 + 上下padding)
   readonly SEGMENT_HEIGHT: number = 44;
@@ -154,7 +158,8 @@ export struct MainHomePage {
               scroller: this.scroller,
               topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
               isSelectionMode: $isTaskSelectionMode,
-              controller: this.taskController
+              controller: this.taskController,
+              confetti: this.confettiController
             })
               .id('content')
               .alignRules({
@@ -173,6 +178,17 @@ export struct MainHomePage {
                 right: { anchor: '__container__', align: HorizontalAlign.End },
               })
           }
+
+          ConfettiView({ controller: this.confettiController })
+            .hitTestBehavior(HitTestMode.None)
+            .id('confetti')
+            .alignRules({
+              top: { anchor: '__container__', align: VerticalAlign.Top },
+              bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+              left: { anchor: '__container__', align: HorizontalAlign.Start },
+              right: { anchor: '__container__', align: HorizontalAlign.End },
+            })
+            .zIndex(1)
 
           if (this.currentIndex === MainTabIndex.TASKS) {
             HomeFloatingToolbar({
@@ -281,6 +297,6 @@ export struct MainHomePage {
         divider: { showType: DividerShowType.OFF }
       }
     })
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP])
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }
