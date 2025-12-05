@@ -47,5 +47,6 @@ export struct HomeFloatingToolbar {
       blurStrategy: BlurStrategy.ENABLE,
       isExpand: this.isSelectionMode
     })
+      .hitTestBehavior(HitTestMode.Transparent)
   }
 }

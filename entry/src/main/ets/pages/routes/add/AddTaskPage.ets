@@ -94,37 +94,6 @@ export struct AddTaskPage {
   }
 
   @State inputBgColor: ResourceColor = $r('sys.color.background_tertiary')
-  //
-  // // @Builder: 模拟 TextInput 样式的按钮
-  // @Builder
-  // TimeInputButton(title: string, content: string, onClick: () => void) {
-  //   Row() {
-  //     Text(title)
-  //       .fontSize(16)
-  //       .fontColor($r('app.color.font_secondary'))
-  //
-  //     Blank()
-  //
-  //     Row() {
-  //       Text(content)
-  //         .fontSize(16)
-  //         .fontColor($r('app.color.font_primary'))
-  //         .fontWeight(FontWeight.Regular)
-  //         .margin({ right: 8 })
-  //
-  //       // 小箭头
-  //       SymbolGlyph($r('sys.symbol.chevron_right'))
-  //         .fontColor([$r('app.color.font_secondary')])
-  //         .fontSize(18)
-  //     }
-  //   }
-  //   .width('100%')
-  //   .height(ITEM_HEIGHT)
-  //   .padding({ left: 16, right: 16 }) // 这里的 padding 模拟 TextInput 的内边距
-  //   .backgroundColor(this.inputBgColor)  // 统一底色
-  //   .borderRadius(COMMON_RADIUS)      // 统一圆角 24
-  //   .onClick(onClick)
-  // }
 
   build() {
     NavDestination() {

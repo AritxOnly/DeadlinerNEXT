@@ -215,6 +215,7 @@ export struct MainHomePage {
                 middle: { anchor: '__container__', align: HorizontalAlign.Center },
               })
               .margin({ bottom: 48 })
+              .hitTestBehavior(HitTestMode.Transparent)
           } else {
             // 在其他 Tab (如 Habit) 显示普通 FAB，或者根据 Habit 需求复用 Toolbar
             HomeFloatingToolbar({

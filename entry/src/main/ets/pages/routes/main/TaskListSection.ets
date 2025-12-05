@@ -430,13 +430,13 @@ export struct TaskListSection {
                 }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
 
                 ListItem() {
-                  Divider().color(Color.Transparent).height(140)
+                  Divider().color(Color.Transparent).height(80).width('100%')
                 }
               }
               .width("100%")
               .height("100%") // 撑满 TopSafeContainer 的剩余空间
               .scrollBar(BarState.Off)
-              .edgeEffect(EdgeEffect.Spring)
+              .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
               .nestedScroll({
                 scrollForward: NestedScrollMode.PARENT_FIRST,
                 scrollBackward: NestedScrollMode.PARENT_FIRST
