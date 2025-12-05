@@ -6,6 +6,7 @@ import { TaskRepository } from "../../../data/repository/TaskRepository";
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { TaskListController } from "./TaskListController"
+import { ConfettiController } from "../../components/confetti/ConfettiController";
 
 interface TaskUIModel {
   title: string;
@@ -31,6 +32,8 @@ export struct TaskListSection {
   @Link isSelectionMode: boolean;
   @Require controller: TaskListController = new TaskListController();
   @State selectedIds: number[] = [];
+
+  @Prop confetti: ConfettiController;
 
   private repo = TaskRepository.getInstance();
 
@@ -189,6 +192,7 @@ export struct TaskListSection {
       // 3. 更新完成时间
       if (newStatus) {
         targetItem.completeTime = new Date().toISOString(); // 或者用你之前的 formatLocalDateTime
+        this.confetti.fire();
       } else {
         targetItem.completeTime = "";
       }
@@ -201,7 +205,7 @@ export struct TaskListSection {
       await this.loadData();
 
       promptAction.showToast({
-        message: newStatus ? '任务已完成' : '任务已重置'
+        message: newStatus ? $r('app.string.toast_finished') : $r('app.string.toast_definished')
       });
 
     } catch (e) {
@@ -240,7 +244,7 @@ export struct TaskListSection {
           try {
             await this.repo.deleteDDL(dbId);
             await this.loadData();
-            promptAction.showToast({ message: '已删除' });
+            promptAction.showToast({ message: $r('app.string.toast_deletion') });
           } catch (e) {
             console.error(`Delete failed: ${e}`);
             promptAction.showToast({ message: '删除失败' });
@@ -288,6 +292,8 @@ export struct TaskListSection {
   // [新增] 批量逻辑：标记完成
   private async handleBatchComplete() {
     if (this.selectedIds.length === 0) return;
+
+    VibrationUtils.vibrateShort();
     try {
       const allItems = await this.repo.getAllDDLs();
       // 找到所有选中的项目
@@ -340,6 +346,7 @@ export struct TaskListSection {
   private handleBatchDelete() {
     if (this.selectedIds.length === 0) return;
 
+    VibrationUtils.vibrateMedium();
     AlertDialog.show({
       title: '批量删除',
       message: `确定要删除选中的 ${this.selectedIds.length} 个任务吗？此操作不可恢复。`,

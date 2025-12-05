@@ -2,7 +2,6 @@ import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponen
 import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
 import { MainHomePage } from './routes/main/MainHomePage';
 import { OverviewPage } from './routes/overview/OverviewPage';
-import { AiPage } from './routes/ai/AIPage';
 import { UserPage } from './routes/user/UserPage';
 
 interface TabData {
@@ -89,6 +88,7 @@ struct Index {
           UserPage()
         }
         .tabBar(this.getTabBarStyle(this.tabs[2]))
+        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       }
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .barMode(BarMode.Fixed) // 固定布局
