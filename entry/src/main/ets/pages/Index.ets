@@ -25,10 +25,9 @@ struct Index {
 
   // 定义 Tab 数据
   private tabs: Array<TabData> = [
-    { title: '主页', icon: $r('sys.symbol.house_fill'), index: 0 },
+    { title: '主页', icon: $r('sys.symbol.house_fill_1'), index: 0 },
     { title: '概览', icon: $r('sys.symbol.square_fill_grid_2x2'), index: 1 },
-    { title: 'AI', icon: $r('sys.symbol.AI'), index: 2 },
-    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 3 },
+    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
   ]
 
   // --- 核心逻辑：处理 Tab 点击 ---
@@ -58,8 +57,9 @@ struct Index {
         .fontColor([
           this.currentIndex === item.index
             ? $r('app.color.brand')
-            : $r('app.color.font_secondary')
+            : $r('app.color.font_secondary'),
         ])
+        .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .symbolEffect(
           new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN),
           this.tabAnimationTriggers[item.index]
@@ -105,18 +105,11 @@ struct Index {
         .tabBar(this.tabItem(this.tabs[1]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
-        // --- Tab 3: AI ---
-        TabContent() {
-          AiPage()
-        }
-        .tabBar(this.tabItem(this.tabs[2]))
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-
-        // --- Tab 4: 我的 ---
+        // --- Tab 3: 我的 ---
         TabContent() {
           UserPage()
         }
-        .tabBar(this.tabItem(this.tabs[3]))
+        .tabBar(this.tabItem(this.tabs[2]))
       }
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .barMode(BarMode.Fixed) // 固定布局
