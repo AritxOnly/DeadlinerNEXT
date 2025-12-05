@@ -5,6 +5,7 @@ import { DDLItem, DeadlineType } from "../../../model/DDLModels";
 import { TaskRepository } from "../../../data/repository/TaskRepository";
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
+import { TaskListController } from "./TaskListController"
 
 interface TaskUIModel {
   title: string;
@@ -26,11 +27,17 @@ export struct TaskListSection {
   @State isLoading: boolean = true;
   @Prop topAvoidHeight: number = 0;
 
+  // 多选模式
+  @Link isSelectionMode: boolean;
+  @Require controller: TaskListController = new TaskListController();
+  @State selectedIds: number[] = [];
+
   private repo = TaskRepository.getInstance();
 
   async aboutToAppear() {
-    await this.loadData();
+    this.bindController();
 
+    await this.loadData();
     // 监听同步完成事件，自动刷新
     getContext(this).eventHub.on('sync_done', () => {
       console.info('[TaskList] Received sync_done event, reloading...');
@@ -42,6 +49,15 @@ export struct TaskListSection {
 
   aboutToDisappear(): void {
     getContext(this).eventHub.off('sync_done');
+  }
+
+  // 绑定逻辑到 Controller
+  private bindController() {
+    this.controller.requestBatchComplete = (): Promise<void> => this.handleBatchComplete();
+    this.controller.requestBatchArchive = (): Promise<void> => this.handleBatchArchive();
+    this.controller.requestBatchDelete = (): void => this.handleBatchDelete();
+    this.controller.requestBatchEdit = (): void => this.handleBatchEdit();
+    this.controller.requestExitSelection = (): void => this.exitSelectionMode();
   }
 
   // 加载数据：过滤 + 排序 + 映射
@@ -234,20 +250,128 @@ export struct TaskListSection {
     })
   }
 
-  @Builder RefreshHeader() {
-    Stack({ alignContent: Alignment.Bottom }) {
-      LoadingProgress()
-        .width(24)
-        .height(24)
-        .color($r('app.color.brand'))
+  // 进入多选模式
+  private enterSelectionMode(firstId: number) {
+    VibrationUtils.vibrateShort();
+    this.isSelectionMode = true;
+    this.selectedIds = [firstId];
+  }
+
+  // 退出多选模式
+  private exitSelectionMode() {
+    this.isSelectionMode = false;
+    this.selectedIds = [];
+  }
+
+  // 切换单个选中状态
+  private toggleSelection(dbId: number) {
+    const index = this.selectedIds.indexOf(dbId);
+    if (index >= 0) {
+      // 已选中 -> 移除
+      this.selectedIds.splice(index, 1);
+      // 如果一个都没选了，是否自动退出？通常为了体验保留模式，直到点X
+      if (this.selectedIds.length === 0) {
+        // 可选：this.exitSelectionMode();
+      }
+    } else {
+      // 未选中 -> 添加
+      this.selectedIds.push(dbId);
     }
-    .width("100%")
-    .height(64) // 保持标准的触发高度
-    // 【核心技巧】
-    // 使用 translate 仅仅改变视觉位置，不改变布局占位。
-    // 这样 Refresh 组件认为 Header 还在顶部，正常触发刷新；
-    // 但用户看到的转圈圈已经被移到了标题栏下方。
-    .translate({ y: this.topAvoidHeight })
+    // 触发 UI 更新（如果是简单的数组 push 可能需要重新赋值引用）
+    this.selectedIds = [...this.selectedIds];
+
+    if (this.selectedIds.length === 0) {
+      this.exitSelectionMode();
+    }
+  }
+
+  // [新增] 批量逻辑：标记完成
+  private async handleBatchComplete() {
+    if (this.selectedIds.length === 0) return;
+    try {
+      const allItems = await this.repo.getAllDDLs();
+      // 找到所有选中的项目
+      const targets = allItems.filter(item => this.selectedIds.includes(item.id));
+
+      // 更新状态
+      targets.forEach(item => {
+        item.isCompleted = true;
+        item.completeTime = new Date().toISOString();
+      });
+
+      // 批量更新数据库 (假设 repo 支持 updateDDL，如果不支持批量，需要循环 await)
+      // 建议 repo 增加 updateDDLs(items: Array<DDLItem>)
+      for (const item of targets) {
+        await this.repo.updateDDL(item);
+      }
+
+      promptAction.showToast({ message: `已完成 ${targets.length} 项任务` });
+      this.exitSelectionMode();
+      await this.loadData();
+    } catch (e) {
+      console.error('Batch complete failed:', e);
+    }
+  }
+
+  // [新增] 批量逻辑：归档
+  private async handleBatchArchive() {
+    if (this.selectedIds.length === 0) return;
+    try {
+      const allItems = await this.repo.getAllDDLs();
+      const targets = allItems.filter(item => this.selectedIds.includes(item.id));
+
+      targets.forEach(item => {
+        item.isArchived = true;
+      });
+
+      for (const item of targets) {
+        await this.repo.updateDDL(item);
+      }
+
+      promptAction.showToast({ message: `已归档 ${targets.length} 项任务` });
+      this.exitSelectionMode();
+      await this.loadData();
+    } catch (e) {
+      console.error('Batch archive failed:', e);
+    }
+  }
+
+  // [新增] 批量逻辑：删除
+  private handleBatchDelete() {
+    if (this.selectedIds.length === 0) return;
+
+    AlertDialog.show({
+      title: '批量删除',
+      message: `确定要删除选中的 ${this.selectedIds.length} 个任务吗？此操作不可恢复。`,
+      autoCancel: true,
+      alignment: DialogAlignment.Center,
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: Color.Red,
+        action: async () => {
+          try {
+            for (const id of this.selectedIds) {
+              await this.repo.deleteDDL(id);
+            }
+            promptAction.showToast({ message: '删除成功' });
+            this.exitSelectionMode();
+            await this.loadData();
+          } catch (e) {
+            console.error('Batch delete failed:', e);
+          }
+        }
+      }
+    });
+  }
+
+  // [新增] 批量逻辑：编辑
+  private handleBatchEdit() {
+    promptAction.showToast({ message: 'TODO: 批量编辑功能开发中' });
+    // 编辑逻辑复杂，通常批量编辑只允许修改共同属性（如修改标签、修改DDL）
   }
 
   build() {
@@ -276,14 +400,30 @@ export struct TaskListSection {
                       progress: item.progress,
                       isStarred: item.isStarred,
                       status: item.status,
+
+                      // 多选 Props
+                      selectionMode: this.isSelectionMode,
+                      selected: this.selectedIds.includes(item.dbId),
+
+                      // 普通交互
                       onComplete: async () => { this.handleComplete(item.dbId) },
-                      onDelete: async () => { this.handleDelete(item.dbId, item.title) }
+                      onDelete: async () => { this.handleDelete(item.dbId, item.title) },
+
+                      // 多选交互
+                      onLongPressSelect: () => {
+                        if (!this.isSelectionMode) {
+                          this.enterSelectionMode(item.dbId);
+                        }
+                      },
+                      onToggleSelect: () => {
+                        this.toggleSelection(item.dbId);
+                      }
                     })
                   }
                 }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
 
                 ListItem() {
-                  Divider().color(Color.Transparent).height(100)
+                  Divider().color(Color.Transparent).height(140)
                 }
               }
               .width("100%")

@@ -3,12 +3,13 @@ import { ItemRestriction, LengthMetrics, SegmentButton,
   SegmentButtonOptions,
   SegmentButtonTextItem,
   Theme } from '@kit.ArkUI'
-import { FloatingAddButton } from '../../components/FloatingAddButton'
+import { HomeFloatingToolbar } from '../../components/HomeFloatingToolbar'
 import { HabitListSection } from './HabitListSection'
 import { TaskListSection } from './TaskListSection'
 import { BottomBuilderShowType,
   DividerShowType,
   HdsNavigation, HdsNavigationAttribute, ScrollEffectType } from '@kit.UIDesignKit'
+import { TaskListController } from './TaskListController'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -45,6 +46,9 @@ export struct MainHomePage {
 
   @State currentIndex: number = MainTabIndex.TASKS
   @State @Watch('onSegmentChange') selectedIndexes: number[] = [MainTabIndex.TASKS]
+
+  @State isTaskSelectionMode: boolean = false;
+  private taskController: TaskListController = new TaskListController();
 
   // 定义常量：SegmentButton 区域的高度 (标准高度 + 上下padding)
   readonly SEGMENT_HEIGHT: number = 44;
@@ -148,7 +152,9 @@ export struct MainHomePage {
           if (this.currentIndex === MainTabIndex.TASKS) {
             TaskListSection({
               scroller: this.scroller,
-              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT
+              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
+              isSelectionMode: $isTaskSelectionMode,
+              controller: this.taskController
             })
               .id('content')
               .alignRules({
@@ -168,21 +174,48 @@ export struct MainHomePage {
               })
           }
 
-          // FAB：相对容器底部 + 水平居中
-          FloatingAddButton({
-            onClickAdd: () => {
-              console.debug('Add Button Clicked')
-              if (this.currentIndex === MainTabIndex.TASKS) {
-                this.appPathStack.pushPathByName('addTask', null);
-              }
-            }
-          })
-            .id('fab')
-            .alignRules({
-              bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
-              middle: { anchor: '__container__', align: HorizontalAlign.Center },
+          if (this.currentIndex === MainTabIndex.TASKS) {
+            HomeFloatingToolbar({
+              isSelectionMode: this.isTaskSelectionMode,
+
+              // 主按钮逻辑：多选时为关闭，平时为添加
+              onClickAdd: () => {
+                if (this.isTaskSelectionMode) {
+                  this.taskController.requestExitSelection();
+                } else {
+                  this.appPathStack.pushPathByName('addTask', null);
+                }
+              },
+
+              // 批量操作代理到 Controller
+              handleBatchComplete: () => this.taskController.requestBatchComplete(),
+              handleBatchArchive: () => this.taskController.requestBatchArchive(),
+              handleBatchDelete: () => this.taskController.requestBatchDelete(),
+              handleBatchEdit: () => this.taskController.requestBatchEdit()
             })
-            .margin({ bottom: 40 }) // 往上抬一点
+              .id('fab')
+              .alignRules({
+                bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                middle: { anchor: '__container__', align: HorizontalAlign.Center },
+              })
+              .margin({ bottom: 54 })
+          } else {
+            // 在其他 Tab (如 Habit) 显示普通 FAB，或者根据 Habit 需求复用 Toolbar
+            HomeFloatingToolbar({
+              isSelectionMode: false, // 习惯暂无多选
+              onClickAdd: () => { /* Add Habit Logic */ },
+              handleBatchComplete: () => {},
+              handleBatchArchive: () => {},
+              handleBatchDelete: () => {},
+              handleBatchEdit: () => {}
+            })
+              .id('fab_habit')
+              .alignRules({
+                bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                middle: { anchor: '__container__', align: HorizontalAlign.Center },
+              })
+              .margin({ bottom: 54 })
+          }
         }
         .height('100%')
         .width('100%')
