@@ -1,5 +1,5 @@
 import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponent';
-import { LengthMetrics } from '@kit.ArkUI';
+import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
 import { MainHomePage } from './routes/main/MainHomePage';
 import { OverviewPage } from './routes/overview/OverviewPage';
 import { AiPage } from './routes/ai/AIPage';
@@ -30,34 +30,35 @@ struct Index {
     { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
   ]
 
-  @Builder
-  private tabItem(item: TabData) {
-    Column({ space: 2 }) {
-      SymbolGlyph(item.icon)
+  private getTabBarStyle(item: TabData): BottomTabBarStyle {
+    let style = BottomTabBarStyle.of(
+      this.getTabBarSymbol(item.icon),
+      item.title
+    );
+
+    style.labelStyle({
+      selectedColor: $r('app.color.brand'),
+      unselectedColor: $r('app.color.font_secondary')
+    })
+
+    return style;
+  }
+
+  private getTabBarSymbol(icon: Resource): TabBarSymbol {
+    return {
+      normal: new SymbolGlyphModifier(icon)
         .fontSize(24)
-        .fontColor([
-          this.currentIndex === item.index
-            ? $r('app.color.brand')
-            : $r('app.color.font_secondary'),
-        ])
+        .fontColor([$r('app.color.font_secondary')])
+        .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY),
+
+      selected: new SymbolGlyphModifier(icon)
+        .fontSize(24)
+        .fontColor([$r('app.color.brand')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .symbolEffect(
-          new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN),
-          this.tabAnimationTriggers[item.index]
+          new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN)
         )
-
-      Text(item.title)
-        .fontSize(10)
-        .fontColor(
-          this.currentIndex === item.index
-            ? $r('app.color.brand')
-            : $r('app.color.font_secondary')
-        )
-    }
-    .width('100%')
-    .height(40)
-    .justifyContent(FlexAlign.Center)
-    .alignItems(HorizontalAlign.Center)
+    };
   }
 
   build() {
@@ -73,21 +74,21 @@ struct Index {
             .width("100%")
             .height("100%")
         }
-        .tabBar(this.tabItem(this.tabs[0]))
+        .tabBar(this.getTabBarStyle(this.tabs[0]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
         // --- Tab 2: 概览 ---
         TabContent() {
           OverviewPage()
         }
-        .tabBar(this.tabItem(this.tabs[1]))
+        .tabBar(this.getTabBarStyle(this.tabs[1]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
         // --- Tab 3: 我的 ---
         TabContent() {
           UserPage()
         }
-        .tabBar(this.tabItem(this.tabs[2]))
+        .tabBar(this.getTabBarStyle(this.tabs[2]))
       }
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .barMode(BarMode.Fixed) // 固定布局
