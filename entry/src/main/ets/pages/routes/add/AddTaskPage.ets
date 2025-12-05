@@ -1,6 +1,7 @@
 import { promptAction } from '@kit.ArkUI';
 import { TaskRepository } from '../../../data/repository/TaskRepository';
 import { DeadlineType } from '../../../model/DDLModels';
+import { TimeInputButton } from '../../components/TimeInputButton';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24; // 需求1：圆角 24
@@ -93,37 +94,37 @@ export struct AddTaskPage {
   }
 
   @State inputBgColor: ResourceColor = $r('sys.color.background_tertiary')
-
-  // @Builder: 模拟 TextInput 样式的按钮
-  @Builder
-  TimeInputButton(title: string, date: Date, onClick: () => void) {
-    Row() {
-      Text(title)
-        .fontSize(16)
-        .fontColor($r('app.color.font_secondary'))
-
-      Blank()
-
-      Row() {
-        Text(this.formatTime(date))
-          .fontSize(16)
-          .fontColor($r('app.color.font_primary'))
-          .fontWeight(FontWeight.Regular)
-          .margin({ right: 8 })
-
-        // 小箭头
-        SymbolGlyph($r('sys.symbol.chevron_right'))
-          .fontColor([$r('app.color.font_secondary')])
-          .fontSize(18)
-      }
-    }
-    .width('100%')
-    .height(ITEM_HEIGHT)
-    .padding({ left: 16, right: 16 }) // 这里的 padding 模拟 TextInput 的内边距
-    .backgroundColor(this.inputBgColor)  // 统一底色
-    .borderRadius(COMMON_RADIUS)      // 统一圆角 24
-    .onClick(onClick)
-  }
+  //
+  // // @Builder: 模拟 TextInput 样式的按钮
+  // @Builder
+  // TimeInputButton(title: string, content: string, onClick: () => void) {
+  //   Row() {
+  //     Text(title)
+  //       .fontSize(16)
+  //       .fontColor($r('app.color.font_secondary'))
+  //
+  //     Blank()
+  //
+  //     Row() {
+  //       Text(content)
+  //         .fontSize(16)
+  //         .fontColor($r('app.color.font_primary'))
+  //         .fontWeight(FontWeight.Regular)
+  //         .margin({ right: 8 })
+  //
+  //       // 小箭头
+  //       SymbolGlyph($r('sys.symbol.chevron_right'))
+  //         .fontColor([$r('app.color.font_secondary')])
+  //         .fontSize(18)
+  //     }
+  //   }
+  //   .width('100%')
+  //   .height(ITEM_HEIGHT)
+  //   .padding({ left: 16, right: 16 }) // 这里的 padding 模拟 TextInput 的内边距
+  //   .backgroundColor(this.inputBgColor)  // 统一底色
+  //   .borderRadius(COMMON_RADIUS)      // 统一圆角 24
+  //   .onClick(onClick)
+  // }
 
   build() {
     NavDestination() {
@@ -155,9 +156,17 @@ export struct AddTaskPage {
           })
 
         // 3. 时间选择 (使用自定义 Builder 模拟 TextInput 样式)
-        this.TimeInputButton('开始时间', this.startTime, (): void => this.showTimePicker(true))
+        TimeInputButton({
+          title: '开始时间',
+          content: this.formatTime(this.startTime),
+          onClickButton: (): void => this.showTimePicker(true)
+        })
 
-        this.TimeInputButton('结束时间', this.endTime, (): void => this.showTimePicker(false))
+        TimeInputButton({
+          title: '结束',
+          content: this.formatTime(this.endTime),
+          onClickButton: (): void => this.showTimePicker(false)
+        })
 
         // 4. 备注 (TextArea)
         TextArea({ placeholder: '备注 (可选)', text: this.note })

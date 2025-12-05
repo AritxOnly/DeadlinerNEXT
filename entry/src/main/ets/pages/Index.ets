@@ -1,4 +1,4 @@
-import { HdsNavigation, HdsNavigationAttribute, ScrollEffectType } from '@hms.hds.hdsBaseComponent';
+import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponent';
 import { LengthMetrics } from '@kit.ArkUI';
 import { MainHomePage } from './routes/main/MainHomePage';
 import { OverviewPage } from './routes/overview/OverviewPage';
@@ -30,25 +30,6 @@ struct Index {
     { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
   ]
 
-  // --- 核心逻辑：处理 Tab 点击 ---
-  private handleTabClick(index: number) {
-    // 1. 触发图标的弹跳动画 (改变 trigger 值即可触发 symbolEffect)
-    this.tabAnimationTriggers[index] += 1;
-
-    // 2. 判断是否点击了“当前已选中的 Tab”
-    if (this.currentIndex === index) {
-      console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
-      // 这里使用 AppStorage 发送通知，MainHomePage 监听这个值来滚动
-      // 使用 Date.now() 确保每次值都不同，从而触发 @Watch
-      AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
-      return;
-    }
-
-    // 3. 正常切换
-    this.currentIndex = index;
-    this.tabsController.changeIndex(index);
-  }
-
   @Builder
   private tabItem(item: TabData) {
     Column({ space: 2 }) {
@@ -77,9 +58,6 @@ struct Index {
     .height(40)
     .justifyContent(FlexAlign.Center)
     .alignItems(HorizontalAlign.Center)
-    .onClick(() => {
-      this.handleTabClick(item.index)
-    })
   }
 
   build() {
@@ -117,8 +95,20 @@ struct Index {
       .barBackgroundBlurStyle(BlurStyle.Regular) // TabBar 背景模糊（原生能力）
       .barBackgroundColor(Color.Transparent)
       .scrollable(false) // 两个 Tab 不需要横向滚动
+      // .barHeight(48)
       .height('100%')
       .width('100%')
+      .onChange((index: number) => {
+        this.currentIndex = index;
+      })
+      .onTabBarClick((index: number) => {
+        this.tabAnimationTriggers[index] += 1;
+
+        if (index === this.currentIndex) {
+          console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
+          AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
+        }
+      })
     }
     .hideTitleBar(true)
     // .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
