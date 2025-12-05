@@ -139,23 +139,26 @@ struct SelectionOverlay {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 半透明遮罩
-      Rect()
+      // 1. 半透明遮罩背景
+      Column()
         .width('100%')
         .height('100%')
-        .fill(this.containerColor)
+        .backgroundColor(this.containerColor)
         .opacity(0.25)
 
-      // 边框
-      Rect()
+      // 2. 边框 (使用 border 属性替代 Rect stroke，避免被裁切)
+      Column()
         .width('100%')
         .height('100%')
-        .fill(Color.Transparent)
-        .stroke(this.primaryColor)
-        .strokeWidth(2)
+        .border({
+          width: 2,
+          color: this.primaryColor,
+          radius: 24 // 这里的 radius 要和卡片保持一致
+        })
         .opacity(0.7)
+        .hitTestBehavior(HitTestMode.Transparent) // 确保不拦截点击
 
-      // 左上角打钩
+      // 3. 左上角打钩
       Stack() {
         SymbolGlyph($r('sys.symbol.checkmark'))
           .fontSize(16)
@@ -163,16 +166,17 @@ struct SelectionOverlay {
       }
       .width(24)
       .height(24)
-      .borderRadius(20)
+      // 左上角圆角处理：让打钩背景左上角是圆的，右下角也是圆的，或者保持圆形
+      // 如果你希望它是贴合卡片左上角的扇形，需要特殊处理；
+      // 这里保持你原来的圆形设计，稍微调整 margin
+      .borderRadius(12)
       .backgroundColor(this.primaryColor)
       .shadow({ radius: 2 })
-      .margin(8)
+      .margin({ top: 8, left: 8 }) // 调整位置
       .alignContent(Alignment.Center)
     }
     .width('100%')
     .height('100%')
-    .borderRadius(24)
-    .clip(true)
   }
 }
 
@@ -282,6 +286,10 @@ export struct DDLItemCardSwipeable {
           SelectionOverlay()
         }
       }
+      .width('100%') // 确保填满
+      .height(76)    // 确保高度一致
+      .borderRadius(24) // 【新增】由父容器统一控制圆角
+      .clip(true)       // 【新增】强制裁剪子元素超出圆角的部分
       .translate({ x: this.offsetX }) // 核心位移
       .onAreaChange((oldArea, newArea) => {
         this.cardWidth = newArea.width as number;

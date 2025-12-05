@@ -12,7 +12,7 @@ export class TaskRepository {
 
   // 去抖动定时器
   private syncTimer: number = -1;
-  private readonly SYNC_DELAY_MS = 800;
+  private readonly SYNC_DELAY_MS = 400;
 
   // 🔥 新增：并发控制状态
   private isSyncing: boolean = false;      // 是否正在同步中
