@@ -1,7 +1,7 @@
 import { http } from '@kit.NetworkKit';
 import { util } from '@kit.ArkTS';
 import { BusinessError } from '@kit.BasicServicesKit';
-import { SettingsValue } from '../settings/SettingsValue';
+import { LocalValues } from '../local/LocalValues';
 
 // 简单的自定义异常，用于模拟 PreconditionFailed
 export class PreconditionFailedError extends Error {
@@ -47,7 +47,7 @@ export class WebUtils {
 
   private ensureSyncEnabled() {
     // 从 SettingsValue 获取真实配置
-    const isEnabled = SettingsValue.getInstance().getCloudSyncEnable();
+    const isEnabled = LocalValues.getInstance().getCloudSyncEnable();
     if (!isEnabled) {
       throw new Error("Cloud sync is disabled by user.");
     }

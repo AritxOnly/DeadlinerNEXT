@@ -1,5 +1,5 @@
-import { SettingsConstants } from "../../../data/settings/SettingsConstants";
-import { SettingsValue } from "../../../data/settings/SettingsValue";
+import { SettingsConstants } from "../../../data/local/SettingsConstants";
+import { LocalValues } from "../../../data/local/LocalValues";
 import { promptAction } from '@kit.ArkUI'; // 用于显示 Toast
 import { WebUtils } from '../../../data/network/WebUtils'; // 引用我们之前写的网络工具
 import { DatabaseHelper } from '../../../data/db/DatabaseHelper'; // 引用数据库工具
@@ -38,7 +38,7 @@ export struct SettingsWebDavPage {
           Blank()
           Toggle({ type: ToggleType.Switch, isOn: this.syncEnable })
             .onChange((isOn) => {
-              SettingsValue.getInstance().setCloudSyncEnable(isOn);
+              LocalValues.getInstance().setCloudSyncEnable(isOn);
             })
         }
         .width('100%')
@@ -52,7 +52,7 @@ export struct SettingsWebDavPage {
           })
           .onSubmit(() => {
             // 回车保存
-            SettingsValue.getInstance().setWebDavUrl(this.webUrl);
+            LocalValues.getInstance().setWebDavUrl(this.webUrl);
           })
 
         // 3. 用户名
