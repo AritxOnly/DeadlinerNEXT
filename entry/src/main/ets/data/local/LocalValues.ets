@@ -1,55 +1,50 @@
 import { preferences } from '@kit.ArkData';
 import { SettingsConstants as C } from './SettingsConstants';
-import { BusinessError } from '@kit.BasicServicesKit';
+import { SecureStorage } from './SecureStorage';
 
 interface WebDavAuthInterface {
   user: string;
   pass: string;
 }
 
-export class SettingsValue {
-  private static instance: SettingsValue;
+export class LocalValues {
+  private static instance: LocalValues;
   private pref: preferences.Preferences | null = null;
 
   private constructor() {}
 
-  public static getInstance(): SettingsValue {
-    if (!SettingsValue.instance) {
-      SettingsValue.instance = new SettingsValue();
+  public static getInstance(): LocalValues {
+    if (!LocalValues.instance) {
+      LocalValues.instance = new LocalValues();
     }
-    return SettingsValue.instance;
+    return LocalValues.instance;
   }
 
-  /**
-   * 初始化：通常在 EntryAbility 的 onCreate 或 onWindowStageCreate 调用
-   */
   async init(context: Context): Promise<void> {
     try {
-      // 1. 获取 Preferences 实例
       this.pref = await preferences.getPreferences(context, C.PREF_NAME);
 
-      // 2. 读取数据并载入 AppStorage
-      // AppStorage 是内存中的全局状态，UI 可以通过 @StorageLink 直接绑定
-
-      // 同步开关 (默认 false)
+      // --- 1. 普通数据 (Preferences) ---
       const syncEnable = await this.pref.get(C.KEY_CLOUD_SYNC_ENABLE, false);
       AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, syncEnable);
 
-      // WebDAV URL (默认空)
       const url = await this.pref.get(C.KEY_WEBDAV_URL, '');
       AppStorage.setOrCreate(C.KEY_WEBDAV_URL, url);
 
-      // Username
       const username = await this.pref.get(C.KEY_WEBDAV_USERNAME, '');
       AppStorage.setOrCreate(C.KEY_WEBDAV_USERNAME, username);
 
-      // Password
-      const password = await this.pref.get(C.KEY_WEBDAV_PASSWORD, '');
+      const vibration = await this.pref.get(C.KEY_VIBRATION_ENABLE, true);
+      AppStorage.setOrCreate(C.KEY_VIBRATION_ENABLE, vibration);
+
+      // --- 2. 敏感数据 (Asset Store Kit) ---
+      // 从安全存储中读取密码，加载到内存 AppStorage 供业务逻辑使用
+      const password = await SecureStorage.get(C.KEY_WEBDAV_PASSWORD);
       AppStorage.setOrCreate(C.KEY_WEBDAV_PASSWORD, password);
 
-      // Vibration
-      const vibration = await this.pref.get(C.KEY_VIBRATION_ENABLE, true)
-      AppStorage.setOrCreate(C.KEY_VIBRATION_ENABLE, vibration)
+      // 同理，如果是 API Key，也在这里加载
+      // const apiKey = await SecureStorage.get('openai_api_key');
+      // AppStorage.setOrCreate('openai_api_key', apiKey);
 
       console.info('SettingsValue initialized successfully');
     } catch (err) {
@@ -58,26 +53,18 @@ export class SettingsValue {
   }
 
   /**
-   * 通用设置方法：同时更新 AppStorage (UI) 和 Preferences (Disk)
+   * 普通设置通用方法
    */
   async setValue<T extends preferences.ValueType>(key: string, value: T): Promise<void> {
     if (!this.pref) return;
-
-    // 1. 更新内存状态 (触发 UI 刷新)
-    AppStorage.set(key, value);
-
-    // 2. 持久化到磁盘
+    AppStorage.set(key, value); // 更新内存
     try {
-      await this.pref.put(key, value);
-      await this.pref.flush(); // 必须 flush 才能真正写入文件
+      await this.pref.put(key, value); // 更新磁盘
+      await this.pref.flush();
     } catch (err) {
       console.error(`Failed to save ${key}: ${JSON.stringify(err)}`);
     }
   }
-
-  // ================= 快捷存取方法 (Optional) =================
-  // 虽然 UI 可以直接用 @StorageLink，但在逻辑层(如 SyncService)中，
-  // 我们可能更习惯调用方法获取值。
 
   getCloudSyncEnable(): boolean {
     return AppStorage.get<boolean>(C.KEY_CLOUD_SYNC_ENABLE) ?? false;
@@ -102,10 +89,25 @@ export class SettingsValue {
     };
   }
 
+  /**
+   * 修改：WebDAV 认证信息设置
+   * 用户名存 Prefs，密码存 Asset Store
+   */
   async setWebDavAuth(user: string, pass: string) {
-    // 批量写入建议直接操作 pref 减少 flush 次数，这里简单处理调用两次
+    // 1. 更新内存状态 (UI)
+    AppStorage.set(C.KEY_WEBDAV_USERNAME, user);
+    AppStorage.set(C.KEY_WEBDAV_PASSWORD, pass);
+
+    // 2. 用户名 -> Preferences
     await this.setValue(C.KEY_WEBDAV_USERNAME, user);
-    await this.setValue(C.KEY_WEBDAV_PASSWORD, pass);
+
+    // 3. 密码 -> Asset Store Kit
+    if (pass && pass.length > 0) {
+      await SecureStorage.save(C.KEY_WEBDAV_PASSWORD, pass);
+    } else {
+      // 如果密码为空，视为删除
+      await SecureStorage.delete(C.KEY_WEBDAV_PASSWORD);
+    }
   }
 
   getVibration(): boolean {

@@ -2,9 +2,10 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ThemeControl, window } from '@kit.ArkUI';
 import { gDeadlinerTheme } from '../AppTheme';
-import { SettingsValue } from '../data/settings/SettingsValue';
+import { LocalValues } from '../data/local/LocalValues';
 import { DatabaseHelper } from '../data/db/DatabaseHelper';
 import { TaskRepository } from '../data/repository/TaskRepository';
+import { WidgetUpdater } from '../utils/WidgetUpdater';
 
 const DOMAIN = 0x0000;
 
@@ -13,7 +14,7 @@ export default class EntryAbility extends UIAbility {
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
 
-      await SettingsValue.getInstance().init(this.context);
+      await LocalValues.getInstance().init(this.context);
       await DatabaseHelper.getInstance().init(this.context);
       TaskRepository.getInstance().setContext(this.context)
     } catch (err) {
@@ -49,10 +50,12 @@ export default class EntryAbility extends UIAbility {
   onForeground(): void {
     // Ability has brought to foreground
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onForeground');
+    WidgetUpdater.updateAllWidgets(this.context)
   }
 
   onBackground(): void {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
+    WidgetUpdater.updateAllWidgets(this.context)
   }
 }

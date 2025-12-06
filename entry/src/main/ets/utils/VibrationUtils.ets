@@ -1,10 +1,10 @@
-import { SettingsValue } from "../data/settings/SettingsValue"
+import { LocalValues } from "../data/local/LocalValues"
 import { vibrator } from "@kit.SensorServiceKit"
 
 export class VibrationUtils {
   private static assureVibrationEnable(): boolean {
-    console.debug(`[Vibration] ${SettingsValue.getInstance().getVibration()}`)
-    return SettingsValue.getInstance().getVibration()
+    console.debug(`[Vibration] ${LocalValues.getInstance().getVibration()}`)
+    return LocalValues.getInstance().getVibration()
   }
 
   public static vibrateShort() {

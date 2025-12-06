@@ -110,11 +110,11 @@
     },
     {
       "name": "widget_desc",
-      "value": "This is a service widget."
+      "value": "展示临近的任务"
     },
     {
       "name": "widget_display_name",
-      "value": "widget"
+      "value": "任务小组件"
     },
     {
       "name": "toast_finished",

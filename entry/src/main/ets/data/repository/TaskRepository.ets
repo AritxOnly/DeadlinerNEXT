@@ -1,9 +1,10 @@
 import { DatabaseHelper, DDLInsertParams } from '../db/DatabaseHelper';
 import { SyncService } from '../sync/SyncService';
 import { WebUtils } from '../network/WebUtils';
-import { SettingsValue } from '../settings/SettingsValue';
+import { LocalValues } from '../local/LocalValues';
 import { DDLItem, DeadlineType } from '../../model/DDLModels';
 import { common } from '@kit.AbilityKit';
+import { WidgetUpdater } from '../../utils/WidgetUpdater';
 
 export class TaskRepository {
   private static instance: TaskRepository;
@@ -13,6 +14,10 @@ export class TaskRepository {
   // 去抖动定时器
   private syncTimer: number = -1;
   private readonly SYNC_DELAY_MS = 400;
+
+  // Widget 更新的防抖定时器
+  private widgetUpdateTimer: number = -1;
+  private readonly WIDGET_UPDATE_DELAY_MS = 500;
 
   // 🔥 新增：并发控制状态
   private isSyncing: boolean = false;      // 是否正在同步中
@@ -59,7 +64,7 @@ export class TaskRepository {
     }
 
     // 2. 检查开关
-    if (!SettingsValue.getInstance().getCloudSyncEnable()) {
+    if (!LocalValues.getInstance().getCloudSyncEnable()) {
       return;
     }
 
@@ -87,10 +92,10 @@ export class TaskRepository {
     console.info('[TaskRepo] Starting auto-sync...');
 
     try {
-      const GeneratedDestructObj_1 = SettingsValue.getInstance().getWebDavAuth();
+      const GeneratedDestructObj_1 = LocalValues.getInstance().getWebDavAuth();
       const user = GeneratedDestructObj_1.user;
       const pass = GeneratedDestructObj_1.pass;
-      const url = SettingsValue.getInstance().getWebDavUrl();
+      const url = LocalValues.getInstance().getWebDavUrl();
 
       if (url) {
         const web = new WebUtils(url, user, pass);
@@ -128,6 +133,7 @@ export class TaskRepository {
     await this.ensureDbReady();
     const id = await this.db.insertDDL(params);
     this.scheduleSync(); // 触发调度
+    this.scheduleWidgetUpdate();
     return id;
   }
 
@@ -135,12 +141,14 @@ export class TaskRepository {
     await this.ensureDbReady();
     await this.db.updateDDL(item);
     this.scheduleSync(); // 触发调度
+    this.scheduleWidgetUpdate();
   }
 
   async deleteDDL(id: number): Promise<void> {
     await this.ensureDbReady();
     await this.db.deleteDDL(id);
     this.scheduleSync(); // 触发调度
+    this.scheduleWidgetUpdate();
   }
 
   async getAllDDLs(): Promise<DDLItem[]> {
@@ -151,6 +159,27 @@ export class TaskRepository {
   async getDDLsByType(type: DeadlineType): Promise<DDLItem[]> {
     await this.ensureDbReady();
     return this.db.getDDLsByType(type);
+  }
+
+  private scheduleWidgetUpdate() {
+    // 1. 如果已有挂起的更新任务，取消它（重新计时）
+    if (this.widgetUpdateTimer !== -1) {
+      clearTimeout(this.widgetUpdateTimer);
+    }
+
+    // 2. 启动新的定时器
+    this.widgetUpdateTimer = setTimeout(() => {
+      this.performWidgetUpdate();
+    }, this.WIDGET_UPDATE_DELAY_MS);
+  }
+
+  private performWidgetUpdate() {
+    const context = this.context;
+    if (context) {
+      console.info('[TaskRepo] Updating widgets now...');
+      WidgetUpdater.updateAllWidgets(context);
+    }
+    this.widgetUpdateTimer = -1;
   }
 
   // ==========================================
@@ -178,10 +207,10 @@ export class TaskRepository {
 
     this.isSyncing = true;
     try {
-      const webAuth = SettingsValue.getInstance().getWebDavAuth();
+      const webAuth = LocalValues.getInstance().getWebDavAuth();
       const user = webAuth.user;
       const pass = webAuth.pass;
-      const url = SettingsValue.getInstance().getWebDavUrl();
+      const url = LocalValues.getInstance().getWebDavUrl();
       if (!url) return false;
 
       const web = new WebUtils(url, user, pass);
@@ -190,6 +219,7 @@ export class TaskRepository {
 
       if (result && this.context) {
         this.context.eventHub.emit('sync_done');
+        this.performWidgetUpdate();
       }
       return result;
     } finally {
