@@ -164,49 +164,73 @@ export class DatabaseHelper {
 
   // ================= DDL Operations =================
 
+  // DatabaseHelper.ets
+
   async insertDDL(item: DDLInsertParams): Promise<number> {
     if (!this.rdbStore) return -1;
 
-    // 1. 基础插入
     const now = new Date();
-    const bucket: relationalStore.ValuesBucket = {};
-    bucket[C.COLUMN_NAME] = item.name;
-    bucket[C.COLUMN_START_TIME] = item.startTime;
-    bucket[C.COLUMN_END_TIME] = item.endTime;
-    bucket[C.COLUMN_IS_COMPLETED] = item.isCompleted ? 1 : 0;
-    bucket[C.COLUMN_COMPLETE_TIME] = item.completeTime || "";
-    bucket[C.COLUMN_NOTE] = item.note;
-    bucket[C.COLUMN_IS_ARCHIVED] = item.isArchived ? 1 : 0;
-    bucket[C.COLUMN_IS_STARED] = item.isStared ? 1 : 0;
-    bucket[C.COLUMN_TYPE] = item.type.toString().toLowerCase();
-    bucket[C.COLUMN_HABIT_COUNT] = 0;
-    bucket[C.COLUMN_HABIT_TOTAL_COUNT] = 0;
-    bucket[C.COLUMN_CALENDAR_EVENT_ID] = item.calendarEventId ?? -1;
-    bucket[C.COLUMN_TIMESTAMP] = this.formatLocalDateTime(now);
-    bucket[C.COLUMN_DELETED] = 0;
-    bucket[C.COLUMN_VER_TS] = now.toISOString();
-    bucket[C.COLUMN_VER_CTR] = 0;
-    bucket[C.COLUMN_VER_DEV] = await this.getDeviceId();
+    const v = await this.nextVersionUTC(); // 获取版本号
+    const deviceId = v.dev; // 直接复用 nextVersionUTC 返回的 devId，减少一次查询
 
-    const id = await this.rdbStore.insert(C.TABLE_NAME, bucket);
+    // 开启事务：从此开始，所有操作要么全成，要么全败
+    this.rdbStore.beginTransaction();
 
-    // 2. 同步逻辑回填 (UID 和 版本号)
-    const deviceId = await this.getDeviceId();
-    const uid = `${deviceId}:${id}`;
-    const v = await this.nextVersionUTC();
+    let insertId = -1;
 
-    const updateBucket: relationalStore.ValuesBucket = {};
-    updateBucket[C.COLUMN_UID] = uid;
-    updateBucket[C.COLUMN_VER_TS] = v.ts;
-    updateBucket[C.COLUMN_VER_CTR] = v.ctr;
-    updateBucket[C.COLUMN_VER_DEV] = v.dev;
+    try {
+      // 1. 准备插入数据 (暂时没有 UID)
+      const bucket: relationalStore.ValuesBucket = {};
+      bucket[C.COLUMN_NAME] = item.name;
+      bucket[C.COLUMN_START_TIME] = item.startTime;
+      bucket[C.COLUMN_END_TIME] = item.endTime;
+      bucket[C.COLUMN_IS_COMPLETED] = item.isCompleted ? 1 : 0;
+      bucket[C.COLUMN_COMPLETE_TIME] = item.completeTime || "";
+      bucket[C.COLUMN_NOTE] = item.note;
+      bucket[C.COLUMN_IS_ARCHIVED] = item.isArchived ? 1 : 0;
+      bucket[C.COLUMN_IS_STARED] = item.isStared ? 1 : 0;
+      bucket[C.COLUMN_TYPE] = item.type.toString().toLowerCase();
+      bucket[C.COLUMN_HABIT_COUNT] = 0;
+      bucket[C.COLUMN_HABIT_TOTAL_COUNT] = 0;
+      bucket[C.COLUMN_CALENDAR_EVENT_ID] = item.calendarEventId ?? -1;
+      bucket[C.COLUMN_TIMESTAMP] = this.formatLocalDateTime(now);
+      bucket[C.COLUMN_DELETED] = 0;
 
-    // 更新刚插入的行
-    const predicates = new relationalStore.RdbPredicates(C.TABLE_NAME);
-    predicates.equalTo(C.COLUMN_ID, id);
-    await this.rdbStore.update(updateBucket, predicates);
+      // 关键：先写入版本信息，防止为空，虽然 UID 暂时还没有
+      bucket[C.COLUMN_VER_TS] = v.ts;
+      bucket[C.COLUMN_VER_CTR] = v.ctr;
+      bucket[C.COLUMN_VER_DEV] = v.dev;
 
-    return id;
+      // 2. 执行插入，拿到 ID
+      insertId = await this.rdbStore.insert(C.TABLE_NAME, bucket);
+
+      if (insertId > 0) {
+        // 3. 生成与 Android 格式完全一致的 UID
+        const uid = `${deviceId}:${insertId}`;
+
+        // 4. 更新回去
+        const updateBucket: relationalStore.ValuesBucket = {};
+        updateBucket[C.COLUMN_UID] = uid;
+
+        const predicates = new relationalStore.RdbPredicates(C.TABLE_NAME);
+        predicates.equalTo(C.COLUMN_ID, insertId);
+
+        await this.rdbStore.update(updateBucket, predicates);
+
+        // 5. 提交事务！此时数据才真正写入磁盘
+        this.rdbStore.commit();
+        console.info(`[DatabaseHelper] Insert success. UID: ${uid}`);
+      } else {
+        // 插入失败，回滚
+        this.rdbStore.rollBack();
+      }
+    } catch (e) {
+      console.error(`[DatabaseHelper] Insert failed: ${e}`);
+      this.rdbStore.rollBack(); // 发生异常，回滚，就像什么都没发生过一样
+      return -1;
+    }
+
+    return insertId;
   }
 
   async getAllDDLs(): Promise<DDLItem[]> {
