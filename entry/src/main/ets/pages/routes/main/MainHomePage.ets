@@ -179,7 +179,10 @@ export struct MainHomePage {
               })
           }
 
-          ConfettiView({ controller: this.confettiController })
+          ConfettiView({
+            controller: this.confettiController,
+            colors: ['#fce18a', '#ff726d', '#f4306d', '#b48def']
+          })
             .hitTestBehavior(HitTestMode.None)
             .id('confetti')
             .alignRules({
