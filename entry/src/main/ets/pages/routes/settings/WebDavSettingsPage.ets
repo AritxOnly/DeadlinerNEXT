@@ -71,7 +71,7 @@ export struct SettingsWebDavPage {
         Divider().color(Color.Transparent).height(20)
 
         // 5. 保存并测试按钮
-        Button(this.isSyncing ? '正在同步...' : '立即从云端同步 (恢复数据)', { type: ButtonType.Capsule })
+        Button(this.isSyncing ? '正在同步...' : '保存并与云端同步', { type: ButtonType.Capsule })
           .width('90%')
           .buttonStyle(ButtonStyleMode.EMPHASIZED)
           .controlSize(ControlSize.NORMAL)
@@ -79,6 +79,9 @@ export struct SettingsWebDavPage {
           .onClick(async () => {
             this.isSyncing = true;
             try {
+              LocalValues.getInstance().setWebDavAuth(this.username, this.password);
+              LocalValues.getInstance().setWebDavUrl(this.webUrl)
+
               // 1. 准备依赖
               const db = DatabaseHelper.getInstance();
               const web = new WebUtils(this.webUrl, this.username, this.password);

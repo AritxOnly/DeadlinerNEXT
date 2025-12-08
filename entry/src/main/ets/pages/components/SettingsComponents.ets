@@ -27,7 +27,7 @@ export struct SettingsSection {
       }
       .width('100%')
       // 核心样式：背景色 + 大圆角 (24vp)
-      .backgroundColor($r('sys.color.ohos_id_color_list_card_bg'))
+      .backgroundColor($r('app.color.background_secondary'))
       .borderRadius(24)
       .padding(4) // 让内部 Item 离边缘有间隙 (对应 Android 的 container padding)
       .margin({ left: 16, right: 16 }) // 卡片离屏幕两边的距离
