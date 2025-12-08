@@ -103,7 +103,7 @@ export class WebUtils {
       const resp = await httpRequest.request(url, {
         method: http.RequestMethod.GET,
         header: this.getHeaders(),
-        expectDataType: http.HttpDataType.ARRAY_BUFFER // 关键：请求二进制
+        expectDataType: http.HttpDataType.ARRAY_BUFFER // 👈 必须显式声明接收 ArrayBuffer
       });
 
       if (resp.responseCode !== 200) {
@@ -111,8 +111,17 @@ export class WebUtils {
       }
 
       const etag = this.getHeader(resp.header, 'ETag');
-      // result 是 ArrayBuffer
-      const bytes = new Uint8Array(resp.result as ArrayBuffer);
+
+      // 🔥 修复：确保结果是 ArrayBuffer，并转为 Uint8Array
+      let resultBuffer: ArrayBuffer;
+      if (resp.result instanceof ArrayBuffer) {
+        resultBuffer = resp.result;
+      } else {
+        //以此防范某些情况下返回非 ArrayBuffer
+        throw new Error("Response is not ArrayBuffer");
+      }
+
+      const bytes = new Uint8Array(resultBuffer);
       return { bytes, etag };
     } finally {
       httpRequest.destroy();
@@ -163,23 +172,32 @@ export class WebUtils {
     const url = this.joinUrl(path);
 
     const headers = this.getHeaders({
-      'Content-Type': 'application/octet-stream'
+      'Content-Type': 'application/json; charset=utf-8' // 建议明确指定 JSON
     });
     if (ifMatch) headers['If-Match'] = ifMatch;
     if (ifNoneMatchStar) headers['If-None-Match'] = '*';
+
+    // 🔥 关键修复：将 Uint8Array 转回 ArrayBuffer 传给 extraData
+    // ArkTS 的 http 模块对 ArrayBuffer 的支持最稳定
+    let payload: ArrayBuffer | string;
+    if (typeof bytes === 'string') {
+      payload = bytes;
+    } else {
+      // 这里的 slice 是为了防止 buffer 包含多余的 offset
+      payload = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+    }
 
     try {
       const resp = await httpRequest.request(url, {
         method: http.RequestMethod.PUT,
         header: headers,
-        extraData: bytes // Body
+        extraData: payload // 👈 传入 ArrayBuffer
       });
 
       if (resp.responseCode === 412) {
         throw new PreconditionFailedError();
       }
 
-      // 200, 201, 204 都是成功
       if (resp.responseCode < 200 || resp.responseCode >= 300) {
         throw new Error(`PUT ${path} -> ${resp.responseCode}`);
       }

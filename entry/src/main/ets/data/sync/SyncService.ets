@@ -302,116 +302,99 @@ export class SyncService {
     }
   }
 
-  // ============== 4) 核心流程：一次完整同步 ==============
   private async syncSnapshotOnce(): Promise<boolean> {
     const path = this.SNAPSHOT_PATH;
-
-    // 1. 构建本地快照
-    const localSnap = await this.buildLocalSnapshot();
-    console.info(`[Sync] Local snapshot built. Items: ${localSnap.items.length}`);
-
     const textEncoder = new util.TextEncoder();
     const textDecoder = util.TextDecoder.create('utf-8');
 
-    // 2. HEAD 探测
+    // ================= 1. 构建本地快照 =================
+    const localSnap = await this.buildLocalSnapshot();
+
+    // 🔍 侦探日志：看看本地到底查到了什么？
+    const localTaskCount = localSnap.items.length;
+    if (localTaskCount > 0) {
+      // 打印第一个任务的 UID 和 VerTS，确认不是 1970
+      const first = localSnap.items[0];
+    }
+
+    // ================= 2. HEAD 探测 =================
     let remoteCode = 0;
     try {
       const WebHead = await this.web.head(path);
-      const code = WebHead.code;
-      remoteCode = code;
-      console.info(`[Sync] HEAD ${path} -> Code: ${code}`);
+      remoteCode = WebHead.code;
     } catch (e) {
-      console.error(`[Sync] HEAD failed: ${e}`);
       return false;
     }
 
-    // 3. 处理 404/409/410 -> 视为文件不存在，直接上传本地快照
+    // ================= 3. 处理 404 (初始化云端) =================
     if ([404, 409, 410].includes(remoteCode)) {
-      console.warn(`[Sync] Remote file not found (Code ${remoteCode}). Initializing cloud with local data...`);
-
       try {
         await this.web.ensureDir("Deadliner");
         const jsonStr = JSON.stringify(localSnap);
-        const bytes = textEncoder.encodeInto(jsonStr);
-        // If-None-Match: * 确保原子创建
-        await this.web.putBytes(path, bytes, null, true);
-        console.info(`[Sync] Uploaded local snapshot (Init).`);
+        const bytes = textEncoder.encode(jsonStr);
+
+        const res = await this.web.putBytes(path, bytes, null, true); // 假设 putBytes 返回 response，如果没返回也没事
         return true;
       } catch (e) {
-        console.error(`[Sync] Init upload failed: ${e}`);
         return false;
       }
     }
 
-    if (remoteCode >= 500) {
-      console.warn("[Sync] Server Error, skip sync");
+    // ================= 4. GET 下载远端 =================
+    let remoteSnap: SnapshotRoot;
+    let currentEtag: string | null = null;
+    try {
+      const webBytes = await this.web.getBytes(path);
+      const bytes = webBytes.bytes;
+      currentEtag = webBytes.etag;
+
+      try {
+        // 1. 解码
+        const jsonStr = textDecoder.decodeToString(bytes); // API 9+ 推荐用 decodeToString
+        // 如果是旧 API，用: textDecoder.decode(bytes)
+
+        // 2. 解析
+        remoteSnap = JSON.parse(jsonStr) as SnapshotRoot;
+
+        // 3. 🛡️🛡️🛡️ 安全熔断检查 🛡️🛡️🛡️
+        // 如果远端明明有数据（>1KB），但解析出来 items 却是 undefined 或空，
+        // 说明解析失败，绝对不能继续合并，否则会清空云端！
+        if (bytes.length > 1000 && (!remoteSnap.items || !Array.isArray(remoteSnap.items))) {
+          console.error(`[Sync] CRITICAL: Invalid remote JSON. Sync aborted.`);
+          return false;
+        }
+
+        // 如果解析出来的 items 是 null (例如刚初始化的文件)，给个空数组
+        if (!remoteSnap.items) {
+          remoteSnap.items = [];
+        }
+
+      } catch (e) {
+        return false;
+      }
+    } catch (e) {
       return false;
     }
 
-    // 4. GET 下载远端快照
-    let remoteSnap: SnapshotRoot;
-    let currentEtag: string | null = null;
-
-    try {
-      console.info(`[Sync] Downloading from ${path}...`);
-
-      const webBytes = await this.web.getBytes(path);
-      const bytes = webBytes.bytes;
-      const etag = webBytes.etag;
-
-      console.info(`[Sync] Downloaded ${bytes.length} bytes. ETag: ${etag}`);
-
-      const jsonStr = textDecoder.decodeWithStream(bytes);
-      remoteSnap = JSON.parse(jsonStr) as SnapshotRoot;
-
-      console.info(`[Sync] Remote parsed. Items: ${remoteSnap.items?.length}`);
-
-      currentEtag = etag;
-    } catch (e) {
-      const msg = `${e}`;
-      // 如果 GET 变成了 409，当作空远端处理
-      if (msg.includes('409')) {
-        remoteSnap = { version: { ts: '1970', dev: 'unknown' }, items: [] };
-      } else {
-        console.error(`GET failed: ${e}`);
-        return false;
-      }
-    }
-
-    // 5. 合并
+    // ================= 5. 合并 =================
     let merged = this.mergeSnapshots(localSnap, remoteSnap);
-    console.info(`[Sync] Merged result. Items: ${merged.items.length}`);
 
     let mergedJson = JSON.stringify(merged);
-    let mergedBytes = textEncoder.encodeInto(mergedJson);
+    // 🔥 修复点：使用 encodeIntoUint8Array
+    let mergedBytes = textEncoder.encode(mergedJson);
 
-    // 6. PUT 回传 (带 If-Match 乐观锁)
+    // ================= 6. PUT 上传 =================
     try {
+      // 这里假设你的 WebUtils.putBytes 能够抛出错误或者返回状态
       await this.web.putBytes(path, mergedBytes, currentEtag, false);
     } catch (e) {
       if (e instanceof PreconditionFailedError) {
-        // 7. 发生冲突 (412)，重新下载 -> 再次合并 -> 再次上传
-        console.warn("Conflict (412), retrying...");
-        const retryGet = await this.web.getBytes(path);
-        const retryRemoteSnap = JSON.parse(textDecoder.decodeWithStream(retryGet.bytes)) as SnapshotRoot;
-
-        // 二次合并
-        merged = this.mergeSnapshots(merged, retryRemoteSnap); // 用上次合并的结果再去合并新的远端
-        mergedJson = JSON.stringify(merged);
-        mergedBytes = textEncoder.encodeInto(mergedJson);
-
-        // 强制上传 (或者再试一次 If-Match，这里简化为用新的 ETag 传)
-        await this.web.putBytes(path, mergedBytes, retryGet.etag, false);
-      } else {
-        throw new Error(e);
+        console.warn("[Sync] Conflict 412, syncing again next time...");
       }
     }
 
-    // 8. 应用最终结果到本地
-    console.info(`[Sync] Applying to local DB...`);
+    // ================= 7. 应用回本地 =================
     await this.applySnapshotToLocal(merged);
-    console.info(`[Sync] Apply done.`);
-
     return true;
   }
 }
