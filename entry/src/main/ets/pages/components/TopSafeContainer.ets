@@ -9,14 +9,13 @@ import { LengthMetrics } from '@kit.ArkUI'
  */
 @Component
 export struct TopSafeContainer {
-  // 接收外部传入的具体内容（如 Refresh + List）
   @BuilderParam content: () => void;
 
   // 顶部需要避让的高度（通常是 状态栏高度 + 标题栏高度）
   @Prop topAvoidHeight: number = 0;
 
   // 外层滚动控制器
-  private scroller: Scroller = new Scroller();
+  scroller: Scroller = new Scroller();
 
   build() {
     Scroll(this.scroller) {

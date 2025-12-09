@@ -8,7 +8,9 @@ import { HabitListSection } from './HabitListSection'
 import { TaskListSection } from './TaskListSection'
 import { BottomBuilderShowType,
   DividerShowType,
-  HdsNavigation, HdsNavigationAttribute, ScrollEffectType } from '@kit.UIDesignKit'
+  HdsNavigation, HdsNavigationAttribute,
+  HdsNavigationTitleMode,
+  ScrollEffectType } from '@kit.UIDesignKit'
 import { TaskListController } from './TaskListController'
 import { ConfettiController } from '../../components/confetti/ConfettiController'
 import { ConfettiView } from '../../components/confetti/ConfettiView'
@@ -281,16 +283,6 @@ export struct MainHomePage {
                 }
               }
             },
-            {
-              content: {
-                label: 'Settings',
-                icon: $r('sys.symbol.gearshape'),
-                action: () => {
-                  // 使用共享的栈跳转
-                  this.appPathStack.pushPathByName('settingsWebDav', null);
-                }
-              }
-            }
           ]
         },
         bottomBuilder: {
@@ -301,6 +293,7 @@ export struct MainHomePage {
         divider: { showType: DividerShowType.OFF }
       }
     })
+    .titleMode(HdsNavigationTitleMode.FREE)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

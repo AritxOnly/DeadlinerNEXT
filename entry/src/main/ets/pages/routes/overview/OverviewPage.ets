@@ -20,11 +20,18 @@ export struct OverviewPage {
   @State selectedIndexes: number[] = [0];
   @State isLoading: boolean = true;
 
-  // --- 数据源 (计算后的统计数据) ---
-  @State activeStats: Map<string, number> = new Map();
+  // --- 数据源 ---
+
+  // [修改 1] 将 activeStats Map 拆解为 3 个具体的数字状态
+  // 这样传给子组件时是值传递，UI 刷新 100% 稳定
+  @State todayCompleted: number = 0;
+  @State todayTodo: number = 0;
+  @State todayOverdue: number = 0;
+
+  // [修改 2] 复杂对象保持引用类型
   @State historyStats: Map<string, number> = new Map();
   @State completionTimeStats: Array<[string, number]> = [];
-  @State overdueItems: DDLItem[] = []; // 专门传给 Dashboard 用于展示列表
+  @State overdueItems: DDLItem[] = [];
 
   // --- 弹窗控制器 ---
   settingsDialogController: CustomDialogController = new CustomDialogController({
@@ -36,9 +43,9 @@ export struct OverviewPage {
   // --- Tab 配置 ---
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [
-      { text: '概览' },
+      { text: '总览' },
       { text: '趋势' },
-      { text: '汇总' }
+      { text: '上月' }
     ] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
@@ -50,49 +57,37 @@ export struct OverviewPage {
   }
 
   async loadData() {
-    // [修改] 开始加载
     this.isLoading = true;
 
     try {
       // 1. 获取数据
       const items = await TaskRepository.getInstance().getDDLsByType(DeadlineType.TASK);
 
-      // 2. 数据处理 (还原 Android OverviewScreen 的逻辑)
+      // 2. 数据处理
       const activeItems = items.filter(it => !it.isArchived);
 
-      // 今日完成
-      const completedItems = activeItems.filter(it => {
-        return it.isCompleted && isToday(it.completeTime);
-      });
-
-      // 待办 (未完成且未逾期)
+      // 筛选各类条目
+      const completedItems = activeItems.filter(it => it.isCompleted && isToday(it.completeTime));
       const incompleteItems = activeItems.filter(it => !it.isCompleted && !isOverdue(it));
+      const todayOverdueItems = activeItems.filter(it => !it.isCompleted && isToday(it.endTime) && isOverdue(it));
 
-      // 今日逾期
-      const todayOverdueItems = activeItems.filter(it => {
-        return !it.isCompleted && isToday(it.endTime) && isOverdue(it);
-      });
-
-      // 历史数据
       const historyCompleted = items.filter(it => it.isCompleted);
       const historyIncomplete = items.filter(it => !it.isCompleted);
       const historyOverdue = activeItems.filter(it => isOverdue(it));
 
-      // 3. 构建 Active Stats Map
-      const newActiveStats = new Map<string, number>();
-      newActiveStats.set('今日完成', completedItems.length);
-      newActiveStats.set('待办任务', incompleteItems.length);
-      newActiveStats.set('今日逾期', todayOverdueItems.length);
-      this.activeStats = newActiveStats;
+      // [修改 3] 更新拆分后的状态 (简单数字)
+      this.todayCompleted = completedItems.length;
+      this.todayTodo = incompleteItems.length;
+      this.todayOverdue = todayOverdueItems.length;
 
-      // 4. 构建 History Stats Map
+      // [修改 4] 更新 Map (使用 new Map 确保触发更新)
       const newHistoryStats = new Map<string, number>();
       newHistoryStats.set('累计完成', historyCompleted.length);
       newHistoryStats.set('当前待办', historyIncomplete.length);
       newHistoryStats.set('累计逾期', historyOverdue.length);
       this.historyStats = newHistoryStats;
 
-      // 5. 趋势分析 (Time Buckets)
+      // [修改 5] 更新 Array
       const bucketMap = new Map<string, number>();
       historyCompleted.forEach(it => {
         const bucket = extractTimeBucket(it.completeTime);
@@ -100,19 +95,17 @@ export struct OverviewPage {
         bucketMap.set(bucket, count + 1);
       });
 
-      // 转换成数组并排序
       const sortedBuckets = Array.from(bucketMap.entries()).sort((a, b) => {
         return (bucketOrder[a[0]] || 99) - (bucketOrder[b[0]] || 99);
       });
       this.completionTimeStats = sortedBuckets;
 
-      // 6. 汇总数据 (Dashboard)
       this.overdueItems = historyOverdue;
+
     } catch (e) {
       console.error(`[OverviewPage] Load data error: ${e}`);
     } finally {
-      // [修改] 无论成功失败，结束加载
-      // 稍微延迟一下以防闪烁太快（可选，这里直接关）
+      // 结束加载
       this.isLoading = false;
     }
   }
@@ -135,31 +128,53 @@ export struct OverviewPage {
 
   build() {
     HdsNavigation() {
-      TopSafeContainer({
-        topAvoidHeight: this.statusBarHeight + this.SEGMENT_HEIGHT
-      }) {
-        Column() {
-          // 条件渲染显示不同内容
-          if (this.selectedIndexes[0] === 0) {
-            OverviewStatsSection({
-              activeStats: this.activeStats,
-              historyStats: this.historyStats,
-              overdueItems: this.overdueItems,
-              completionTimeStats: this.completionTimeStats
-            })
-          } else if (this.selectedIndexes[0] === 1) {
-            TrendAnalysisSection({
-              completionTimeStats: this.completionTimeStats
-            })
-          } else if (this.selectedIndexes[0] === 2) {
-            DashboardSection({
-              overdueItems: this.overdueItems
-            })
+      Stack() {
+        // [核心修改] 使用 if (!this.isLoading)
+        // 确保数据准备好后，子组件才开始创建 (mount)
+        // 这样子组件的 aboutToAppear 能直接读到正确的数据，完美解决 0 0 0 和图表空白
+
+        if (!this.isLoading) {
+          TopSafeContainer({
+            topAvoidHeight: this.statusBarHeight + this.SEGMENT_HEIGHT
+          }) {
+            if (this.selectedIndexes[0] === 0) {
+              OverviewStatsSection({
+                todayCompleted: this.todayCompleted,
+                todayTodo: this.todayTodo,
+                todayOverdue: this.todayOverdue,
+                historyStats: $historyStats,
+                completionTimeStats: $completionTimeStats,
+                overdueItems: this.overdueItems
+              })
+            } else if (this.selectedIndexes[0] === 1) {
+              TrendAnalysisSection({
+                completionTimeStats: $completionTimeStats // 保持一致，也建议用 Link
+              })
+            } else if (this.selectedIndexes[0] === 2) {
+              DashboardSection({
+                overdueItems: this.overdueItems
+              })
+            }
+          }
+
+          // 加载动画
+          if (this.isLoading) {
+            Column() {
+              LoadingProgress()
+                .width(64)
+                .height(64)
+                .color($r('sys.color.ohos_id_color_text_primary'))
+              Text("正在加载数据...")
+                .fontSize(14)
+                .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+                .margin({ top: 10 })
+            }
+            .width('100%')
+            .height('100%')
+            .justifyContent(FlexAlign.Center)
+            .backgroundColor($r('sys.color.ohos_id_color_background'))
           }
         }
-        .width('100%')
-        .height('100%')
-        .padding({ top: 10 })
       }
     }
     .titleBar({
