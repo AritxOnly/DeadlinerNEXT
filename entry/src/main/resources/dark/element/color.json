@@ -8,70 +8,77 @@
       "name": "brand",
       "value": "#6BA4D6"
     },
+
     {
       "name": "font_primary",
-      "value": "#E6EDF2"
+      "value": "#FFFFFF"
     },
     {
       "name": "font_secondary",
-      "value": "#9DAAB6"
+      "value": "#B3B3B3"
     },
     {
       "name": "font_emphasize",
-      "value": "#151B22"
+      "value": "#FFFFFF"
     },
+
     {
       "name": "icon_primary",
-      "value": "#E6EDF2"
+      "value": "#FFFFFF"
     },
     {
       "name": "icon_secondary",
-      "value": "#9DAAB6"
+      "value": "#B3B3B3"
     },
     {
       "name": "icon_emphasize",
-      "value": "#6BA4D6"
+      "value": "#FFFFFF"
     },
+
     {
       "name": "background_primary",
       "value": "#000000"
     },
     {
       "name": "background_secondary",
-      "value": "#1F2933"
+      "value": "#1A1A1A"
     },
     {
       "name": "background_tertiary",
-      "value": "#2A3540"
+      "value": "#262626"
     },
     {
       "name": "background_emphasize",
-      "value": "#344B61"
+      "value": "#333333"
     },
+
     {
       "name": "comp_divider",
-      "value": "#2F3B47"
+      "value": "#3D3D3D"
     },
+
     {
       "name": "interactive_active",
-      "value": "#6BA4D6"
+      "value": "#FFFFFF"
     },
     {
       "name": "interactive_select",
-      "value": "#2B445C"
+      "value": "#333333"
     },
     {
       "name": "interactive_pressed",
-      "value": "#4A6372"
+      "value": "#4D4D4D"
     },
+
     {
       "name": "warning",
-      "value": "#D99E73"
+      "value": "#FFC28B"
     },
     {
       "name": "confirm",
-      "value": "#86B580"
+      "value": "#A0D8A0"
     },
+
     {
       "name": "chart_red",
       "value": "#FFF77E66"

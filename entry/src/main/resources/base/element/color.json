@@ -8,62 +8,68 @@
       "name": "brand",
       "value": "#1661AB"
     },
+
     {
       "name": "font_primary",
-      "value": "#1D2A34"
+      "value": "#1A1A1A"
     },
     {
       "name": "font_secondary",
-      "value": "#5A6D7E"
+      "value": "#666666"
     },
     {
       "name": "font_emphasize",
-      "value": "#F0F0F0"
+      "value": "#000000"
     },
+
     {
       "name": "icon_primary",
       "value": "#000000"
     },
     {
       "name": "icon_secondary",
-      "value": "#5A6D7E"
+      "value": "#666666"
     },
     {
       "name": "icon_emphasize",
-      "value": "#F0F0F0"
+      "value": "#000000"
     },
+
     {
       "name": "background_primary",
       "value": "#FFFFFF"
     },
     {
       "name": "background_secondary",
-      "value": "#F0F4F7"
+      "value": "#F2F2F2"
     },
     {
       "name": "background_tertiary",
-      "value": "#F8FAFB"
+      "value": "#F7F7F7"
     },
     {
       "name": "background_emphasize",
-      "value": "#A7C6E3"
+      "value": "#DDDDDD"
     },
+
     {
       "name": "comp_divider",
-      "value": "#B1C1D1"
+      "value": "#D0D0D0"
     },
+
     {
       "name": "interactive_active",
-      "value": "#1661AB"
+      "value": "#000000"
     },
     {
       "name": "interactive_select",
-      "value": "#FFABCBEC"
+      "value": "#E5E5E5"
     },
     {
       "name": "interactive_pressed",
-      "value": "#335D6F"
+      "value": "#CCCCCC"
     },
+
     {
       "name": "warning",
       "value": "#F28C48"
@@ -88,6 +94,7 @@
       "name": "chart_blue",
       "value": "#FF97A5C0"
     },
+
     {
       "name": "indicator_color_undergo",
       "value": "#FF98ADD6"
@@ -104,6 +111,7 @@
       "name": "indicator_color_completed",
       "value": "#A4B3B0"
     },
+
     {
       "name": "background_color_undergo",
       "value": "#59969696"
@@ -120,6 +128,7 @@
       "name": "background_color_completed",
       "value": "#D4E1DD"
     },
+
     {
       "name": "item_title_font",
       "value": "#E6000000"

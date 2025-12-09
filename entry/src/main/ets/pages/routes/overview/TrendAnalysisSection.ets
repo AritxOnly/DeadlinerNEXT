@@ -2,7 +2,7 @@ import { hashColor } from "../../../utils/OverviewUtils";
 
 @Component
 export struct TrendAnalysisSection {
-  @Prop completionTimeStats: Array<[string, number]>; // [BucketName, Count]
+  @Link completionTimeStats: Array<[string, number]>; // [BucketName, Count]
 
   build() {
     Column() {

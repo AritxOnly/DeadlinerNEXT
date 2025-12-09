@@ -56,7 +56,7 @@ export struct OverviewSettingsDialog {
     }
     .padding(16)
     .margin(16)
-    .backgroundColor($r('app.color.background_primary'))
     .borderRadius(36)
+    .backgroundBlurStyle(BlurStyle.Thick)
   }
 }

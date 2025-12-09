@@ -7,6 +7,10 @@ import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { TaskListController } from "./TaskListController"
 import { ConfettiController } from "../../components/confetti/ConfettiController";
+import { TimeInputButton } from "../../components/TimeInputButton";
+
+const COMMON_RADIUS = 24;
+const ITEM_HEIGHT = 56;
 
 interface TaskUIModel {
   title: string;
@@ -20,7 +24,7 @@ interface TaskUIModel {
 
 @Component
 export struct TaskListSection {
-  scroller: Scroller = new Scroller()
+  scroller: Scroller = new Scroller();
 
   @State taskList: Array<TaskUIModel> = [];
   @State isRefreshing: boolean = false; // 控制下拉刷新状态
@@ -34,6 +38,16 @@ export struct TaskListSection {
   @State selectedIds: number[] = [];
 
   @Prop confetti: ConfettiController;
+
+  @State isEditSheetShow: boolean = false;
+  @State editingTask: DDLItem | null = null; // 暂存正在编辑的完整对象
+  @State editingTitle: string = "";          // 绑定输入框
+  @State editingNote: string = "";           // 绑定输入框
+
+  @State editingStartTime: Date = new Date();
+  @State editingEndTime: Date = new Date();
+
+  @State inputBgColor: ResourceColor = $r('sys.color.background_tertiary');
 
   private repo = TaskRepository.getInstance();
 
@@ -59,7 +73,7 @@ export struct TaskListSection {
     this.controller.requestBatchComplete = (): Promise<void> => this.handleBatchComplete();
     this.controller.requestBatchArchive = (): Promise<void> => this.handleBatchArchive();
     this.controller.requestBatchDelete = (): void => this.handleBatchDelete();
-    this.controller.requestBatchEdit = (): void => this.handleBatchEdit();
+    this.controller.requestBatchEdit = (): Promise<void> => this.handleBatchEdit();
     this.controller.requestExitSelection = (): void => this.exitSelectionMode();
   }
 
@@ -227,15 +241,9 @@ export struct TaskListSection {
       primaryButton: {
         value: '取消',
         action: () => {
-          // 可以在这里重置 Swipe 状态（如果需要）
-          // 但你的 DDLItemCardSwipeable 组件内部逻辑如果正确，不操作就会自动回弹
-          // 由于你是滑动触发，如果这里不删，Swipe 组件可能停留在已滑开状态，
-          // 你的组件逻辑里 resetSwipe 是在 onActionEnd 里调用的吗？
-          // 如果是 SwipeToDismissBox，通常取消后会自动回弹。
-
-          // 如果你的组件没有自动回弹，可能需要强制刷新一下列表复位
           this.loadData();
-        }
+        },
+        fontColor: $r('app.color.brand')
       },
       secondaryButton: {
         value: '删除',
@@ -250,7 +258,8 @@ export struct TaskListSection {
             promptAction.showToast({ message: '删除失败' });
           }
         }
-      }
+      },
+      backgroundBlurStyle: BlurStyle.Thick
     })
   }
 
@@ -351,9 +360,10 @@ export struct TaskListSection {
       title: '批量删除',
       message: `确定要删除选中的 ${this.selectedIds.length} 个任务吗？此操作不可恢复。`,
       autoCancel: true,
-      alignment: DialogAlignment.Center,
+      alignment: DialogAlignment.Bottom,
       primaryButton: {
         value: '取消',
+        fontColor: $r('app.color.brand'),
         action: () => {}
       },
       secondaryButton: {
@@ -371,14 +381,157 @@ export struct TaskListSection {
             console.error('Batch delete failed:', e);
           }
         }
-      }
+      },
+      backgroundBlurStyle: BlurStyle.Thick
     });
   }
 
-  // [新增] 批量逻辑：编辑
-  private handleBatchEdit() {
-    promptAction.showToast({ message: 'TODO: 批量编辑功能开发中' });
-    // 编辑逻辑复杂，通常批量编辑只允许修改共同属性（如修改标签、修改DDL）
+  private async handleBatchEdit() {
+    if (this.selectedIds.length === 0) {
+      promptAction.showToast({ message: '未选中任何任务' });
+      return;
+    }
+    const targetId = this.selectedIds[0];
+    try {
+      const allItems = await this.repo.getAllDDLs();
+      const target = allItems.find(item => item.id === targetId);
+
+      if (target) {
+        this.editingTask = target;
+        this.editingTitle = target.name;
+        this.editingNote = target.note || "";
+
+        // 🔥 解析时间字符串为 Date 对象
+        this.editingStartTime = target.startTime ? new Date(target.startTime) : new Date();
+        this.editingEndTime = target.endTime ? new Date(target.endTime) : new Date();
+
+        this.isEditSheetShow = true;
+        this.exitSelectionMode();
+      } else {
+        promptAction.showToast({ message: '找不到该任务' });
+      }
+    } catch (e) {
+      console.error('Fetch task for edit failed:', e);
+      promptAction.showToast({ message: '无法打开编辑' });
+    }
+  }
+
+  private async saveEdit() {
+    if (!this.editingTask) return;
+    if (!this.editingTitle.trim()) {
+      promptAction.showToast({ message: '任务名称不能为空' });
+      return;
+    }
+
+    try {
+      // 🔥 ISO 时间转换逻辑 (复用自 AddTaskPage)
+      const toLocalISO = (d: Date) => {
+        const offset = d.getTimezoneOffset() * 60000;
+        const local = new Date(d.getTime() - offset);
+        return local.toISOString().slice(0, 19);
+      };
+
+      this.editingTask.name = this.editingTitle;
+      this.editingTask.note = this.editingNote;
+      this.editingTask.startTime = toLocalISO(this.editingStartTime);
+      this.editingTask.endTime = toLocalISO(this.editingEndTime);
+
+      await this.repo.updateDDL(this.editingTask);
+
+      this.isEditSheetShow = false;
+      await this.loadData();
+      promptAction.showToast({ message: '修改已保存' });
+
+    } catch (e) {
+      console.error('Save edit failed:', e);
+      promptAction.showToast({ message: '保存失败' });
+    }
+  }
+
+  private formatTime(date: Date): string {
+    const pad = (n: number) => n.toString().padStart(2, '0');
+    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
+  }
+
+  private showTimePicker(isStart: boolean) {
+    DatePickerDialog.show({
+      start: new Date("2000-1-1"),
+      end: new Date("2100-12-31"),
+      selected: isStart ? this.editingStartTime : this.editingEndTime,
+      onAccept: (value: DatePickerResult) => {
+        const selectedDate = new Date(value.year!, value.month!, value.day!);
+        TimePickerDialog.show({
+          selected: isStart ? this.editingStartTime : this.editingEndTime,
+          useMilitaryTime: true,
+          onAccept: (timeValue: TimePickerResult) => {
+            selectedDate.setHours(timeValue.hour, timeValue.minute);
+            if (isStart) {
+              this.editingStartTime = selectedDate;
+            } else {
+              this.editingEndTime = selectedDate;
+            }
+          }
+        })
+      }
+    })
+  }
+
+  @Builder
+  taskEditSheet() {
+    Column() {
+      Column({ space: 16 }) {
+
+        // 任务名称
+        TextInput({ placeholder: '任务名称', text: this.editingTitle })
+          .height(ITEM_HEIGHT)
+          .fontSize(16)
+          .backgroundColor(this.inputBgColor)
+          .borderRadius(COMMON_RADIUS)
+          .padding({ left: 16, right: 16 })
+          .width('100%')
+          .onChange((val) => {
+            this.editingTitle = val;
+          })
+
+        // 开始时间
+        TimeInputButton({
+          title: '开始时间',
+          content: this.formatTime(this.editingStartTime),
+          onClickButton: (): void => this.showTimePicker(true)
+        })
+
+        // 结束时间
+        TimeInputButton({
+          title: '结束',
+          content: this.formatTime(this.editingEndTime),
+          onClickButton: (): void => this.showTimePicker(false)
+        })
+
+        // 备注
+        TextArea({ placeholder: '备注 (可选)', text: this.editingNote })
+          .height(120)
+          .fontSize(16)
+          .backgroundColor(this.inputBgColor)
+          .borderRadius(COMMON_RADIUS)
+          .padding({ top: 12, bottom: 12, left: 16, right: 16 })
+          .width('100%')
+          .onChange((val) => {
+            this.editingNote = val;
+          })
+          .enableKeyboardOnFocus(false) // 防止Sheet一打开键盘就弹起遮挡
+
+        Button('保存').onClick((event: ClickEvent) => {
+          this.saveEdit();
+        })
+          .width('100%')
+          .backgroundColor($r('app.color.brand'))
+
+        Blank().height(60)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16 })
   }
 
   build() {
@@ -462,6 +615,20 @@ export struct TaskListSection {
     .width("100%")
     .height("100%")
     // 外部也需要扩展，确保 TopSafeContainer 能拿到全屏空间
+    .bindSheet($$this.isEditSheetShow, this.taskEditSheet(), {
+      height: SheetSize.FIT_CONTENT, // 半屏高度，也可以自定义高度
+      dragBar: true,            // 显示拖拽条
+      onDisappear: () => {
+        this.isEditSheetShow = false;
+        this.editingTask = null; // 清理数据
+      },
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      title: {
+        title: '编辑任务',
+        subtitle: '修改任务信息。'
+      }
+    })
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM, SafeAreaEdge.TOP])
   }
 }
