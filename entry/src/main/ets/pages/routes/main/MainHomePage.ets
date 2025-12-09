@@ -8,12 +8,15 @@ import { HabitListSection } from './HabitListSection'
 import { TaskListSection } from './TaskListSection'
 import { BottomBuilderShowType,
   DividerShowType,
+  HdsNavDestination,
   HdsNavigation, HdsNavigationAttribute,
   HdsNavigationTitleMode,
-  ScrollEffectType } from '@kit.UIDesignKit'
+  ScrollEffectType,
+  TextStyleMode} from '@kit.UIDesignKit'
 import { TaskListController } from './TaskListController'
 import { ConfettiController } from '../../components/confetti/ConfettiController'
 import { ConfettiView } from '../../components/confetti/ConfettiView'
+import { AIPanelView } from '../../components/AIPanelView'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -151,6 +154,18 @@ export struct MainHomePage {
     .justifyContent(FlexAlign.Center)
   }
 
+  @State isAISheetShow: boolean = false;
+  @Builder
+  aiSheet() {
+    AIPanelView({
+      onDismissPanel: () => {
+        this.isAISheetShow = false
+      }
+    })
+      .width('100%')
+      .height('100%')
+  }
+
   build() {
     HdsNavigation() {
         RelativeContainer() {
@@ -276,6 +291,15 @@ export struct MainHomePage {
           value: [
             {
               content: {
+                label: 'AI',
+                icon: $r('sys.symbol.wand_and_stars'),
+                action: () => {
+                  this.isAISheetShow = true
+                }
+              }
+            },
+            {
+              content: {
                 label: 'Search',
                 icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
                 action: () => {
@@ -291,6 +315,19 @@ export struct MainHomePage {
           showType: BottomBuilderShowType.DIRECTLY_SHOW
         },
         divider: { showType: DividerShowType.OFF }
+      }
+    })
+    .bindSheet($$this.isAISheetShow, this.aiSheet(), {
+      height: SheetSize.LARGE,
+      detents: [SheetSize.MEDIUM, SheetSize.LARGE],
+      dragBar: true,
+      onDisappear: () => {
+        this.isAISheetShow = false;
+      },
+      blurStyle: BlurStyle.Thin,
+      backgroundColor: Color.Transparent,
+      title: {
+        title: 'Deadliner AI',
       }
     })
     .titleMode(HdsNavigationTitleMode.FREE)

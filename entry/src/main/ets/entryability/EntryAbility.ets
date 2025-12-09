@@ -2,9 +2,9 @@ import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.Ab
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ThemeControl, window } from '@kit.ArkUI';
 import { gDeadlinerTheme } from '../AppTheme';
-import { LocalValues } from '../data/local/LocalValues';
-import { DatabaseHelper } from '../data/db/DatabaseHelper';
-import { TaskRepository } from '../data/repository/TaskRepository';
+import { LocalValues } from '../common/local/LocalValues';
+import { DatabaseHelper } from '../common/data/DatabaseHelper';
+import { TaskRepository } from '../common/repository/TaskRepository';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
 
 const DOMAIN = 0x0000;

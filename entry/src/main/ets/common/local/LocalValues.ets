@@ -42,9 +42,21 @@ export class LocalValues {
       const password = await SecureStorage.get(C.KEY_WEBDAV_PASSWORD);
       AppStorage.setOrCreate(C.KEY_WEBDAV_PASSWORD, password);
 
-      // 同理，如果是 API Key，也在这里加载
-      // const apiKey = await SecureStorage.get('openai_api_key');
-      // AppStorage.setOrCreate('openai_api_key', apiKey);
+      // 默认提供商：DeepSeek
+      const aiProvider = await this.pref.get(C.KEY_AI_PROVIDER, 'deepseek');
+      AppStorage.setOrCreate(C.KEY_AI_PROVIDER, aiProvider);
+
+      // 默认模型
+      const aiModel = await this.pref.get(C.KEY_AI_MODEL, 'deepseek-chat');
+      AppStorage.setOrCreate(C.KEY_AI_MODEL, aiModel);
+
+      // Base URL (DeepSeek 默认地址)
+      const aiBaseUrl = await this.pref.get(C.KEY_AI_BASE_URL, 'https://api.deepseek.com');
+      AppStorage.setOrCreate(C.KEY_AI_BASE_URL, aiBaseUrl);
+
+      // 读取 API Key (敏感数据)
+      const dsApiKey = await SecureStorage.get(C.KEY_AI_DEEPSEEK_API_KEY);
+      AppStorage.setOrCreate(C.KEY_AI_DEEPSEEK_API_KEY, dsApiKey);
 
       console.info('SettingsValue initialized successfully');
     } catch (err) {
@@ -116,5 +128,45 @@ export class LocalValues {
 
   async setVibration(status: boolean) {
     await this.setValue(C.KEY_VIBRATION_ENABLE, status);
+  }
+
+  /**
+   * AI 配置相关 Getter
+   */
+  getAIProvider(): string {
+    return AppStorage.get<string>(C.KEY_AI_PROVIDER) ?? 'deepseek';
+  }
+
+  getAIModel(): string {
+    return AppStorage.get<string>(C.KEY_AI_MODEL) ?? 'deepseek-chat';
+  }
+
+  getAIBaseUrl(): string {
+    return AppStorage.get<string>(C.KEY_AI_BASE_URL) ?? 'https://api.deepseek.com';
+  }
+
+  getDeepSeekApiKey(): string {
+    return AppStorage.get<string>(C.KEY_AI_DEEPSEEK_API_KEY) ?? '';
+  }
+
+  /**
+   * 设置 DeepSeek API Key
+   */
+  async setDeepSeekApiKey(key: string) {
+    AppStorage.set(C.KEY_AI_DEEPSEEK_API_KEY, key);
+    if (key && key.length > 0) {
+      await SecureStorage.save(C.KEY_AI_DEEPSEEK_API_KEY, key);
+    } else {
+      await SecureStorage.delete(C.KEY_AI_DEEPSEEK_API_KEY);
+    }
+  }
+
+  /**
+   * 通用 AI 设置更新 (Provider, Model, Url)
+   */
+  async updateAIConfig(provider: string, model: string, baseUrl: string) {
+    await this.setValue(C.KEY_AI_PROVIDER, provider);
+    await this.setValue(C.KEY_AI_MODEL, model);
+    await this.setValue(C.KEY_AI_BASE_URL, baseUrl);
   }
 }

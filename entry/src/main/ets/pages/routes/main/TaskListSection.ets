@@ -2,7 +2,7 @@ import { DDLStatus } from "../../../model/DDLStatus";
 import { DDLItemCardSwipeable } from "../../components/TaskItemCard";
 import { LengthMetrics, promptAction } from "@kit.ArkUI";
 import { DDLItem, DeadlineType } from "../../../model/DDLModels";
-import { TaskRepository } from "../../../data/repository/TaskRepository";
+import { TaskRepository } from "../../../common/repository/TaskRepository";
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { TaskListController } from "./TaskListController"
@@ -614,7 +614,6 @@ export struct TaskListSection {
     }
     .width("100%")
     .height("100%")
-    // 外部也需要扩展，确保 TopSafeContainer 能拿到全屏空间
     .bindSheet($$this.isEditSheetShow, this.taskEditSheet(), {
       height: SheetSize.FIT_CONTENT, // 半屏高度，也可以自定义高度
       dragBar: true,            // 显示拖拽条
@@ -622,7 +621,7 @@ export struct TaskListSection {
         this.isEditSheetShow = false;
         this.editingTask = null; // 清理数据
       },
-      blurStyle: BlurStyle.Regular,
+      blurStyle: BlurStyle.Thin,
       backgroundColor: Color.Transparent,
       title: {
         title: '编辑任务',

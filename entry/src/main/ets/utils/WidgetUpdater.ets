@@ -1,6 +1,6 @@
 import { formBindingData, formProvider } from '@kit.FormKit';
 import { preferences } from '@kit.ArkData';
-import { TaskRepository } from '../data/repository/TaskRepository';
+import { TaskRepository } from '../common/repository/TaskRepository';
 import { common } from '@kit.AbilityKit';
 import { WidgetData, WidgetTaskItem } from '../widget/model/WidgetData'; // 路径根据实际情况调整
 

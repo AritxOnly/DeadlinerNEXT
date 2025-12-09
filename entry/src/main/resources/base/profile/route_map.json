@@ -9,6 +9,14 @@
       }
     },
     {
+      "name": "settingsAI",
+      "pageSourceFile": "src/main/ets/pages/routes/settings/DeadlinerAISettingsPage.ets",
+      "buildFunction": "SettingsAIBuilder",
+      "data": {
+        "description": "Deadliner AI 设置页"
+      }
+    },
+    {
       "name": "addTask",
       "pageSourceFile": "src/main/ets/pages/routes/add/AddTaskPage.ets",
       "buildFunction": "AddTaskBuilder",
