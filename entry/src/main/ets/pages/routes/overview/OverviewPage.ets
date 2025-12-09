@@ -2,7 +2,7 @@ import { BottomBuilderShowType, DividerShowType, HdsNavigation, HdsNavigationTit
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { ItemRestriction, LengthMetrics, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem, router, promptAction } from "@kit.ArkUI";
 import { OverviewSettingsDialog } from '../../components/OverviewSettingsDialog';
-import { TaskRepository } from '../../../data/repository/TaskRepository';
+import { TaskRepository } from '../../../common/repository/TaskRepository';
 import { DDLItem, DeadlineType } from '../../../model/DDLModels';
 import { hashColor, safeParseDate, isOverdue, isToday, extractTimeBucket, bucketOrder } from '../../../utils/OverviewUtils'
 import { DashboardSection } from "./DashboardSection";

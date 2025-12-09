@@ -1,4 +1,4 @@
-import { DatabaseHelper } from '../db/DatabaseHelper';
+import { DatabaseHelper } from '../data/DatabaseHelper';
 import { WebUtils, PreconditionFailedError } from '../network/WebUtils';
 import { relationalStore, ValuesBucket } from '@kit.ArkData';
 import { util } from '@kit.ArkTS';

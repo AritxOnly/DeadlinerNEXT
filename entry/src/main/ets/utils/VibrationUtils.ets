@@ -1,4 +1,4 @@
-import { LocalValues } from "../data/local/LocalValues"
+import { LocalValues } from "../common/local/LocalValues"
 import { vibrator } from "@kit.SensorServiceKit"
 
 export class VibrationUtils {

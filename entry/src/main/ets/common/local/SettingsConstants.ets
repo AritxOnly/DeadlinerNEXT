@@ -9,4 +9,9 @@ export class SettingsConstants {
   static readonly KEY_THEME_MODE = 'theme_mode'; // 0:跟随系统, 1:浅色, 2:深色
 
   static readonly KEY_VIBRATION_ENABLE = 'vibration';
+
+  static readonly KEY_AI_PROVIDER = 'ai_provider';
+  static readonly KEY_AI_MODEL = 'ai_model';
+  static readonly KEY_AI_DEEPSEEK_API_KEY = 'ai_deepseek_api_key';
+  static readonly KEY_AI_BASE_URL = 'ai_base_url';
 }

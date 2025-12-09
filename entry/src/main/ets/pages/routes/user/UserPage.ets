@@ -48,7 +48,9 @@ export struct UserPage {
                 title: "Deadliner AI",
                 subtitle: "配置 API Key 与模型参数",
                 icon: $r('sys.symbol.AI'),
-                onItemClick: () => { /* TODO */ }
+                onItemClick: () => {
+                  this.appPathStack.pushPath({ name: 'settingsAI' });
+                }
               })
             }
 

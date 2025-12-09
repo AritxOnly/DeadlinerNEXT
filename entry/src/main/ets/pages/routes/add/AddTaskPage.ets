@@ -1,11 +1,17 @@
 import { promptAction } from '@kit.ArkUI';
-import { TaskRepository } from '../../../data/repository/TaskRepository';
+import { TaskRepository } from '../../../common/repository/TaskRepository';
 import { DeadlineType } from '../../../model/DDLModels';
 import { TimeInputButton } from '../../components/TimeInputButton';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24; // 需求1：圆角 24
 const ITEM_HEIGHT = 56; // 统一高度
+
+export interface AddTaskParams {
+  name: string;
+  note?: string;
+  dueTime?: string; // 格式 "yyyy-MM-dd HH:mm"
+}
 
 @Builder
 export function AddTaskBuilder(name: string, param: Object) {
@@ -55,6 +61,33 @@ export struct AddTaskPage {
         })
       }
     })
+  }
+
+  private parseDateString(dateStr: string): Date | null {
+    if (!dateStr) return null;
+    try {
+      // 兼容 "2023-12-01 12:00" 这种格式
+      // 替换空格为 T，并补全秒，变成标准 ISO 格式尝试解析
+      const isoStr = dateStr.replace(' ', 'T') + ':00';
+      const date = new Date(isoStr);
+      if (isNaN(date.getTime())) {
+        // 如果失败，尝试手动解析
+        const parts = dateStr.split(/[- :]/);
+        if (parts.length >= 5) {
+          return new Date(
+            parseInt(parts[0]),
+            parseInt(parts[1]) - 1, // 月份从0开始
+            parseInt(parts[2]),
+            parseInt(parts[3]),
+            parseInt(parts[4])
+          );
+        }
+        return null;
+      }
+      return date;
+    } catch (e) {
+      return null;
+    }
   }
 
   private async saveTask() {
@@ -157,6 +190,23 @@ export struct AddTaskPage {
     .title('')
     .onReady((ctx) => {
       this.pageStack = ctx.pathStack;
+
+      const param = ctx.pathInfo.param as AddTaskParams;
+      if (param) {
+        if (param.name) this.name = param.name;
+        if (param.note) this.note = param.note;
+
+        // 处理时间
+        if (param.dueTime) {
+          const parsedDate = this.parseDateString(param.dueTime);
+          if (parsedDate) {
+            this.endTime = parsedDate;
+            // 智能设定开始时间：如果截止时间很近，开始时间设为现在；否则设为截止前1小时
+            // 这里简单处理：开始时间设为当前时间
+            this.startTime = new Date();
+          }
+        }
+      }
     })
     .menus([
       this.saveMenuItem

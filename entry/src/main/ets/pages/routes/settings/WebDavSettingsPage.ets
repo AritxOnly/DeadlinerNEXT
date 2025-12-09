@@ -1,9 +1,9 @@
-import { SettingsConstants } from "../../../data/local/SettingsConstants";
-import { LocalValues } from "../../../data/local/LocalValues";
+import { SettingsConstants } from "../../../common/local/SettingsConstants";
+import { LocalValues } from "../../../common/local/LocalValues";
 import { promptAction } from '@kit.ArkUI'; // 用于显示 Toast
-import { WebUtils } from '../../../data/network/WebUtils'; // 引用我们之前写的网络工具
-import { DatabaseHelper } from '../../../data/db/DatabaseHelper'; // 引用数据库工具
-import { SyncService } from "../../../data/sync/SyncService";
+import { WebUtils } from '../../../common/network/WebUtils'; // 引用我们之前写的网络工具
+import { DatabaseHelper } from '../../../common/data/DatabaseHelper'; // 引用数据库工具
+import { SyncService } from "../../../common/sync/SyncService";
 
 @Builder
 export function SettingsWebDavBuilder(name: string, param: Object) {
@@ -70,6 +70,8 @@ export struct SettingsWebDavPage {
 
         Divider().color(Color.Transparent).height(20)
 
+        Blank()
+
         // 5. 保存并测试按钮
         Button(this.isSyncing ? '正在同步...' : '保存并与云端同步', { type: ButtonType.Capsule })
           .width('90%')
@@ -108,6 +110,7 @@ export struct SettingsWebDavPage {
             }
           })
       }
+      .height('100%')
       .padding(16)
     }
     .title("WebDav设置")

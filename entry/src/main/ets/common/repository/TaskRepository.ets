@@ -1,4 +1,4 @@
-import { DatabaseHelper, DDLInsertParams } from '../db/DatabaseHelper';
+import { DatabaseHelper, DDLInsertParams } from '../data/DatabaseHelper';
 import { SyncService } from '../sync/SyncService';
 import { WebUtils } from '../network/WebUtils';
 import { LocalValues } from '../local/LocalValues';
