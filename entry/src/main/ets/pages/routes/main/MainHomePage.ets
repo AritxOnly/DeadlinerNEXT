@@ -324,7 +324,7 @@ export struct MainHomePage {
       onDisappear: () => {
         this.isAISheetShow = false;
       },
-      blurStyle: BlurStyle.Thin,
+      blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
       title: {
         title: 'Deadliner AI',

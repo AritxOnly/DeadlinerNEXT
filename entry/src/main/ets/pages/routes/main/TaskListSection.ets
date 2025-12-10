@@ -621,7 +621,7 @@ export struct TaskListSection {
         this.isEditSheetShow = false;
         this.editingTask = null; // 清理数据
       },
-      blurStyle: BlurStyle.Thin,
+      blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
       title: {
         title: '编辑任务',
