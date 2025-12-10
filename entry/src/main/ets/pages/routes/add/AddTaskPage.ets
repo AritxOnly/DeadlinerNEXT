@@ -57,8 +57,28 @@ export struct AddTaskPage {
             } else {
               this.endTime = selectedDate;
             }
+          },
+          backgroundBlurStyle: BlurStyle.Regular,
+          selectedTextStyle: {
+            color: $r('app.color.brand')
+          },
+          acceptButtonStyle: {
+            fontColor: $r('app.color.brand')
+          },
+          cancelButtonStyle: {
+            fontColor: $r('app.color.brand')
           }
         })
+      },
+      backgroundBlurStyle: BlurStyle.Regular,
+      selectedTextStyle: {
+        color: $r('app.color.brand')
+      },
+      acceptButtonStyle: {
+        fontColor: $r('app.color.brand')
+      },
+      cancelButtonStyle: {
+        fontColor: $r('app.color.brand')
       }
     })
   }
@@ -126,7 +146,7 @@ export struct AddTaskPage {
     }
   }
 
-  @State inputBgColor: ResourceColor = $r('sys.color.background_tertiary')
+  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary')
 
   build() {
     NavDestination() {

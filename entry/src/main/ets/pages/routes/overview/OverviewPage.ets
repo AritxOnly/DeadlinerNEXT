@@ -4,7 +4,11 @@ import { ItemRestriction, LengthMetrics, SegmentButton, SegmentButtonOptions, Se
 import { OverviewSettingsDialog } from '../../components/OverviewSettingsDialog';
 import { TaskRepository } from '../../../common/repository/TaskRepository';
 import { DDLItem, DeadlineType } from '../../../model/DDLModels';
-import { hashColor, safeParseDate, isOverdue, isToday, extractTimeBucket, bucketOrder } from '../../../utils/OverviewUtils'
+import {
+  hashColor, safeParseDate, isOverdue, isToday, extractTimeBucket, bucketOrder,
+  computeDailyCompletedCounts, computeMonthlyTaskStats, computeWeeklyCompletedCounts,
+  DailyStat, MonthlyStat, WeeklyStat
+} from '../../../utils/OverviewUtils'
 import { DashboardSection } from "./DashboardSection";
 import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
@@ -27,11 +31,15 @@ export struct OverviewPage {
   @State todayCompleted: number = 0;
   @State todayTodo: number = 0;
   @State todayOverdue: number = 0;
-
-  // [修改 2] 复杂对象保持引用类型
   @State historyStats: Map<string, number> = new Map();
   @State completionTimeStats: Array<[string, number]> = [];
   @State overdueItems: DDLItem[] = [];
+
+  @State dailyStats: DailyStat[] = [];
+  @State monthlyStats: MonthlyStat[] = [];
+  @State weeklyStats: WeeklyStat[] = [];
+
+  @State allItems: DDLItem[] = [];
 
   // --- 弹窗控制器 ---
   settingsDialogController: CustomDialogController = new CustomDialogController({
@@ -62,6 +70,8 @@ export struct OverviewPage {
     try {
       // 1. 获取数据
       const items = await TaskRepository.getInstance().getDDLsByType(DeadlineType.TASK);
+
+      this.allItems = items;
 
       // 2. 数据处理
       const activeItems = items.filter(it => !it.isArchived);
@@ -102,6 +112,9 @@ export struct OverviewPage {
 
       this.overdueItems = historyOverdue;
 
+      this.dailyStats = computeDailyCompletedCounts(items, 7);   // 过去7天
+      this.monthlyStats = computeMonthlyTaskStats(items, 6);     // 过去6个月 (防止手机屏太挤)
+      this.weeklyStats = computeWeeklyCompletedCounts(items, 4); // 过去4周
     } catch (e) {
       console.error(`[OverviewPage] Load data error: ${e}`);
     } finally {
@@ -148,11 +161,13 @@ export struct OverviewPage {
               })
             } else if (this.selectedIndexes[0] === 1) {
               TrendAnalysisSection({
-                completionTimeStats: $completionTimeStats // 保持一致，也建议用 Link
+                dailyStats: $dailyStats,
+                monthlyStats: $monthlyStats,
+                weeklyStats: $weeklyStats
               })
             } else if (this.selectedIndexes[0] === 2) {
               DashboardSection({
-                overdueItems: this.overdueItems
+                items: this.allItems
               })
             }
           }

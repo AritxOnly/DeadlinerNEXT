@@ -47,7 +47,7 @@ export struct TaskListSection {
   @State editingStartTime: Date = new Date();
   @State editingEndTime: Date = new Date();
 
-  @State inputBgColor: ResourceColor = $r('sys.color.background_tertiary');
+  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary');
 
   private repo = TaskRepository.getInstance();
 
@@ -470,8 +470,28 @@ export struct TaskListSection {
             } else {
               this.editingEndTime = selectedDate;
             }
+          },
+          backgroundBlurStyle: BlurStyle.Regular,
+          selectedTextStyle: {
+            color: $r('app.color.brand')
+          },
+          acceptButtonStyle: {
+            fontColor: $r('app.color.brand')
+          },
+          cancelButtonStyle: {
+            fontColor: $r('app.color.brand')
           }
         })
+      },
+      backgroundBlurStyle: BlurStyle.Regular,
+      selectedTextStyle: {
+        color: $r('app.color.brand')
+      },
+      acceptButtonStyle: {
+        fontColor: $r('app.color.brand')
+      },
+      cancelButtonStyle: {
+        fontColor: $r('app.color.brand')
       }
     })
   }

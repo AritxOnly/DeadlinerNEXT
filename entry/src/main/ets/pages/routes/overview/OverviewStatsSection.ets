@@ -1,5 +1,6 @@
 import { DDLItem } from '../../../model/DDLModels';
 import { ChartOptions, UCharts, UChartsController } from '@ibestservices/ucharts';
+import { StatsCardContainer } from '../../components/OverviewComponents';
 
 // --- 颜色转换辅助函数 (保持不变) ---
 function getHexColorSync(context: Context, resource: Resource): string {
@@ -24,7 +25,6 @@ interface ChartSeriesItem {
 
 @Component
 export struct OverviewStatsSection {
-  // ... (Props 保持不变)
   @Prop todayCompleted: number;
   @Prop todayTodo: number;
   @Prop todayOverdue: number;
@@ -48,20 +48,6 @@ export struct OverviewStatsSection {
     }
     .width('100%')
     .padding({ left: 16, right: 16, top: 16 })
-  }
-}
-
-// ... (StatsCardContainer 保持不变)
-@Component
-struct StatsCardContainer {
-  @BuilderParam content: () => void;
-  build() {
-    Column() { this.content() }
-    .width('100%')
-    .padding(16)
-    .backgroundColor($r('app.color.background_secondary'))
-    .borderRadius($r('sys.float.ohos_id_corner_radius_card'))
-    .clip(true)
   }
 }
 

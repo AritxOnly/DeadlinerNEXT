@@ -1,59 +1,137 @@
 import { DDLItem } from "../../../model/DDLModels";
-import { hashColor } from "../../../utils/OverviewUtils";
+import { Metric, generateDashboardMetrics } from "../../../utils/OverviewUtils";
+import { LengthMetrics } from '@kit.ArkUI';
 
 @Component
 export struct DashboardSection {
-  @Prop overdueItems: DDLItem[];
+  @Prop items: DDLItem[] = [];
+
+  @State metrics: Metric[] = [];
+
+  aboutToAppear(): void {
+    // 计算指标
+    this.metrics = generateDashboardMetrics(this.items);
+  }
+
+  // 监听数据变化重新计算
+  onItemsChange() {
+    this.metrics = generateDashboardMetrics(this.items);
+  }
 
   build() {
     Column() {
-      Text("需要关注的任务")
-        .fontSize(18)
-        .fontWeight(FontWeight.Bold)
+
+      DashboardHeader()
         .width('100%')
-        .margin({ bottom: 10 })
+        .padding({ left: 16, right: 16, top: 16 })
 
-      if (this.overdueItems.length === 0) {
-        Column() {
-          Text("太棒了，没有逾期任务！").fontColor(Color.Gray).margin({top: 50})
-        }.width('100%').alignItems(HorizontalAlign.Center)
-      } else {
-        List({ space: 10 }) {
-          ForEach(this.overdueItems, (item: DDLItem) => {
-            ListItem() {
-              Row() {
-                // 红色竖线指示条
-                Column().width(4).height(40).backgroundColor(hashColor('逾期')).borderRadius(2).margin({ right: 12 })
+      WaterFlow() {
+        ForEach(this.metrics, (item: Metric, index: number) => {
+          FlowItem() {
+            MetricCard({ metric: item })
+          }
+          .width('100%') // 在两列模式下，这会让它填充列宽
+        })
+      }
+      .columnsTemplate("1fr 1fr") // 两列布局
+      .columnsGap(10) // 列间距
+      .rowsGap(10)    // 行间距
+      .width('100%')
+      .height('100%') // 必须有高度，否则可能显示不出来
+      .padding({ left: 16, right: 16, top: 16, bottom: 40 })
 
-                Column() {
-                  Text(item.name)
-                    .fontSize(16)
-                    .fontWeight(FontWeight.Medium)
-                    .maxLines(1)
-                    .textOverflow({ overflow: TextOverflow.Ellipsis })
-                  Text(`截止: ${item.endTime}`)
-                    .fontSize(12)
-                    .fontColor(Color.Gray)
-                    .margin({ top: 4 })
-                }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+      // 注意：WaterFlow 也是个 Scroll 容器。
+      // 如果外层有 TopSafeContainer (Scroll)，WaterFlow 可能会导致嵌套滚动冲突。
+      // 解决方案：使用 .nestedScroll 属性
+      .nestedScroll({
+        scrollForward: NestedScrollMode.PARENT_FIRST,
+        scrollBackward: NestedScrollMode.PARENT_FIRST
+      })
+    }
+    .width('100%')
+    // 这里也不要定死高度，让 WaterFlow 自己撑开或滚动
+  }
+}
 
-                Text("已逾期")
-                  .fontSize(12)
-                  .fontColor(hashColor('逾期'))
-                  .padding({ top: 4, bottom: 4, left: 8, right: 8 })
-                  .backgroundColor('#FFEEBZ') // 浅红背景 (需适配)
-                  .borderRadius(4)
-              }
-              .padding(12)
-              .backgroundColor($r('sys.color.ohos_id_color_card_bg'))
-              .borderRadius(12)
-            }
-          })
+// =========================================
+// Header 组件 (带有背景图的大卡片)
+// =========================================
+@Component
+struct DashboardHeader {
+  build() {
+    Stack({ alignContent: Alignment.BottomStart }) {
+      // 背景图 (使用 Image 或 颜色渐变)
+      Image($r('app.media.dashboard_background')) // 假设你有这个资源，或者用纯色代替
+        .width('100%')
+        .height('100%')
+        .objectFit(ImageFit.Cover)
+        .backgroundColor($r('app.color.brand')) // 兜底颜色
+        .opacity(0.8)
+
+      // 文字
+      Text("上月\n数据汇总")
+        .fontSize(28)
+        .fontWeight(FontWeight.Bold)
+        .fontColor(Color.White)
+        .padding(24)
+        .lineHeight(36)
+    }
+    .width('100%')
+    .height(180)
+    .borderRadius(24)
+    .clip(true)
+  }
+}
+
+// =========================================
+// Metric Card 组件 (单个指标)
+// =========================================
+@Component
+struct MetricCard {
+  @Prop metric: Metric;
+
+  build() {
+    Column() {
+      // 标题
+      Text(this.metric.label)
+        .fontSize(12)
+        .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        .margin({ bottom: 8 })
+
+      // 数值
+      Text(this.metric.value)
+        .fontSize(24)
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('sys.color.ohos_id_color_text_primary'))
+
+      // 变化量 (如果有)
+      if (this.metric.change) {
+        Row() {
+          // 箭头图标
+          if (this.metric.isDown !== undefined) {
+            SymbolGlyph(this.metric.isDown ? $r('sys.symbol.arrow_down') : $r('sys.symbol.arrow_up'))
+              .fontSize(16)
+              .fontColor([this.metric.isDown ? $r('app.color.chart_red') : $r('app.color.chart_green')])
+              .margin({ right: 4 })
+          }
+
+          // 变化数值
+          Text(this.metric.change)
+            .fontSize(14)
+            .fontColor(
+              this.metric.isDown === true ? $r('app.color.chart_red') :
+                this.metric.isDown === false ? $r('app.color.chart_green') :
+                  $r('app.color.chart_blue')
+            )
         }
-        .layoutWeight(1)
+        .margin({ top: 8 })
+        .alignItems(VerticalAlign.Center)
       }
     }
+    .width('100%')
     .padding(16)
-    .height('100%')
+    .backgroundColor($r('sys.color.ohos_id_color_card_bg'))
+    .borderRadius(24)
+    .alignItems(HorizontalAlign.Start)
   }
 }
