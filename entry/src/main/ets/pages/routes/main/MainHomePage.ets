@@ -17,6 +17,7 @@ import { TaskListController } from './TaskListController'
 import { ConfettiController } from '../../components/confetti/ConfettiController'
 import { ConfettiView } from '../../components/confetti/ConfettiView'
 import { AIPanelView } from '../../components/AIPanelView'
+import { HabitListController } from './HabitListController'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -56,6 +57,9 @@ export struct MainHomePage {
 
   @State isTaskSelectionMode: boolean = false;
   private taskController: TaskListController = new TaskListController();
+
+  @State isHabitSelectionMode: boolean = false
+  private habitController: HabitListController = new HabitListController();
 
   @State confettiController: ConfettiController = new ConfettiController();
 
@@ -114,6 +118,8 @@ export struct MainHomePage {
   onSegmentChange() {
     if (this.selectedIndexes.length > 0) {
       this.currentIndex = this.selectedIndexes[0]
+      this.taskController.requestExitSelection();
+      this.habitController.requestExitSelection();
     }
   }
 
@@ -186,7 +192,12 @@ export struct MainHomePage {
                 right: { anchor: '__container__', align: HorizontalAlign.End },
               })
           } else {
-            HabitListSection({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT })
+            HabitListSection({
+              scroller: this.scroller,
+              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
+              isSelectionMode: $isHabitSelectionMode,
+              controller: this.habitController
+            })
               .id('content')
               .alignRules({
                 top: { anchor: '__container__', align: VerticalAlign.Top },
@@ -237,14 +248,19 @@ export struct MainHomePage {
               .margin({ bottom: 48 })
               .hitTestBehavior(HitTestMode.Transparent)
           } else {
-            // 在其他 Tab (如 Habit) 显示普通 FAB，或者根据 Habit 需求复用 Toolbar
             HomeFloatingToolbar({
-              isSelectionMode: false, // 习惯暂无多选
-              onClickAdd: () => { /* Add Habit Logic */ },
-              handleBatchComplete: () => {},
-              handleBatchArchive: () => {},
-              handleBatchDelete: () => {},
-              handleBatchEdit: () => {}
+              isSelectionMode: this.isHabitSelectionMode,
+              onClickAdd: () => {
+                if (this.isHabitSelectionMode) {
+                  this.habitController.requestExitSelection();
+                } else {
+                  this.appPathStack.pushPathByName('addHabit', null);
+                }
+              },
+              handleBatchComplete: () => this.habitController.requestBatchComplete(),
+              handleBatchArchive: () => this.habitController.requestBatchArchive(),
+              handleBatchDelete: () => this.habitController.requestBatchDelete(),
+              handleBatchEdit: () => this.habitController.requestBatchEdit()
             })
               .id('fab_habit')
               .alignRules({
@@ -252,6 +268,7 @@ export struct MainHomePage {
                 middle: { anchor: '__container__', align: HorizontalAlign.Center },
               })
               .margin({ bottom: 48 })
+              .hitTestBehavior(HitTestMode.Transparent)
           }
         }
         .height('100%')
@@ -298,15 +315,15 @@ export struct MainHomePage {
                 }
               }
             },
-            {
-              content: {
-                label: 'Search',
-                icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
-                action: () => {
-                  // TODO: 搜索逻辑
-                }
-              }
-            },
+            // {
+            //   content: {
+            //     label: 'Search',
+            //     icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
+            //     action: () => {
+            //       // TODO: 搜索逻辑
+            //     }
+            //   }
+            // },
           ]
         },
         bottomBuilder: {

@@ -23,6 +23,14 @@
       "data": {
         "description": "添加任务页"
       }
+    },
+    {
+      "name": "addHabit",
+      "pageSourceFile": "src/main/ets/pages/routes/add/AddHabitPage.ets",
+      "buildFunction": "AddHabitBuilder",
+      "data": {
+        "description": "添加习惯页"
+      }
     }
   ]
 }

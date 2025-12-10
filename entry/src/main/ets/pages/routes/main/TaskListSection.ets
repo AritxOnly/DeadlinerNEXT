@@ -361,6 +361,7 @@ export struct TaskListSection {
       message: `确定要删除选中的 ${this.selectedIds.length} 个任务吗？此操作不可恢复。`,
       autoCancel: true,
       alignment: DialogAlignment.Bottom,
+      offset: { dx: 0, dy: -20 },
       primaryButton: {
         value: '取消',
         fontColor: $r('app.color.brand'),
@@ -382,7 +383,7 @@ export struct TaskListSection {
           }
         }
       },
-      backgroundBlurStyle: BlurStyle.Thick
+      backgroundBlurStyle: BlurStyle.Regular
     });
   }
 

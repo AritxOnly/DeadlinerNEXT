@@ -10,26 +10,14 @@ export struct UserPage {
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
-  readonly TITLE_BAR_CONTENT_HEIGHT: number = 56;
+  readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   build() {
     HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Scroll() {
-          Column({ space: 16 }) { // Section 之间的间距
-            // --- 账户/个人信息区域 (示例) ---
+          Column({ space: 16 }) {
             SettingsSection() {
-              SettingsItem({
-                title: "My Profile",
-                subtitle: "Manage your account info",
-                icon: $r('sys.symbol.person_3_fill'),
-                onItemClick: () => { /* TODO */
-                }
-              })
-            }
-
-            // --- 核心设置区域 ---
-            SettingsSection({ title: "General" }) {
               // WebDAV 设置 (还原你的需求)
               SettingsItem({
                 title: "WebDAV 设置",
@@ -43,24 +31,12 @@ export struct UserPage {
 
               SettingsDivider()
 
-              // AI 设置 (示例拓展)
               SettingsItem({
                 title: "Deadliner AI",
                 subtitle: "配置 API Key 与模型参数",
                 icon: $r('sys.symbol.AI'),
                 onItemClick: () => {
                   this.appPathStack.pushPath({ name: 'settingsAI' });
-                }
-              })
-            }
-
-            // --- 关于区域 ---
-            SettingsSection({ title: "About" }) {
-              SettingsItem({
-                title: "Help & Feedback",
-                subtitle: "v1.0.0",
-                icon: $r('sys.symbol.log'),
-                onItemClick: () => {
                 }
               })
             }

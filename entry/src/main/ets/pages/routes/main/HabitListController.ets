@@ -1,6 +1,6 @@
 import { DDLListController } from './DDLListController'
 
-export class TaskListController implements DDLListController {
+export class HabitListController implements DDLListController {
   requestBatchComplete: () => void = () => {};
   requestBatchArchive: () => void = () => {};
   requestBatchDelete: () => void = () => {};

@@ -399,4 +399,216 @@ export class DatabaseHelper {
     resultSet.close();
     return list;
   }
+
+  // ================= Habit Operations =================
+
+  async insertHabit(habit: Habit): Promise<number> {
+    if (!this.rdbStore) return -1;
+
+    const bucket: relationalStore.ValuesBucket = {};
+    bucket[C.HABIT_DDL_ID] = habit.ddlId;
+    bucket[C.HABIT_NAME] = habit.name;
+    bucket[C.HABIT_DESC] = habit.description || "";
+    bucket[C.HABIT_COLOR] = habit.color; // null is allowed
+    bucket[C.HABIT_ICON_KEY] = habit.iconKey;
+    bucket[C.HABIT_PERIOD] = habit.period.toString();
+    bucket[C.HABIT_TIMES_PER_PERIOD] = habit.timesPerPeriod;
+    bucket[C.HABIT_GOAL_TYPE] = habit.goalType.toString();
+    bucket[C.HABIT_TOTAL_TARGET] = habit.totalTarget; // null is allowed
+    bucket[C.HABIT_CREATED_AT] = habit.createdAt;
+    bucket[C.HABIT_UPDATED_AT] = habit.updatedAt;
+    bucket[C.HABIT_STATUS] = habit.status.toString();
+    bucket[C.HABIT_SORT_ORDER] = habit.sortOrder;
+    bucket[C.HABIT_ALARM_TIME] = habit.alarmTime;
+
+    try {
+      const id = await this.rdbStore.insert(C.TABLE_HABIT, bucket);
+      return id;
+    } catch (e) {
+      console.error(`[DatabaseHelper] insertHabit failed: ${e}`);
+      return -1;
+    }
+  }
+
+  async updateHabit(habit: Habit): Promise<void> {
+    if (!this.rdbStore) return;
+
+    const bucket: relationalStore.ValuesBucket = {};
+    // DDL_ID 通常不更新
+    bucket[C.HABIT_NAME] = habit.name;
+    bucket[C.HABIT_DESC] = habit.description || "";
+    bucket[C.HABIT_COLOR] = habit.color;
+    bucket[C.HABIT_ICON_KEY] = habit.iconKey;
+    bucket[C.HABIT_PERIOD] = habit.period.toString();
+    bucket[C.HABIT_TIMES_PER_PERIOD] = habit.timesPerPeriod;
+    bucket[C.HABIT_GOAL_TYPE] = habit.goalType.toString();
+    bucket[C.HABIT_TOTAL_TARGET] = habit.totalTarget;
+    bucket[C.HABIT_UPDATED_AT] = habit.updatedAt;
+    bucket[C.HABIT_STATUS] = habit.status.toString();
+    bucket[C.HABIT_SORT_ORDER] = habit.sortOrder;
+    bucket[C.HABIT_ALARM_TIME] = habit.alarmTime;
+
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT);
+    predicates.equalTo(C.HABIT_ID, habit.id);
+
+    await this.rdbStore.update(bucket, predicates);
+  }
+
+  async getHabitByDdlId(ddlId: number): Promise<Habit | null> {
+    if (!this.rdbStore) return null;
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT);
+    predicates.equalTo(C.HABIT_DDL_ID, ddlId);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    const list = this.parseHabitResultSet(resultSet);
+    return list.length > 0 ? list[0] : null;
+  }
+
+  async getHabitById(id: number): Promise<Habit | null> {
+    if (!this.rdbStore) return null;
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT);
+    predicates.equalTo(C.HABIT_ID, id);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    const list = this.parseHabitResultSet(resultSet);
+    return list.length > 0 ? list[0] : null;
+  }
+
+  async getAllHabits(): Promise<Habit[]> {
+    if (!this.rdbStore) return [];
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT);
+    predicates.orderByAsc(C.HABIT_SORT_ORDER);
+    predicates.orderByAsc(C.HABIT_ID);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    return this.parseHabitResultSet(resultSet);
+  }
+
+  async deleteHabitByDdlId(ddlId: number): Promise<void> {
+    if (!this.rdbStore) return;
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT);
+    predicates.equalTo(C.HABIT_DDL_ID, ddlId);
+    await this.rdbStore.delete(predicates);
+  }
+
+  // ================= Habit Record Operations =================
+
+  async insertHabitRecord(record: HabitRecord): Promise<number> {
+    if (!this.rdbStore) return -1;
+
+    const bucket: relationalStore.ValuesBucket = {};
+    bucket[C.HR_HABIT_ID] = record.habitId;
+    bucket[C.HR_DATE] = record.date; // Assuming "YYYY-MM-DD" string
+    bucket[C.HR_COUNT] = record.count;
+    bucket[C.HR_STATUS] = record.status.toString();
+    bucket[C.HR_CREATED_AT] = record.createdAt;
+
+    try {
+      return await this.rdbStore.insert(C.TABLE_HABIT_RECORD, bucket);
+    } catch (e) {
+      console.error(`[DatabaseHelper] insertHabitRecord failed: ${e}`);
+      return -1;
+    }
+  }
+
+  async getHabitRecordsForHabitOnDate(habitId: number, date: string): Promise<HabitRecord[]> {
+    if (!this.rdbStore) return [];
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT_RECORD);
+    predicates.equalTo(C.HR_HABIT_ID, habitId);
+    predicates.equalTo(C.HR_DATE, date);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    return this.parseHabitRecordResultSet(resultSet);
+  }
+
+  async getHabitRecordsForDate(date: string): Promise<HabitRecord[]> {
+    if (!this.rdbStore) return [];
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT_RECORD);
+    predicates.equalTo(C.HR_DATE, date);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    return this.parseHabitRecordResultSet(resultSet);
+  }
+
+  async getHabitRecordsForHabitInRange(
+    habitId: number,
+    startDate: string,
+    endDateInclusive: string
+  ): Promise<HabitRecord[]> {
+    if (!this.rdbStore) return [];
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT_RECORD);
+    predicates.equalTo(C.HR_HABIT_ID, habitId);
+    // RdbPredicates 的 between 是闭区间 [start, end]
+    predicates.between(C.HR_DATE, startDate, endDateInclusive);
+    predicates.orderByAsc(C.HR_DATE);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    return this.parseHabitRecordResultSet(resultSet);
+  }
+
+  async deleteHabitRecordsForHabitOnDate(habitId: number, date: string): Promise<void> {
+    if (!this.rdbStore) return;
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_HABIT_RECORD);
+    predicates.equalTo(C.HR_HABIT_ID, habitId);
+    predicates.equalTo(C.HR_DATE, date);
+    await this.rdbStore.delete(predicates);
+  }
+
+  // ================= Private Helper Parsing Methods =================
+
+  private parseHabitResultSet(resultSet: relationalStore.ResultSet): Habit[] {
+    const list: Habit[] = [];
+    while (resultSet.goToNextRow()) {
+      // Helper to check null for nullable columns
+      const getColor = (): number | null => {
+        const idx = resultSet.getColumnIndex(C.HABIT_COLOR);
+        return resultSet.isColumnNull(idx) ? null : resultSet.getLong(idx); // relationalStore getInt -> getLong
+      };
+      const getTotalTarget = (): number | null => {
+        const idx = resultSet.getColumnIndex(C.HABIT_TOTAL_TARGET);
+        return resultSet.isColumnNull(idx) ? null : resultSet.getLong(idx);
+      };
+      const getAlarmTime = (): string | null => {
+        const idx = resultSet.getColumnIndex(C.HABIT_ALARM_TIME);
+        return resultSet.isColumnNull(idx) ? null : resultSet.getString(idx);
+      };
+
+      list.push({
+        id: resultSet.getLong(resultSet.getColumnIndex(C.HABIT_ID)),
+        ddlId: resultSet.getLong(resultSet.getColumnIndex(C.HABIT_DDL_ID)),
+        name: resultSet.getString(resultSet.getColumnIndex(C.HABIT_NAME)),
+        description: resultSet.getString(resultSet.getColumnIndex(C.HABIT_DESC)),
+        color: getColor(),
+        iconKey: resultSet.getString(resultSet.getColumnIndex(C.HABIT_ICON_KEY)),
+        // Enum conversion (String -> Enum)
+        period: resultSet.getString(resultSet.getColumnIndex(C.HABIT_PERIOD)) as HabitPeriod,
+        timesPerPeriod: resultSet.getLong(resultSet.getColumnIndex(C.HABIT_TIMES_PER_PERIOD)),
+        goalType: resultSet.getString(resultSet.getColumnIndex(C.HABIT_GOAL_TYPE)) as HabitGoalType,
+        totalTarget: getTotalTarget(),
+        createdAt: resultSet.getString(resultSet.getColumnIndex(C.HABIT_CREATED_AT)),
+        updatedAt: resultSet.getString(resultSet.getColumnIndex(C.HABIT_UPDATED_AT)),
+        status: resultSet.getString(resultSet.getColumnIndex(C.HABIT_STATUS)) as HabitStatus,
+        sortOrder: resultSet.getLong(resultSet.getColumnIndex(C.HABIT_SORT_ORDER)),
+        alarmTime: getAlarmTime(),
+      });
+    }
+    resultSet.close();
+    return list;
+  }
+
+  private parseHabitRecordResultSet(resultSet: relationalStore.ResultSet): HabitRecord[] {
+    const list: HabitRecord[] = [];
+    while (resultSet.goToNextRow()) {
+      list.push({
+        id: resultSet.getLong(resultSet.getColumnIndex(C.HR_ID)),
+        habitId: resultSet.getLong(resultSet.getColumnIndex(C.HR_HABIT_ID)),
+        date: resultSet.getString(resultSet.getColumnIndex(C.HR_DATE)),
+        count: resultSet.getLong(resultSet.getColumnIndex(C.HR_COUNT)),
+        status: resultSet.getString(resultSet.getColumnIndex(C.HR_STATUS)) as HabitRecordStatus,
+        createdAt: resultSet.getString(resultSet.getColumnIndex(C.HR_CREATED_AT)),
+      });
+    }
+    resultSet.close();
+    return list;
+  }
 }
