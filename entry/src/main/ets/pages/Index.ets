@@ -1,8 +1,12 @@
 import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponent';
 import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
+import { LocalValues } from '../common/local/LocalValues';
+import { PrivacyDialog } from './components/PrivacyDialog';
 import { MainHomePage } from './routes/main/MainHomePage';
 import { OverviewPage } from './routes/overview/OverviewPage';
 import { UserPage } from './routes/user/UserPage';
+import { common } from '@kit.AbilityKit';
+import { WebParams } from './common/WebBrowserPage';
 
 interface TabData {
   title: string,
@@ -15,6 +19,81 @@ interface TabData {
 struct Index {
   // 全局路由栈
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
+
+  private context = getContext(this) as common.UIAbilityContext;
+  private privacyUrl: string = 'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1837914602910842752';
+
+  @State isBlocking: boolean = false;
+  private isDialogOpened: boolean = false;
+
+  dialogController: CustomDialogController | null = new CustomDialogController({
+    builder: PrivacyDialog({
+      onConfirm: async () => {
+        await LocalValues.getInstance().setPrivacyAgreed();
+        this.isBlocking = false;
+        this.isDialogOpened = false;
+        console.info('User agreed to privacy policy.');
+      },
+      onCancel: () => {
+        this.context.terminateSelf().catch(() => {
+          console.error('Terminate failed');
+        });
+      },
+      onJumpToWeb: () => {
+        this.isDialogOpened = false;
+        this.openPrivacyWeb();
+      },
+    }),
+    autoCancel: false,
+    alignment: DialogAlignment.Center,
+    cancel: () => {
+      if (this.isBlocking) {
+        this.context.terminateSelf().catch(() => {
+          console.error('Terminate failed');
+        });
+      }
+    }
+  })
+
+  async aboutToAppear() {
+    this.checkAndShowDialog();
+  }
+
+  async checkAndShowDialog() {
+    const isAgreed = await LocalValues.getInstance().getIsPrivacyAgreed();
+    if (!isAgreed && !this.isDialogOpened) {
+      this.isBlocking = true;
+      this.dialogController?.open();
+    }
+  }
+
+  openPrivacyWeb() {
+    const params: WebParams = {
+      url: this.privacyUrl,
+      title: '隐私协议',
+      onClose: () => {
+        console.info('WebBrowserPage is closing, re-checking privacy...');
+        setTimeout(() => {
+          this.checkAndShowDialog();
+        }, 100);
+      }
+    };
+
+    this.appPathStack.pushPath({
+      name: 'webBrowser',
+      param: params,
+    });
+  }
+
+  onBackPress() {
+    // 如果当前处于“阻断”状态（即未同意协议），
+    // 无论弹窗是否肉眼可见（哪怕因为跳转Web暂时关闭了），
+    // 只要是在 Index 页面，都禁止通过返回键退出。
+    if (this.isBlocking) {
+      return true; // 返回 true 表示“我已处理该事件”，系统不会执行默认的退出操作
+    }
+    return false;
+  }
 
   @State currentIndex: number = 0;
   private tabsController: TabsController = new TabsController();

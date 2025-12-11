@@ -169,4 +169,28 @@ export class LocalValues {
     await this.setValue(C.KEY_AI_MODEL, model);
     await this.setValue(C.KEY_AI_BASE_URL, baseUrl);
   }
+
+  /**
+   * 隐私协议相关
+   */
+  async getIsPrivacyAgreed(): Promise<boolean> {
+    if (!this.pref) return false;
+
+    try {
+      return await this.pref.get(C.KEY_PRIVACY_AGREE, false) as boolean;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  async setPrivacyAgreed(): Promise<void> {
+    if (!this.pref) return;
+
+    try {
+      await this.pref.put(C.KEY_PRIVACY_AGREE, true);
+      await this.pref?.flush();
+    } catch (e) {
+      console.error('Save preference failed', e);
+    }
+  }
 }

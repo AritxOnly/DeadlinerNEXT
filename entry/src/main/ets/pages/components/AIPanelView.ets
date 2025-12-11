@@ -188,6 +188,8 @@ export struct AIPanelView {
               this.TaskCard(task)
             })
           }
+          
+          this.AILabel()
         }
         .alignItems(HorizontalAlign.Start)
         .layoutWeight(1)
@@ -214,6 +216,19 @@ export struct AIPanelView {
     .width('100%')
     .padding({ top: 8, bottom: 8 })
     .justifyContent(msg.role === 'ai' ? FlexAlign.Start : FlexAlign.End)
+  }
+
+  @Builder
+  AILabel() {
+    Row({ space: 4 }) {
+      Text('AI生成内容，请核查')
+        .fontSize(10)
+        .fontColor($r('sys.color.font_tertiary'))
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.End)
+    .padding({ right: 4, top: 2 })
+    .opacity(0.8)
   }
 
   @Builder

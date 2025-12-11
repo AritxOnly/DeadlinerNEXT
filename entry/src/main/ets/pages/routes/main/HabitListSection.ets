@@ -3,14 +3,19 @@ import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from '../../../model/DDLModels';
 import { HabitCircleProgress, WeekRow, HabitRow, DDLStatus, HabitWithDailyStatus, DayOverview } from '../../components/HabitComponents'
 import { HabitListController } from "./HabitListController";
-import { promptAction } from '@kit.ArkUI'
+import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.ArkUI'
 import { VibrationUtils } from "../../../utils/VibrationUtils";
+import { ConfettiController } from "../../components/confetti/ConfettiController";
+
+const COMMON_RADIUS = 24;
+const ITEM_HEIGHT = 56;
 
 @Component
 export struct HabitListSection {
   @Prop topAvoidHeight: number = 0;
 
   scroller: Scroller = new Scroller();
+  confetti: ConfettiController = new ConfettiController();
   controller: HabitListController = new HabitListController();
 
   // —— 1. 数据源 (@State) ——
@@ -167,6 +172,8 @@ export struct HabitListSection {
       return;
     }
 
+    VibrationUtils.vibrateShort();
+
     const beforeRate = item.doneCount / item.targetCount;
     await this.repo.toggleRecord(item.habit.id, this.selectedDate);
     await this.refreshAll(this.selectedDate);
@@ -177,6 +184,7 @@ export struct HabitListSection {
       const afterRate = afterItem.doneCount / afterItem.targetCount;
       if (beforeRate < 1 && afterRate >= 1) {
         console.info("🎉 Habit Completed!");
+        this.confetti.fire();
       }
     }
   }
@@ -189,6 +197,7 @@ export struct HabitListSection {
   async handleBatchComplete() {
     if (this.selectedDdlIds.size === 0) return;
 
+    VibrationUtils.vibrateShort();
     // 筛选出选中的、且当天还【未完成】的习惯
     // 注意：allHabitsCache 里存的是 HabitWithDailyStatus，包含 ddlId
     const targets = this.allHabitsCache.filter(item =>
@@ -287,27 +296,55 @@ export struct HabitListSection {
   }
 
   handleBatchEdit() {
-    if (this.selectedDdlIds.size === 0) return;
-
-    if (this.selectedDdlIds.size > 1) {
-      promptAction.showToast({ message: '一次只能编辑一个习惯' });
+    if (this.selectedDdlIds.size === 0) {
+      promptAction.showToast({ message: '未选中任何习惯' });
       return;
     }
 
-    // 获取选中的 ID
     const ddlId: number = this.selectedDdlIds.values().next().value;
 
-    // 退出选择模式
+    const targetItem = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
+
+    if (!targetItem) {
+      promptAction.showToast({ message: '未找到习惯数据' });
+      return;
+    }
+
+    // 5. 退出选择模式
     this.exitSelectionMode();
 
-    // TODO: 跳转到编辑页
-    // 这里假设你有一个 EditHabitPage，需要通过 router 或 navPathStack 跳转
-    // 假设已经在 MainHomePage 通过 AppStorage 存了 NavPathStack，或者通过 EventHub 发送
-    promptAction.showToast({ message: '编辑功能开发中...' });
-    // 示例： this.pageStack.pushPath({ name: 'editHabit', param: { ddlId } })
+    // 6. 填充数据并打开编辑页
+    this.prepareEditData(targetItem.habit);
+  }
+
+  private prepareEditData(habit: Habit) {
+    // 基础信息
+    this.editingHabitId = habit.id;
+    this.editingHabitName = habit.name;
+
+    // 周期：枚举 -> 索引
+    // 这里的顺序必须与 periodOptions 数组一致: [DAILY, WEEKLY, MONTHLY]
+    const pMap = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
+    const pIndex = pMap.indexOf(habit.period);
+    // 如果找不到(比如数据错误)，默认选第一个(DAILY)
+    this.editingPeriodIndex = [pIndex !== -1 ? pIndex : 0];
+
+    // 目标类型：枚举 -> 索引
+    // 这里的顺序必须与 goalTypeOptions 数组一致: [PER_PERIOD, TOTAL]
+    const gMap = [HabitGoalType.PER_PERIOD, HabitGoalType.TOTAL];
+    const gIndex = gMap.indexOf(habit.goalType);
+    this.editingGoalTypeIndex = [gIndex !== -1 ? gIndex : 0];
+
+    // 数字转字符串
+    this.editingTimesPerPeriod = habit.timesPerPeriod.toString();
+    this.editingTotalTarget = habit.totalTarget ? habit.totalTarget.toString() : "";
+
+    // 打开 Sheet
+    this.isEditSheetShow = true;
   }
 
   onLongPress(ddlId: number) {
+    VibrationUtils.vibrateShort();
     this.isSelectionMode = true;
     this.toggleSelection(ddlId);
   }
@@ -335,10 +372,265 @@ export struct HabitListSection {
     return todayOverview ? todayOverview.completionRatio : 0;
   }
 
-  // —— 5. UI 构建 (HabitDisplayLayout 逻辑) ——
+  // == 编辑表单 ==
+  @State isEditSheetShow: boolean = false
+
+  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary')
+
+  @State editingHabitId: number = -1;
+  @State editingHabitName: string = '';
+
+  @State editingPeriodIndex: number[] = [0];
+  @State editingGoalTypeIndex: number[] = [0];
+
+  @State editingTimesPerPeriod: string = '1';
+  @State editingTotalTarget: string = '';
+
+  private periodOptions: ChipGroupItemOptions[] = [
+    { label: { text: "每日" } },
+    { label: { text: "每周" } },
+    { label: { text: "每月" } }
+  ];
+
+  private goalTypeOptions: ChipGroupItemOptions[] = [
+    { label: { text: "坚持" } },
+    { label: { text: "定量" } }
+  ];
+
+  // —— 辅助函数 ——
+  private getGoalTypeFromIndex(index: number): HabitGoalType {
+    const map = [HabitGoalType.PER_PERIOD, HabitGoalType.TOTAL];
+    return map[index] || HabitGoalType.PER_PERIOD;
+  }
+
+  private getPeriodFromIndex(index: number): HabitPeriod {
+    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
+    return map[index] || HabitPeriod.DAILY;
+  }
+
+  @Builder
+  habitEditSheet() {
+    Column() {
+      Column({ space: 16 }) {
+
+        // 1. 习惯名称
+        TextInput({ placeholder: '习惯名称', text: this.editingHabitName })
+          .height(ITEM_HEIGHT)
+          .fontSize(16)
+          .backgroundColor(this.inputBgColor)
+          .borderRadius(COMMON_RADIUS)
+          .padding({ left: 16, right: 16 })
+          .width('100%')
+          .onChange((val) => {
+            this.editingHabitName = val;
+          })
+
+        // 2. 周期选择 (ChipGroup)
+        Column({ space: 8 }) {
+          Text("重复周期")
+            .fontSize(14)
+            .fontColor(Color.Gray)
+            .padding({ left: 4 })
+
+          ChipGroup({
+            items: this.periodOptions,
+            itemStyle: {
+              size: ChipSize.NORMAL,
+              backgroundColor: this.inputBgColor,
+              fontColor: Color.Gray,
+              selectedBackgroundColor: $r('app.color.brand'),
+              selectedFontColor: Color.White
+            },
+            selectedIndexes: this.editingPeriodIndex,
+            onChange: (indexes: number[]) => {
+              this.editingPeriodIndex = indexes;
+            }
+          })
+        }
+        .width('100%')
+        .alignItems(HorizontalAlign.Start)
+
+        // 3. 目标设置 (Row 布局)
+        Row({ space: 12 }) {
+          // 左侧：频率次数
+          Column({ space: 8 }) {
+            Text("每次/频次")
+              .fontSize(14)
+              .fontColor(Color.Gray)
+              .padding({ left: 4 })
+
+            TextInput({ placeholder: '1', text: this.editingTimesPerPeriod })
+              .type(InputType.Number)
+              .height(ITEM_HEIGHT)
+              .fontSize(16)
+              .backgroundColor(this.inputBgColor)
+              .borderRadius(COMMON_RADIUS)
+              .padding({ left: 16, right: 16 })
+              .width('100%')
+              .onChange((val) => {
+                this.editingTimesPerPeriod = val;
+              })
+          }
+          .layoutWeight(1)
+
+          // 右侧：目标类型
+          Column({ space: 8 }) {
+            Text("目标类型")
+              .fontSize(14)
+              .fontColor(Color.Gray)
+              .padding({ left: 4 })
+
+            ChipGroup({
+              items: this.goalTypeOptions,
+              itemStyle: {
+                size: ChipSize.NORMAL,
+                backgroundColor: this.inputBgColor,
+                fontColor: Color.Gray,
+                selectedBackgroundColor: $r('app.color.brand'),
+                selectedFontColor: Color.White
+              },
+              selectedIndexes: this.editingGoalTypeIndex,
+              onChange: (indexes: number[]) => {
+                this.editingGoalTypeIndex = indexes;
+              }
+            })
+          }
+          .layoutWeight(1)
+        }
+        .width('100%')
+        .alignItems(VerticalAlign.Top)
+
+        // 4. 总目标输入框 (动态显示)
+        if (this.editingGoalTypeIndex.length > 0 &&
+          this.getGoalTypeFromIndex(this.editingGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
+          Column({ space: 8 }) {
+            Text("总目标数量")
+              .fontSize(14)
+              .fontColor(Color.Gray)
+              .padding({ left: 4 })
+
+            TextInput({ placeholder: '例如：100 (页/次)', text: this.editingTotalTarget })
+              .type(InputType.Number)
+              .height(ITEM_HEIGHT)
+              .fontSize(16)
+              .backgroundColor(this.inputBgColor)
+              .borderRadius(COMMON_RADIUS)
+              .padding({ left: 16, right: 16 })
+              .width('100%')
+              .onChange((val) => {
+                this.editingTotalTarget = val;
+              })
+          }
+          .width('100%')
+        }
+
+        Button('保存').onClick((event: ClickEvent) => {
+          this.saveHabitEdit();
+        })
+          .width('100%')
+          .backgroundColor($r('app.color.brand'))
+
+        Blank().height(60)
+      }
+      .width('100%')
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 16 }) // 稍微增加顶部padding
+  }
+
+  // —— 保存编辑逻辑 ——
+  private async saveHabitEdit() {
+    // 1. 基础校验
+    if (!this.editingHabitName.trim()) {
+      promptAction.showToast({ message: '请输入习惯名称' });
+      return;
+    }
+
+    const times = parseInt(this.editingTimesPerPeriod);
+    if (isNaN(times) || times <= 0) {
+      promptAction.showToast({ message: '请输入有效的单次目标' });
+      return;
+    }
+
+    // 2. 获取枚举值
+    // 防御性编程：确保数组不为空
+    const pIndex = this.editingPeriodIndex.length > 0 ? this.editingPeriodIndex[0] : 0;
+    const gIndex = this.editingGoalTypeIndex.length > 0 ? this.editingGoalTypeIndex[0] : 0;
+
+    const newPeriod = this.getPeriodFromIndex(pIndex); // 需要确保组件内有这个 helper
+    const newGoalType = this.getGoalTypeFromIndex(gIndex); // 需要确保组件内有这个 helper
+
+    // 3. 校验总目标 (如果是 TOTAL 类型)
+    let total: number | null = null;
+    if (newGoalType === HabitGoalType.TOTAL) {
+      total = parseInt(this.editingTotalTarget);
+      if (isNaN(total) || total <= 0) {
+        promptAction.showToast({ message: '请输入有效的总目标' });
+        return;
+      }
+    }
+
+    try {
+      // 4. 获取原始对象并更新
+      // 我们需要先从缓存或Repo里拿到完整的 Habit 对象，因为 update 需要 id, ddlId, createdAt 等字段
+      // 假设我们通过 editingHabitId 能找到它
+      const originalItem = this.allHabitsCache.find(it => it.habit.id === this.editingHabitId);
+
+      if (!originalItem) {
+        promptAction.showToast({ message: '未找到原始习惯数据' });
+        return;
+      }
+
+      const originalHabit = originalItem.habit;
+
+      // 构建更新后的对象
+      const updatedHabit: Habit = {
+        id: originalHabit.id,
+        ddlId: originalHabit.ddlId,
+        name: this.editingHabitName,
+        description: "",
+        color: originalHabit.color,
+        iconKey: originalHabit.iconKey,
+        period: newPeriod,
+        timesPerPeriod: times,
+        goalType: newGoalType,
+        totalTarget: total,
+        createdAt: originalHabit.createdAt,
+        updatedAt: new Date().toISOString(),
+        status: originalHabit.status,
+        sortOrder: originalHabit.sortOrder,
+        alarmTime: originalHabit.alarmTime
+      };
+
+      // 5. 执行数据库更新
+      await this.repo.updateHabit(updatedHabit);
+
+      // (可选) 如果你的 DDL 表也存储了 Name/Note 用于搜索，也需要更新 DDL 表
+      // 比如: await DatabaseHelper.getInstance().updateDDLNameAndNote(updatedHabit.ddlId, updatedHabit.name, updatedHabit.description);
+
+      // 6. 收尾工作
+      promptAction.showToast({ message: '修改成功' });
+
+      // 关闭 Sheet (假设你用 isEditSheetShow 控制)
+      this.isEditSheetShow = false;
+
+      // 刷新列表
+      await this.refreshAll(this.selectedDate);
+
+      // 通知全局 (如果需要)
+      getContext(this).eventHub.emit('sync_done');
+
+    } catch (e) {
+      console.error(`Update habit failed: ${e}`);
+      promptAction.showToast({ message: '修改失败' });
+    }
+  }
+
+  @State isRefreshing: boolean = false;
+
   build() {
     Column() {
-      TopSafeContainer({ topAvoidHeight: this.topAvoidHeight }) {
+      TopSafeContainer({ topAvoidHeight: this.topAvoidHeight, scrollable: false }) {
         Column() {
           // 1. 顶部进度 (使用新组件)
           HabitCircleProgress({ progress: this.getTodayCompletionRatio() })
@@ -352,118 +644,64 @@ export struct HabitListSection {
           })
             .margin({ bottom: 8 })
 
-          // 3. 习惯列表
-          List({ scroller: this.scroller, space: 10 }) {
-            ForEach(this.displayHabits, (item: HabitWithDailyStatus) => {
-              ListItem() {
-                // 使用新组件 HabitRow
-                HabitRow({
-                  data: item,
-                  status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO, // 简单映射，实际可计算 DDL 剩余时间映射状态
-                  isSelected: this.isSelected(item.habit.ddlId),
-                  canToggle: new Date(this.selectedDate).setHours(0,0,0,0) <= new Date().setHours(0,0,0,0),
-                  remainingText: "", // 暂时留空或根据逻辑计算
-                  onToggle: (): Promise<void> => this.onToggleHabit(item),
-                  onLongPress: (): void => this.onLongPress(item.habit.ddlId)
-                })
-              }
-            }, (item: HabitWithDailyStatus) => item.habit.id.toString() + "_" + item.doneCount)
+          Refresh({
+            refreshing: $$this.isRefreshing
+          }) {
+            List({ scroller: this.scroller, space: 10 }) {
+              ForEach(this.displayHabits, (item: HabitWithDailyStatus) => {
+                ListItem() {
+                  // 使用新组件 HabitRow
+                  HabitRow({
+                    data: item,
+                    status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
+                    isSelected: this.isSelected(item.habit.ddlId),
+                    canToggle: new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0),
+                    remainingText: "",
+                    onToggle: (): Promise<void> => this.onToggleHabit(item),
+                    onLongPress: (): void => this.onLongPress(item.habit.ddlId)
+                  })
+                }
+              }, (item: HabitWithDailyStatus) => {
+                return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
+              })
+            }
+            .width('100%')
+            .height("100%")
+            .layoutWeight(1)
+            .padding({ left: 12, right: 12, bottom: 96 })
+            .scrollBar(BarState.Off)
+            .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           }
-          .width('100%')
-          .layoutWeight(1)
-          .padding({ left: 16, right: 16, bottom: 96 })
+          .onRefreshing(async () => {
+            this.isRefreshing = true
+
+            await this.refreshAll(this.selectedDate);
+            this.isRefreshing = false;
+          })
         }
       }
     }
     .width('100%')
     .height('100%')
-  }
-}
-
-// —— 6. 占位组件 (后续替换) ——
-
-@Component
-struct PlaceholderHabitCircleProgress {
-  @Prop progress: number;
-  build() {
-    Stack({ alignContent: Alignment.Center }) {
-      Progress({ value: this.progress * 100, total: 100, type: ProgressType.Ring })
-        .width(80).height(80)
-        .color(Color.Blue)
-        .style({ strokeWidth: 8 })
-      Text(`${(this.progress * 100).toFixed(0)}%`)
-        .fontSize(16)
-    }
-    .backgroundColor('#F0F0F0') // 方便调试看区域
-    .borderRadius(12)
-  }
-}
-
-@Component
-struct PlaceholderWeekRow {
-  @Prop weekOverview: DayOverview[];
-  @Prop selectedDate: Date;
-  onSelectDate: (d: Date) => void = () => {};
-
-  build() {
-    Row({ space: 8 }) {
-      ForEach(this.weekOverview, (day: DayOverview) => {
-        Column() {
-          Text(day.date.getDate().toString())
-            .fontWeight(day.date.toDateString() === this.selectedDate.toDateString() ? FontWeight.Bold : FontWeight.Normal)
-            .fontColor(day.date.toDateString() === this.selectedDate.toDateString() ? Color.Blue : Color.Black)
-          Circle()
-            .width(6).height(6)
-            .fill(day.completedCount > 0 ? Color.Green : Color.Transparent)
-        }
-        .onClick(() => this.onSelectDate(day.date))
-        .layoutWeight(1)
-        .alignItems(HorizontalAlign.Center)
-      })
-    }
-    .padding(8)
-    .backgroundColor('#FAFAFA')
-  }
-}
-
-@Component
-struct PlaceholderHabitRow {
-  @ObjectLink data: HabitWithDailyStatus; // 需要 Class 才能 ObjectLink，这里 interface 暂时传值或者改为 Prop
-  // 为简单起见，这里用 Prop 或直接传参
-  @Prop isSelected: boolean;
-  @Prop canToggle: boolean;
-  @Prop remainingText: string;
-  onToggle: () => void = () => {};
-  onLongPress: () => void = () => {};
-
-  build() {
-    Row() {
-      if (this.isSelected) {
-        Checkbox({ name: 'select', group: 'sel' }).select(true).margin({ right: 8 })
+    .bindSheet($$this.isEditSheetShow, this.habitEditSheet(), {
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      onDisappear: () => {
+        this.isEditSheetShow = false;
+        this.editingHabitId = -1;
+        this.editingHabitName = '';
+        this.editingPeriodIndex = [];
+        this.editingGoalTypeIndex = [];
+        this.editingTimesPerPeriod = '';
+        this.editingTotalTarget = '';
+      },
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      title: {
+        title: '编辑习惯',
+        subtitle: '修改习惯信息。'
       }
-      Column() {
-        Text(this.data.habit.name).fontSize(16).fontWeight(FontWeight.Medium)
-        Text(this.remainingText).fontSize(12).fontColor(Color.Gray)
-      }
-      .layoutWeight(1)
-      .alignItems(HorizontalAlign.Start)
-
-      Button(this.data.isCompleted ? "已完成" : "打卡")
-        .type(ButtonType.Normal)
-        .fontSize(12)
-        .height(30)
-        .backgroundColor(this.data.isCompleted ? Color.Green : Color.Blue)
-        .opacity(this.canToggle ? 1 : 0.5)
-        .enabled(this.canToggle)
-        .onClick(() => this.onToggle())
-    }
-    .width('100%')
-    .padding(12)
-    .backgroundColor(Color.White)
-    .borderRadius(8)
-    .gesture(
-      LongPressGesture()
-        .onAction(() => this.onLongPress())
-    )
+    })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
   }
 }

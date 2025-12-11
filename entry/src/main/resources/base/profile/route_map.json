@@ -31,6 +31,14 @@
       "data": {
         "description": "添加习惯页"
       }
+    },
+    {
+      "name": "webBrowser",
+      "pageSourceFile": "src/main/ets/pages/common/WebBrowserPage.ets",
+      "buildFunction": "WebBrowserPageBuilder",
+      "data": {
+        "description": "WebView"
+      }
     }
   ]
 }
