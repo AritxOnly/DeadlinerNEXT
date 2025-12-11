@@ -14,11 +14,37 @@ export struct TopSafeContainer {
   // 顶部需要避让的高度（通常是 状态栏高度 + 标题栏高度）
   @Prop topAvoidHeight: number = 0;
 
+  scrollable: boolean = true
+
   // 外层滚动控制器
   scroller: Scroller = new Scroller();
 
   build() {
-    Scroll(this.scroller) {
+    if (this.scrollable) {
+      Scroll(this.scroller) {
+        Column() {
+          // 1. 物理占位符 (Spacer)
+          // 初始时占据顶部空间，滚动时随 Scroll 向上卷出屏幕
+          Blank()
+            .width('100%')
+            .height(this.topAvoidHeight)
+
+          // 2. 实际内容插槽
+          if (this.content) {
+            this.content()
+          }
+        }
+        .width('100%')
+
+        // 注意：Column 不设高度，由内容撑开
+      }
+      .width('100%')
+      .height('100%')
+      .scrollBar(BarState.Off) // 隐藏外层滚动条，视觉更纯净
+      .edgeEffect(EdgeEffect.Spring)
+      // 关键：允许外层 Scroll 延伸到屏幕边缘（包括状态栏区域）
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM, SafeAreaEdge.TOP])
+    } else {
       Column() {
         // 1. 物理占位符 (Spacer)
         // 初始时占据顶部空间，滚动时随 Scroll 向上卷出屏幕
@@ -32,13 +58,8 @@ export struct TopSafeContainer {
         }
       }
       .width('100%')
-      // 注意：Column 不设高度，由内容撑开
+      .height('100%')
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM, SafeAreaEdge.TOP])
     }
-    .width('100%')
-    .height('100%')
-    .scrollBar(BarState.Off) // 隐藏外层滚动条，视觉更纯净
-    .edgeEffect(EdgeEffect.Spring)
-    // 关键：允许外层 Scroll 延伸到屏幕边缘（包括状态栏区域）
-    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM, SafeAreaEdge.TOP])
   }
 }

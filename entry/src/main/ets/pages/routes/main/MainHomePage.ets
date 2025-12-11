@@ -69,7 +69,8 @@ export struct MainHomePage {
   // 获取状态栏高度
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
-  readonly TITLE_BAR_CONTENT_HEIGHT: number = 100 + this.SEGMENT_HEIGHT;
+  // readonly TITLE_BAR_CONTENT_HEIGHT: number = 100 + this.SEGMENT_HEIGHT;
+  readonly TITLE_BAR_CONTENT_HEIGHT: number = 100;
 
   // 这些 State 由主题驱动
   @State chipSelectedBg: ResourceColor = '#FFFFFF'
@@ -160,6 +161,24 @@ export struct MainHomePage {
     .justifyContent(FlexAlign.Center)
   }
 
+  @Builder topSegment() {
+    Column() {
+      SegmentButton({
+        options: this.tabOptions,
+        selectedIndexes: $selectedIndexes,
+        maxFontScale: 2
+      })
+        .width('50%')
+        .height('100%')
+        .padding({ top: 8 })
+    }
+    .height('100%')
+    .padding({
+      start: LengthMetrics.vp(16), end: LengthMetrics.vp(16)
+    })
+    .justifyContent(FlexAlign.Center)
+  }
+
   @State isAISheetShow: boolean = false;
   @Builder
   aiSheet() {
@@ -196,7 +215,8 @@ export struct MainHomePage {
               scroller: this.scroller,
               topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
               isSelectionMode: $isHabitSelectionMode,
-              controller: this.habitController
+              controller: this.habitController,
+              confetti: this.confettiController
             })
               .id('content')
               .alignRules({
@@ -315,22 +335,23 @@ export struct MainHomePage {
                 }
               }
             },
-            // {
-            //   content: {
-            //     label: 'Search',
-            //     icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
-            //     action: () => {
-            //       // TODO: 搜索逻辑
-            //     }
-            //   }
-            // },
           ]
         },
-        bottomBuilder: {
-          builder: this.tabSegment.bind(this),
-          height: this.SEGMENT_HEIGHT,
-          showType: BottomBuilderShowType.DIRECTLY_SHOW
+        subIcon: {
+          content: {
+            label: 'Search',
+            icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
+            action: () => {
+              // TODO: 搜索逻辑
+            },
+          }
         },
+        // bottomBuilder: {
+        //   builder: this.tabSegment.bind(this),
+        //   height: this.SEGMENT_HEIGHT,
+        //   showType: BottomBuilderShowType.DIRECTLY_SHOW
+        // },
+        stackBuilder: this.topSegment.bind(this),
         divider: { showType: DividerShowType.OFF }
       }
     })
@@ -347,7 +368,7 @@ export struct MainHomePage {
         title: 'Deadliner AI',
       }
     })
-    .titleMode(HdsNavigationTitleMode.FREE)
+    .titleMode(HdsNavigationTitleMode.FULL)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

@@ -94,6 +94,10 @@
     {
       "name": "chart_blue",
       "value": "#FFB3CAD8"
+    },
+    {
+      "name": "background_color_undergo",
+      "value": "#2A2A2A"
     }
   ]
 }

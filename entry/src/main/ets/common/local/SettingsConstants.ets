@@ -1,6 +1,8 @@
 export class SettingsConstants {
   static readonly PREF_NAME = 'deadliner_settings';
 
+  static readonly KEY_PRIVACY_AGREE = 'is_privacy_agreed';
+
   // Keys
   static readonly KEY_CLOUD_SYNC_ENABLE = 'cloud_sync_enable';
   static readonly KEY_WEBDAV_URL = 'webdav_url';
