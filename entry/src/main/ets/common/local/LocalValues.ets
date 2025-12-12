@@ -24,6 +24,9 @@ export class LocalValues {
     try {
       this.pref = await preferences.getPreferences(context, C.PREF_NAME);
 
+      const basicMode = await this.pref.get(C.KEY_BASIC_MODE, false);
+      AppStorage.setOrCreate(C.KEY_BASIC_MODE, basicMode);
+
       // --- 1. 普通数据 (Preferences) ---
       const syncEnable = await this.pref.get(C.KEY_CLOUD_SYNC_ENABLE, false);
       AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, syncEnable);
@@ -192,5 +195,24 @@ export class LocalValues {
     } catch (e) {
       console.error('Save preference failed', e);
     }
+  }
+
+  async revokePrivacy(): Promise<void> {
+    if (!this.pref) return;
+
+    try {
+      await this.pref.put(C.KEY_PRIVACY_AGREE, false);
+      await this.pref?.flush();
+    } catch (e) {
+      console.error('Save preference failed', e);
+    }
+  }
+
+  async setBasicMode(enable: boolean) {
+    await this.setValue(C.KEY_BASIC_MODE, enable);
+  }
+
+  getBasicMode(): boolean {
+    return AppStorage.get<boolean>(C.KEY_BASIC_MODE) ?? false;
   }
 }

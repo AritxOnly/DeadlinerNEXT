@@ -157,7 +157,7 @@ struct Index {
 
         // --- Tab 2: 概览 ---
         TabContent() {
-          OverviewPage()
+          OverviewPage({ currentTabIndex: this.currentIndex })
         }
         .tabBar(this.getTabBarStyle(this.tabs[1]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])

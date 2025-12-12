@@ -43,6 +43,11 @@ interface SnapshotRoot {
   items: SnapshotItem[]; // 或使用 Array<SnapshotItem>
 }
 
+export interface SyncResult {
+  success: boolean;
+  hasLocalChanges: boolean;
+}
+
 export class SyncService {
   private db: DatabaseHelper;
   private web: WebUtils;
@@ -58,13 +63,13 @@ export class SyncService {
   onLocalUpdated(localId: number) {}
   onLocalDeleting(localId: number) {}
 
-  async syncOnce(): Promise<boolean> {
+  async syncOnce(): Promise<SyncResult> {
     console.info("WebDAV: snapshot syncOnce start");
     try {
       return await this.syncSnapshotOnce();
     } catch (e) {
       console.warn(`Sync Failed: ${e}`);
-      return false;
+      return { success: false, hasLocalChanges: false };
     }
   }
 
@@ -196,9 +201,9 @@ export class SyncService {
   // =====================================================
   // 🔥🔥🔥 核心修复：applySnapshotToLocal 🔥🔥🔥
   // =====================================================
-  private async applySnapshotToLocal(merged: SnapshotRoot) {
+  private async applySnapshotToLocal(merged: SnapshotRoot): Promise<boolean> {
     const store = this.db.getRdbStore();
-    if (!store || !merged.items) return;
+    if (!store || !merged.items) return false;
 
     store.beginTransaction();
     let insertCount = 0;
@@ -296,13 +301,16 @@ export class SyncService {
       }
       store.commit();
       console.info(`[Sync] Apply done. Ins:${insertCount}, Upd:${updateCount}, Skipped(Race):${skipCount}`);
+
+      return (insertCount > 0 || updateCount > 0);
     } catch (e) {
       console.error(`[Sync] Apply failed: ${e}`);
       store.rollBack();
+      return false;
     }
   }
 
-  private async syncSnapshotOnce(): Promise<boolean> {
+  private async syncSnapshotOnce(): Promise<SyncResult> {
     const path = this.SNAPSHOT_PATH;
     const textEncoder = new util.TextEncoder();
     const textDecoder = util.TextDecoder.create('utf-8');
@@ -323,7 +331,7 @@ export class SyncService {
       const WebHead = await this.web.head(path);
       remoteCode = WebHead.code;
     } catch (e) {
-      return false;
+      return { success: false, hasLocalChanges: false };
     }
 
     // ================= 3. 处理 404 (初始化云端) =================
@@ -334,9 +342,9 @@ export class SyncService {
         const bytes = textEncoder.encode(jsonStr);
 
         const res = await this.web.putBytes(path, bytes, null, true); // 假设 putBytes 返回 response，如果没返回也没事
-        return true;
+        return { success: true, hasLocalChanges: false };
       } catch (e) {
-        return false;
+        return { success: false, hasLocalChanges: false };
       }
     }
 
@@ -361,7 +369,7 @@ export class SyncService {
         // 说明解析失败，绝对不能继续合并，否则会清空云端！
         if (bytes.length > 1000 && (!remoteSnap.items || !Array.isArray(remoteSnap.items))) {
           console.error(`[Sync] CRITICAL: Invalid remote JSON. Sync aborted.`);
-          return false;
+          return { success: false, hasLocalChanges: false };
         }
 
         // 如果解析出来的 items 是 null (例如刚初始化的文件)，给个空数组
@@ -370,10 +378,10 @@ export class SyncService {
         }
 
       } catch (e) {
-        return false;
+        return { success: false, hasLocalChanges: false };
       }
     } catch (e) {
-      return false;
+      return { success: false, hasLocalChanges: false };
     }
 
     // ================= 5. 合并 =================
@@ -394,7 +402,7 @@ export class SyncService {
     }
 
     // ================= 7. 应用回本地 =================
-    await this.applySnapshotToLocal(merged);
-    return true;
+    const hasChanges = await this.applySnapshotToLocal(merged);
+    return { success: true, hasLocalChanges: hasChanges };
   }
 }

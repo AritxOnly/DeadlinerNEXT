@@ -18,6 +18,7 @@ import { ConfettiController } from '../../components/confetti/ConfettiController
 import { ConfettiView } from '../../components/confetti/ConfettiView'
 import { AIPanelView } from '../../components/AIPanelView'
 import { HabitListController } from './HabitListController'
+import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -52,6 +53,8 @@ const EXCITEMENT_MESSAGES: Resource[] = [
 export struct MainHomePage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
+  @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
+
   @State currentIndex: number = MainTabIndex.TASKS
   @State @Watch('onSegmentChange') selectedIndexes: number[] = [MainTabIndex.TASKS]
 
@@ -64,7 +67,7 @@ export struct MainHomePage {
   @State confettiController: ConfettiController = new ConfettiController();
 
   // 定义常量：SegmentButton 区域的高度 (标准高度 + 上下padding)
-  readonly SEGMENT_HEIGHT: number = 44;
+  readonly SEGMENT_HEIGHT: number = 48;
 
   // 获取状态栏高度
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
@@ -169,8 +172,8 @@ export struct MainHomePage {
         maxFontScale: 2
       })
         .width('50%')
-        .height('100%')
-        .padding({ top: 8 })
+        .height(this.SEGMENT_HEIGHT)
+        .padding({ top: 6 })
     }
     .height('100%')
     .padding({
@@ -332,24 +335,20 @@ export struct MainHomePage {
                 icon: $r('sys.symbol.wand_and_stars'),
                 action: () => {
                   this.isAISheetShow = true
-                }
+                },
+                isEnabled: !this.isBasicMode
               }
             },
           ]
         },
-        subIcon: {
-          content: {
-            label: 'Search',
-            icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
-            action: () => {
-              // TODO: 搜索逻辑
-            },
-          }
-        },
-        // bottomBuilder: {
-        //   builder: this.tabSegment.bind(this),
-        //   height: this.SEGMENT_HEIGHT,
-        //   showType: BottomBuilderShowType.DIRECTLY_SHOW
+        // subIcon: {
+        //   content: {
+        //     label: 'Search',
+        //     icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
+        //     action: () => {
+        //       // TODO: 搜索逻辑
+        //     },
+        //   }
         // },
         stackBuilder: this.topSegment.bind(this),
         divider: { showType: DividerShowType.OFF }

@@ -57,7 +57,7 @@ export struct TaskListSection {
     await this.loadData();
     // 监听同步完成事件，自动刷新
     getContext(this).eventHub.on('sync_done', () => {
-      console.info('[TaskList] Received sync_done event, reloading...');
+      console.info('[Event] Received sync_done event, reloading...');
       this.loadData();
     });
 

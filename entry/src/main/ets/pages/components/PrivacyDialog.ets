@@ -14,11 +14,12 @@ export struct PrivacyDialog {
 
   build() {
     Column() {
-      SymbolGlyph($r('sys.symbol.checkmark_shield'))
+      SymbolGlyph($r('sys.symbol.security_shield'))
         .width(64)
         .height(64)
         .fontSize(64)
         .fontColor([$r('app.color.brand')])
+        .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .margin({ top: 24, bottom: 8 })
 
       // 标题
