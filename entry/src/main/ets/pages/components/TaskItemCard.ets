@@ -2,6 +2,117 @@ import { DDLStatus } from "../../model/DDLStatus";
 import { ColorUtils } from "../../utils/ColorUtils";
 
 @Component
+export struct ArchivedDDLItemCard {
+  @Prop title: string;
+  @Prop startTime: string;   // 起始时间
+  @Prop completeTime: string; // 完成时间
+  @Prop note: string;
+  onDelete: () => void = () => {}; // 删除回调
+
+  // 主题颜色状态 - 固定为 Undergo 风格
+  @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo');
+  @State private bgColor: ResourceColor = $r('app.color.background_color_undergo');
+  @State private titleColor: ResourceColor = Color.Black;
+  @State private noteColor: ResourceColor = Color.Gray;
+  @State private timeColor: ResourceColor = Color.Gray; // 新增时间颜色
+  @State private globalBgColor: ResourceColor = $r('app.color.background_primary');
+
+  onWillApplyTheme(theme: Theme) {
+    this.titleColor = theme.colors.fontPrimary;
+    this.noteColor = theme.colors.fontSecondary;
+    this.timeColor = theme.colors.fontTertiary; // 时间通常用更淡一点的颜色
+    this.globalBgColor = theme.colors.backgroundPrimary;
+
+    // 强制使用 Undergo 风格
+    this.indicatorColor = $r('app.color.indicator_color_undergo');
+    this.bgColor = $r('app.color.background_color_undergo');
+  }
+
+  build() {
+    Stack({ alignContent: Alignment.TopStart }) {
+      // 1. 背景层 (纯色背景，无进度条)
+      Row()
+        .width('100%')
+        .height('100%')
+        .backgroundColor(this.addAlpha(this.bgColor, 0.3)) // 背景底色
+
+      // 2. 内容层
+      Row() {
+        // 左侧：文本信息区域 (占用剩余空间)
+        Column() {
+          // 标题
+          Text(this.title)
+            .fontSize(18)
+            .fontWeight(FontWeight.Bold)
+            .fontColor(this.titleColor)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+
+          // 时间信息 (起始 - 完成)
+          Text(`${this.startTime} - ${this.completeTime}`)
+            .fontSize(11)
+            .fontColor(this.timeColor)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .width('100%')
+            .margin({ top: 4 })
+
+          // 备注 (如果有)
+          if (this.note && this.note.length > 0) {
+            Text(this.note)
+              .fontSize(12)
+              .fontColor(this.noteColor)
+              .maxLines(1)
+              .textOverflow({ overflow: TextOverflow.Ellipsis })
+              .width('100%')
+              .margin({ top: 4 })
+          }
+        }
+        .layoutWeight(1) // 占据中间主要空间
+        .alignItems(HorizontalAlign.Start)
+        .justifyContent(FlexAlign.Center)
+        .height('100%')
+
+        // 右侧：红色删除按钮
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.trash')) // 使用系统垃圾桶图标
+            .fontSize(20)
+            .fontColor([Color.White])
+        }
+        .width(36)
+        .height(36)
+        .backgroundColor(Color.Red) // 红色背景
+        .margin({ left: 12 }) // 与左侧文字的间距
+        .onClick(() => {
+          this.onDelete()
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .padding({ left: 16, right: 16, top: 10, bottom: 10 })
+      .alignItems(VerticalAlign.Center)
+    }
+    .width('100%')
+    .height(84) // 稍微增加高度以容纳时间信息，如果想要紧凑点可以保持 76
+    .borderRadius(24)
+    .backgroundColor(this.globalBgColor)
+    .clip(true)
+  }
+
+  // 辅助函数：颜色透明度处理
+  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
+    try {
+      let context = this.getUIContext().getHostContext()
+      // 这里假设你项目里有 ColorUtils，如果没有，请替换为你的实现
+      return ColorUtils.addAlpha(color, alpha, context);
+    } catch (e) {
+      return color; // 降级处理
+    }
+  }
+}
+
+@Component
 export struct DDLItemCardSimplified {
   @Prop title: string;
   @Prop remainingTimeAlt: string;

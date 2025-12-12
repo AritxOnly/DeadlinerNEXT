@@ -19,6 +19,7 @@ import { ConfettiView } from '../../components/confetti/ConfettiView'
 import { AIPanelView } from '../../components/AIPanelView'
 import { HabitListController } from './HabitListController'
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
+import { ArchivePanelView } from '../../components/ArchivePanelView'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -165,21 +166,43 @@ export struct MainHomePage {
   }
 
   @Builder topSegment() {
-    Column() {
-      SegmentButton({
-        options: this.tabOptions,
-        selectedIndexes: $selectedIndexes,
-        maxFontScale: 2
-      })
-        .width('50%')
-        .height(this.SEGMENT_HEIGHT)
-        .padding({ top: 6 })
+    Stack({ alignContent: Alignment.Center }) {
+      Row() {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          // 使用系统 Symbol 图标，例如 'sys.symbol.square_grid_2x2' 或自定义图标
+          SymbolGlyph($r('sys.symbol.archivebox'))
+            .fontSize(24)
+            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
+            // .fontWeight(FontWeight.Medium)
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
+        .onClick(() => {
+          this.isArchiveSheetShow = true;
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.Start) // 强制靠左
+      .padding({ left: 16 }) // 根据需要调整左边距，通常是 12vp 或 16vp
+      .hitTestBehavior(HitTestMode.Transparent) // 关键：让 Row 的空白区域不拦截点击事件，防止挡住中间的 Segment
+
+      Column() {
+        SegmentButton({
+          options: this.tabOptions,
+          selectedIndexes: $selectedIndexes,
+          maxFontScale: 2
+        })
+          .width('50%')
+          .height(this.SEGMENT_HEIGHT)
+          .padding({ top: 6 })
+      }
+      .justifyContent(FlexAlign.Center)
+      .hitTestBehavior(HitTestMode.None) // 避免容器拦截，具体视 SegmentButton 实现而定
     }
     .height('100%')
-    .padding({
-      start: LengthMetrics.vp(16), end: LengthMetrics.vp(16)
-    })
-    .justifyContent(FlexAlign.Center)
+    .width('100%')
   }
 
   @State isAISheetShow: boolean = false;
@@ -190,6 +213,14 @@ export struct MainHomePage {
         this.isAISheetShow = false
       }
     })
+      .width('100%')
+      .height('100%')
+  }
+
+  @State isArchiveSheetShow: boolean = false;
+  @Builder
+  archiveSheet() {
+    ArchivePanelView()
       .width('100%')
       .height('100%')
   }
@@ -297,6 +328,19 @@ export struct MainHomePage {
         .height('100%')
         .width('100%')
         .backgroundColor(this.pageBackground)
+        .bindSheet($$this.isArchiveSheetShow, this.archiveSheet(), {
+          height: SheetSize.FIT_CONTENT,
+          dragBar: true,
+          onDisappear: () => {
+            this.isArchiveSheetShow = false;
+          },
+          blurStyle: BlurStyle.Regular,
+          backgroundColor: Color.Transparent,
+          title: {
+            title: '归档',
+            subtitle: '可以在此处管理你已完成的任务'
+          },
+        })
     }
     .titleBar({
       style: {
@@ -341,15 +385,6 @@ export struct MainHomePage {
             },
           ]
         },
-        // subIcon: {
-        //   content: {
-        //     label: 'Search',
-        //     icon: $r('sys.symbol.magnifyingglass'), // 使用系统 Symbol
-        //     action: () => {
-        //       // TODO: 搜索逻辑
-        //     },
-        //   }
-        // },
         stackBuilder: this.topSegment.bind(this),
         divider: { showType: DividerShowType.OFF }
       }
