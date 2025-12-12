@@ -7,11 +7,24 @@
         "material": {
           "certpath": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.cer",
           "keyAlias": "debugKey",
-          "keyPassword": "0000001B68FB990AE54320AFA1380616152FAB3969CA6B18B82C94A77D270D634265C058CB398C150EB7C7",
+          "keyPassword": "0000001BF05C009927284D1F36F35B22E9943567C77CC47D558133A5F5A8A215C367BD41556B259A543352",
           "profile": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p7b",
           "signAlg": "SHA256withECDSA",
           "storeFile": "/Users/aritxonly/.ohos/config/default_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p12",
-          "storePassword": "0000001B5759B74CFBA91B4B193DDBC45E3BCC035AF1F9DB4104C7735B0D894C05FDDFEDED4CCDB7D897EE"
+          "storePassword": "0000001B9A3B67BE73489608029AC270DF4ED369E123797FA3C34C89D79FE4A29E03A1D32CF8A4CB4CE509"
+        }
+      },
+      {
+        "name": "debug",
+        "type": "HarmonyOS",
+        "material": {
+          "certpath": "/Users/aritxonly/.ohos/config/debug_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.cer",
+          "keyAlias": "debugKey",
+          "keyPassword": "0000001BD9FDF6DDA7D6EB7968AD7C87EC63AC0430F9807723AB75C5127F870481B6DEB8BC81A8D81519D0",
+          "profile": "/Users/aritxonly/.ohos/config/debug_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p7b",
+          "signAlg": "SHA256withECDSA",
+          "storeFile": "/Users/aritxonly/.ohos/config/debug_Deadliner_l87X6JcS0c4PItEHffviDK3kJWOeFvUuM5Gdl8nd5fI=.p12",
+          "storePassword": "0000001B77096987B105CEF8CBA5D321F8ED18EEB6BB27A772EDDF55ADB124C55734A938EDD9B0F5F8B742"
         }
       }
     ],

@@ -40,6 +40,17 @@ export struct HabitListSection {
     if (this.controller) {
       this.bindController();
     }
+
+    getContext(this).eventHub.on('sync_done', this.onSyncEvent);
+  }
+
+  aboutToDisappear() {
+    getContext(this).eventHub.off('sync_done', this.onSyncEvent);
+  }
+
+  private onSyncEvent = () => {
+    console.debug('HabitListSection received sync_done event');
+    this.refreshAll(this.selectedDate);
   }
 
   private bindController() {

@@ -64,6 +64,21 @@ export struct OverviewPage {
     this.loadData();
   }
 
+  @Prop @Watch('onTabSwitch') currentTabIndex: number = 0;
+
+  readonly TARGET_INDEX: number = 1;
+
+  onTabSwitch() {
+    // 只有当切换到的目标索引 == 本页面的索引时，才刷新数据
+    if (this.currentTabIndex === this.TARGET_INDEX) {
+      console.debug('[OverviewPage] Tab switched to Overview. Reloading data...');
+      this.loadData();
+    } else {
+      // 如果切走了（currentTabIndex !== 1），什么都不做
+      // 这符合你的要求：离开后数据静止，不接受更新
+    }
+  }
+
   async loadData() {
     this.isLoading = true;
 

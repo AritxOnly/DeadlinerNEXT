@@ -3,7 +3,8 @@ export class SettingsConstants {
 
   static readonly KEY_PRIVACY_AGREE = 'is_privacy_agreed';
 
-  // Keys
+  static readonly KEY_BASIC_MODE = 'key_basic_mode';
+
   static readonly KEY_CLOUD_SYNC_ENABLE = 'cloud_sync_enable';
   static readonly KEY_WEBDAV_URL = 'webdav_url';
   static readonly KEY_WEBDAV_USERNAME = 'webdav_username';

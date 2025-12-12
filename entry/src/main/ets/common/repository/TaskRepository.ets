@@ -54,6 +54,17 @@ export class TaskRepository {
     throw new Error('[TaskRepo] Fatal: DB Init Timeout.');
   }
 
+  private inBasicMode(): boolean {
+    return LocalValues.getInstance().getBasicMode();
+  }
+
+  private notifyDataChange() {
+    if (this.context) {
+      console.log('[Event] notifyDataChange()');
+      this.context.eventHub.emit('sync_done');
+    }
+  }
+
   // ==========================================
   // 核心：调度逻辑 (防抖 + 串行化)
   // ==========================================
@@ -78,6 +89,8 @@ export class TaskRepository {
    * 真正执行同步的方法 (串行控制)
    */
   private async performSync() {
+    if (this.inBasicMode()) return;
+
     // A. 如果当前正在同步，不要打断，标记“稍后再试”并退出
     if (this.isSyncing) {
       console.info('[TaskRepo] Sync is running. Marking pending...');
@@ -132,6 +145,7 @@ export class TaskRepository {
   async insertDDL(params: DDLInsertParams): Promise<number> {
     await this.ensureDbReady();
     const id = await this.db.insertDDL(params);
+    this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
     return id;
@@ -140,6 +154,7 @@ export class TaskRepository {
   async updateDDL(item: DDLItem): Promise<void> {
     await this.ensureDbReady();
     await this.db.updateDDL(item);
+    this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
   }
@@ -147,6 +162,7 @@ export class TaskRepository {
   async deleteDDL(id: number): Promise<void> {
     await this.ensureDbReady();
     await this.db.deleteDDL(id);
+    this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
   }
@@ -188,6 +204,7 @@ export class TaskRepository {
   async syncNow(): Promise<boolean> {
     await this.ensureDbReady();
 
+
     // 取消由于防抖挂起的任务，直接插队执行
     if (this.syncTimer !== -1) {
       clearTimeout(this.syncTimer);
@@ -217,11 +234,11 @@ export class TaskRepository {
       const syncService = new SyncService(this.db, web);
       const result = await syncService.syncOnce();
 
-      if (result && this.context) {
-        this.context.eventHub.emit('sync_done');
+      if (result.success && result.hasLocalChanges && this.context) {
+        this.notifyDataChange();
         this.performWidgetUpdate();
       }
-      return result;
+      return result.success;
     } finally {
       this.isSyncing = false;
       // 手动同步完，也检查一下pending
