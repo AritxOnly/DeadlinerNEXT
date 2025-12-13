@@ -12,6 +12,9 @@ export class SettingsConstants {
   static readonly KEY_THEME_MODE = 'theme_mode'; // 0:跟随系统, 1:浅色, 2:深色
 
   static readonly KEY_VIBRATION_ENABLE = 'vibration';
+  static readonly KEY_PROGRESS_DIRECTION = 'progress_direction';
+  static readonly KEY_EXCITEMENT_TEXT = 'excitement_text';
+  static readonly KEY_CONFETTI_AFTER_FINISHED = 'confetti_after_finished';
 
   static readonly KEY_AI_PROVIDER = 'ai_provider';
   static readonly KEY_AI_MODEL = 'ai_model';

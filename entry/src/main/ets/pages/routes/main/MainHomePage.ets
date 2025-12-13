@@ -55,6 +55,7 @@ export struct MainHomePage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
+  @StorageLink(C.KEY_EXCITEMENT_TEXT) @Watch('updateNavSubTitle') excitementText: boolean = true;
 
   @State currentIndex: number = MainTabIndex.TASKS
   @State @Watch('onSegmentChange') selectedIndexes: number[] = [MainTabIndex.TASKS]
@@ -74,7 +75,7 @@ export struct MainHomePage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   // readonly TITLE_BAR_CONTENT_HEIGHT: number = 100 + this.SEGMENT_HEIGHT;
-  readonly TITLE_BAR_CONTENT_HEIGHT: number = 100;
+  @State topContentHeight: number = 100;
 
   // 这些 State 由主题驱动
   @State chipSelectedBg: ResourceColor = '#FFFFFF'
@@ -96,13 +97,28 @@ export struct MainHomePage {
   @State navSubtitle: string | undefined = undefined
 
   aboutToAppear(): void {
-    const ctx = this.getUIContext()
-    const idx = Math.floor(Math.random() * EXCITEMENT_MESSAGES.length)
-    const res = EXCITEMENT_MESSAGES[idx]
-    try {
-      this.navSubtitle = ctx.getHostContext()?.resourceManager.getStringSync(res)
-    } catch (error) {
-      console.error('Unable to get String Resource')
+    this.updateNavSubTitle();
+  }
+
+  updateNavSubTitle() {
+    if (this.excitementText) {
+      const ctx = this.getUIContext()
+      const idx = Math.floor(Math.random() * EXCITEMENT_MESSAGES.length)
+      const res = EXCITEMENT_MESSAGES[idx]
+      try {
+        this.navSubtitle = ctx.getHostContext()?.resourceManager.getStringSync(res)
+      } catch (error) {
+        console.error('Unable to get String Resource')
+        this.navSubtitle = undefined;
+      }
+    } else {
+      this.navSubtitle = undefined;
+    }
+
+    if (this.navSubtitle) {
+      this.topContentHeight = 100;
+    } else {
+      this.topContentHeight = 74;
     }
   }
 
@@ -232,7 +248,7 @@ export struct MainHomePage {
           if (this.currentIndex === MainTabIndex.TASKS) {
             TaskListSection({
               scroller: this.scroller,
-              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
+              topAvoidHeight: this.statusBarHeight + this.topContentHeight,
               isSelectionMode: $isTaskSelectionMode,
               controller: this.taskController,
               confetti: this.confettiController
@@ -247,7 +263,7 @@ export struct MainHomePage {
           } else {
             HabitListSection({
               scroller: this.scroller,
-              topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT,
+              topAvoidHeight: this.statusBarHeight + this.topContentHeight,
               isSelectionMode: $isHabitSelectionMode,
               controller: this.habitController,
               confetti: this.confettiController
