@@ -1,6 +1,33 @@
 import { ChartOptions, UCharts, UChartsController } from '@ibestservices/ucharts';
 import { StatsCardContainer } from '../../components/OverviewComponents'
 import { DailyStat, MonthlyStat, WeeklyStat } from '../../../utils/OverviewUtils'
+import {
+  BarChart,
+  BarChartModel,
+  BarData,
+  BarDataSet,
+  BarEntry,
+  JArrayList,
+  IBarDataSet,
+  XAxisPosition,
+  YAxisLabelPosition,
+  LegendVerticalAlignment,
+  LegendHorizontalAlignment,
+  LegendOrientation,
+  LineChartModel,
+  LineDataSet,
+  Mode,
+  ILineDataSet,
+  LineChart,
+  LineData,
+  Fill,
+  EntryOhos,
+  LegendForm,
+  ChartColorStop,
+} from '@ohos/mpchart';
+import { ColorUtils } from '../../../utils/ColorUtils';
+import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
+import { CustomMarkerView } from './utils/CustomMarkerView';
 
 function getHexColorSync(context: Context, resource: Resource): string {
   try {
@@ -39,78 +66,224 @@ export struct TrendAnalysisSection {
   }
 }
 
-// =======================================================
-// 卡片 1: 每日完成情况 (DailyCompletedCard)
-// 图表类型: Column (垂直柱状图)
-// =======================================================
 @Component
 struct DailyCompletedCard {
   @Link @Watch('updateChart') dailyStats: DailyStat[];
-  @State chartController: UChartsController = new UChartsController();
+
+  // 【新增】控制是否显示逾期数据
+  @State @Watch('updateChart') isOverdueShow: boolean = true;
+
+  private model: BarChartModel = new BarChartModel();
+
+  aboutToAppear() {
+    // 1. 基础配置
+    this.model.setTouchEnabled(true);
+    this.model.setScaleEnabled(false);
+    this.model.setDoubleTapToZoomEnabled(false);
+    this.model.getDescription()!.setEnabled(false);
+    this.model.setDrawGridBackground(false);
+
+    // 图例配置
+    const l = this.model.getLegend();
+    if (l) {
+      l.setEnabled(true);
+      l.setVerticalAlignment(LegendVerticalAlignment.BOTTOM);
+      l.setHorizontalAlignment(LegendHorizontalAlignment.CENTER);
+      l.setOrientation(LegendOrientation.HORIZONTAL);
+      l.setDrawInside(false);
+      l.setYOffset(0);
+    }
+
+    const marker = new CustomMarkerView();
+    this.model.setMarker(marker);
+
+    // X 轴配置
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setPosition(XAxisPosition.BOTTOM);
+      xAxis.setDrawGridLines(false);
+      xAxis.setGranularity(1);
+      // 【注意】如果是单柱状图，不需要 CenterAxisLabels；如果是分组才需要。
+      // 我们在 updateChart 里根据 isOverdueShow 动态设置
+      xAxis.setTextSize(12);
+    }
+
+    const leftAxis = this.model.getAxisLeft();
+    if (leftAxis) {
+      leftAxis.setDrawGridLines(true);
+      leftAxis.enableGridDashedLine(10, 10, 0);
+      leftAxis.setAxisMinimum(0);
+    }
+    this.model.getAxisRight()!.setEnabled(false);
+
+    this.updateChart();
+  }
 
   updateChart() {
-    if (!this.dailyStats || this.dailyStats.length === 0) return;
+    if (!this.dailyStats || this.dailyStats.length === 0) {
+      this.model.clear();
+      return;
+    }
+
     const ctx = getContext(this);
-    const greenColor = getHexColorSync(ctx, $r('app.color.chart_green'));
-    const redColor = getHexColorSync(ctx, $r('app.color.chart_red'));
+    // 1. 颜色准备
+    const greenColorStr = getHexColorSync(ctx, $r('app.color.chart_green'));
+    const redColorStr = getHexColorSync(ctx, $r('app.color.chart_red'));
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
-    const categories = this.dailyStats.map(it => it.dateStr);
-    const completedData = this.dailyStats.map(it => it.completed);
-    const overdueData = this.dailyStats.map(it => it.overdue);
+    // 解析颜色为 int，用于 setColorByColor (修复图例颜色)
+    const greenColorInt = ColorUtils.parseColor(greenColorStr);
+    const redColorInt = ColorUtils.parseColor(redColorStr);
 
-    const opts: ChartOptions = {
-      type: "column", // 垂直柱状图
-      categories: categories,
-      series: [
-        { name: "完成", data: completedData, color: greenColor },
-        { name: "逾期", data: overdueData, color: redColor }
-      ],
-      // Padding: [上, 右, 下, 左]
-      padding: [15, 15, 5, 15],
-      legend: { show: true, position: "bottom", float: "center" },
-      xAxis: {
-        disableGrid: true,
-        axisLine: false
-      },
-      yAxis: {
-        // 每日数据通常比较小，可以显示网格辅助线
-        disableGrid: false,
-        gridType: 'dash',
-        data: [{ axisLine: false, tofix: 0 }]
-      },
-      extra: {
-        column: {
-          type: "group", // 分组显示 (并排)
-          width: 20, // 柱子宽度
-          activeBgColor: "#000000",
-          activeBgOpacity: 0.08,
-          // 渐变效果
-          linearType: 'opacity',
-          linearOpacity: 0.5
-        }
+    const categories: string[] = [];
+    const completedEntries = new JArrayList<BarEntry>();
+    const overdueEntries = new JArrayList<BarEntry>();
+
+    this.dailyStats.forEach((item, index) => {
+      categories.push(item.dateStr);
+      completedEntries.add(new BarEntry(index, item.completed));
+      overdueEntries.add(new BarEntry(index, item.overdue));
+    });
+
+    const dataSets = new JArrayList<IBarDataSet>();
+
+    // === 配置 DataSet 1 (完成 - 绿色) ===
+    const set1 = new BarDataSet(completedEntries, "完成");
+    set1.setDrawValues(false);
+    set1.setHighLightAlpha(0);
+
+    // 【修复图例颜色】显式设置基础颜色，这样图例的小方块就是绿色的了
+    set1.setColorByColor(greenColorInt);
+
+    // 绿色渐变填充
+    const greenStart = ColorUtils.getTransparentColorStr(greenColorStr, '66');
+    const greenEnd = ColorUtils.getTransparentColorStr(greenColorStr, 'FF');
+    const greenFills = new JArrayList<Fill>();
+    for (let i = 0; i < this.dailyStats.length; i++) greenFills.add(new Fill(greenStart, greenEnd));
+    set1.setFills(greenFills);
+
+    dataSets.add(set1);
+
+    // === 【逻辑分支】根据 isOverdueShow 决定是否添加第二组 ===
+    if (this.isOverdueShow) {
+      const set2 = new BarDataSet(overdueEntries, "逾期");
+      set2.setDrawValues(false);
+      set2.setHighLightAlpha(0);
+
+      // 【修复图例颜色】显式设置基础颜色
+      set2.setColorByColor(redColorInt);
+
+      // 红色渐变填充
+      const redStart = ColorUtils.getTransparentColorStr(redColorStr, '66');
+      const redEnd = ColorUtils.getTransparentColorStr(redColorStr, 'FF');
+      const redFills = new JArrayList<Fill>();
+      for (let i = 0; i < this.dailyStats.length; i++) redFills.add(new Fill(redStart, redEnd));
+      set2.setFills(redFills);
+
+      dataSets.add(set2);
+    }
+
+    // === 构建 Data ===
+    const data = new BarData(dataSets);
+    data.setTopRadius(4); // 圆角
+
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setValueFormatter(new IndexAxisValueFormatter(categories));
+      xAxis.setTextColor(txtColor);
+    }
+
+    // === 【关键】分组与不分组的布局差异 ===
+    if (this.isOverdueShow) {
+      // --- 模式 A: 分组显示 ---
+      const groupSpace = 0.10;
+      const barSpace = 0.05;
+      const barWidth = 0.40;
+      // (0.40 + 0.05) * 2 + 0.10 = 1.00
+
+      data.setBarWidth(barWidth);
+
+      // 分组模式下 X 轴设置
+      if (xAxis) {
+        xAxis.setCenterAxisLabels(true); // 标签居中
+        xAxis.setAxisMinimum(0);
+        xAxis.setAxisMaximum(this.dailyStats.length); // 这里的 Max 是 group 后的组数
+        xAxis.setLabelCount(this.dailyStats.length);
       }
-    };
-    this.chartController.updateData(opts);
+
+      this.model.setData(data);
+      // 执行分组
+      this.model.groupBars(0, groupSpace, barSpace);
+
+    } else {
+      // --- 模式 B: 单柱显示 ---
+      // 没有分组，柱子可以宽一点
+      data.setBarWidth(0.6);
+
+      // 单柱模式下 X 轴设置
+      if (xAxis) {
+        xAxis.setCenterAxisLabels(false); // 标签直接对应柱子，不需偏移
+        xAxis.setAxisMinimum(-0.5); // 让第一根柱子稍微离左边有点距离，或者直接默认
+        xAxis.setAxisMaximum(this.dailyStats.length - 0.5); // 调整范围
+        xAxis.setLabelCount(this.dailyStats.length);
+      }
+
+      this.model.setData(data);
+    }
+
+    // 更新其他颜色
+    const l = this.model.getLegend();
+    if (l) l.setTextColor(txtColor);
+
+    const leftAxis = this.model.getAxisLeft();
+    if (leftAxis) leftAxis.setTextColor(txtColor);
+
+    this.model.animateY(1000);
+    this.model.notifyDataSetChanged();
   }
 
   build() {
     StatsCardContainer() {
-      Text("本周完成情况") // stringResource(R.string.weekly_completed)
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .width('100%')
-        .textAlign(TextAlign.Center)
-        .margin({ bottom: 10 })
+      // 标题栏增加开关
+      Row() {
+        Text("本周完成情况")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+
+        Blank()
+
+        // 简单的切换开关 UI
+        Row() {
+          Checkbox({ name: 'showOverdue', group: 'stats' })
+            .select(this.isOverdueShow)
+            .selectedColor($r('app.color.chart_red')) // 选中时的颜色
+            .onChange((value: boolean) => {
+              this.isOverdueShow = value;
+            })
+            .width(16)
+            .height(16)
+
+          Text("显示逾期")
+            .fontSize(12)
+            .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+            .margin({ left: 4 })
+        }
+        .onClick(() => {
+          // 点击文字也能切换
+          this.isOverdueShow = !this.isOverdueShow;
+        })
+      }
+      .width('100%')
+      .margin({ bottom: 10 })
+      .padding({ left: 10, right: 10 })
+
 
       if (this.dailyStats.length > 0) {
         Column() {
-          UCharts({
-            controller: this.chartController,
-            onReady: () => { this.updateChart(); }
-          })
+          BarChart({ model: this.model })
+            .width('100%')
+            .height(220)
         }
-        .width('100%')
-        .height(220)
       } else {
         this.EmptyView()
       }
@@ -126,57 +299,167 @@ struct DailyCompletedCard {
   }
 }
 
-// =======================================================
-// 卡片 2: 每月趋势 (MonthlyTrendCard)
-// 图表类型: Line (折线图)
-// =======================================================
 @Component
 struct MonthlyTrendCard {
   @Link @Watch('updateChart') monthlyStats: MonthlyStat[];
-  @State chartController: UChartsController = new UChartsController();
+  @State @Watch('updateChart') totalMonth: number = 12;
+
+  private model: LineChartModel = new LineChartModel();
+
+  aboutToAppear() {
+    // 1. 基础配置
+    this.model.setTouchEnabled(true);
+    this.model.setScaleEnabled(false);
+    this.model.setDoubleTapToZoomEnabled(false);
+    this.model.getDescription()!.setEnabled(false);
+    this.model.setDrawGridBackground(false);
+
+    // 设置 Marker
+    const marker = new CustomMarkerView();
+    this.model.setMarker(marker);
+
+    const ctx = getContext(this);
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
+
+    // 图例配置
+    const l = this.model.getLegend();
+    if (l) {
+      l.setEnabled(true);
+      l.setVerticalAlignment(LegendVerticalAlignment.BOTTOM);
+      l.setHorizontalAlignment(LegendHorizontalAlignment.CENTER);
+      l.setOrientation(LegendOrientation.HORIZONTAL);
+      l.setDrawInside(false);
+      l.setTextColor(txtColor);
+      l.setForm(LegendForm.LINE);
+    }
+
+    // X 轴配置
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setPosition(XAxisPosition.BOTTOM);
+      xAxis.setDrawGridLines(false);
+      xAxis.setGranularity(1);
+      xAxis.setTextColor(txtColor);
+
+      // 【关键修复 2】设置旋转角度，防止文字太长导致只能显示一半
+      xAxis.setLabelRotationAngle(-45);
+      // 增加底部距离，防止旋转后的文字被切掉
+      xAxis.setYOffset(10);
+    }
+
+    // Y 轴配置
+    const leftAxis = this.model.getAxisLeft();
+    if (leftAxis) {
+      leftAxis.enableGridDashedLine(10, 10, 0);
+      leftAxis.setAxisMinimum(0);
+      leftAxis.setTextColor(txtColor);
+    }
+    this.model.getAxisRight()!.setEnabled(false);
+
+    this.updateChart();
+  }
 
   updateChart() {
-    if (!this.monthlyStats || this.monthlyStats.length === 0) return;
+    if (!this.monthlyStats || this.monthlyStats.length === 0) {
+      this.model.clear();
+      return;
+    }
+
+    // 1. 重置视口 (防止之前缩放状态残留)
+    this.model.fitScreen();
+
     const ctx = getContext(this);
-    const blueColor = getHexColorSync(ctx, $r('app.color.chart_blue'));
-    const greenColor = getHexColorSync(ctx, $r('app.color.chart_green'));
-    const redColor = getHexColorSync(ctx, $r('app.color.chart_red'));
+    const blueHex = getHexColorSync(ctx, $r('app.color.chart_blue'));
+    const greenHex = getHexColorSync(ctx, $r('app.color.chart_green'));
+    const redHex = getHexColorSync(ctx, $r('app.color.chart_red'));
 
-    const categories = this.monthlyStats.map(it => it.monthStr);
-    const totalData = this.monthlyStats.map(it => it.total);
-    const completedData = this.monthlyStats.map(it => it.completed);
-    const overdueData = this.monthlyStats.map(it => it.overdue);
+    const blueColor = ColorUtils.parseColor(blueHex);
+    const greenColor = ColorUtils.parseColor(greenHex);
+    const redColor = ColorUtils.parseColor(redHex);
 
-    const opts: ChartOptions = {
-      type: "line",
-      categories: categories,
-      series: [
-        { name: "总计", data: totalData, color: blueColor },
-        { name: "完成", data: completedData, color: greenColor },
-        { name: "逾期", data: overdueData, color: redColor }
-      ],
-      padding: [15, 15, 5, 15],
-      legend: { show: true, position: "bottom", float: "center" },
-      xAxis: { disableGrid: true, axisLine: false },
-      yAxis: {
-        disableGrid: false,
-        gridType: 'dash',
-        data: [{ axisLine: false, tofix: 0 }]
-      },
-      extra: {
-        line: {
-          type: "curve", // 曲线
-          width: 2,
-          activeType: "hollow"
-        }
-      }
+    // 2. 截取数据
+    const displayStats = this.monthlyStats.slice(-this.totalMonth);
+
+    const categories: string[] = [];
+    const totalEntries = new JArrayList<EntryOhos>();
+    const completedEntries = new JArrayList<EntryOhos>();
+    const overdueEntries = new JArrayList<EntryOhos>();
+
+    displayStats.forEach((item, index) => {
+      categories.push(item.monthStr);
+      totalEntries.add(new EntryOhos(index, item.total));
+      completedEntries.add(new EntryOhos(index, item.completed));
+      overdueEntries.add(new EntryOhos(index, item.overdue));
+    });
+
+    // === 辅助配置函数 ===
+    const setupSet = (entries: JArrayList<EntryOhos>, label: string, colorInt: number, colorHex: string): LineDataSet => {
+      const set = new LineDataSet(entries, label);
+
+      // 线条
+      set.setColorByColor(colorInt);
+      set.setLineWidth(2);
+      set.setMode(Mode.CUBIC_BEZIER);
+
+      // 【渐变修复】
+      set.setDrawFilled(true);
+      // 这里的 255 (FF) 很重要，如果设为 100 会导致整体变淡，甚至影响渐变显示
+      set.setFillAlpha(255);
+
+      // 生成 Hex 字符串: #AARRGGBB
+      const startColor = ColorUtils.getTransparentColorStr(colorHex, '66'); // 顶部 (约40%不透明)
+      const endColor = ColorUtils.getTransparentColorStr(colorHex, '00');   // 底部 (全透明)
+
+      // 构造渐变停止点
+      let gradientStops = new JArrayList<ChartColorStop>();
+      gradientStops.add([startColor, 0.0]); // 0.0 = 顶部
+      gradientStops.add([endColor, 1.0]);   // 1.0 = 底部
+
+      set.setGradientFillColor(gradientStops);
+
+      // 隐藏小圆点，但保留点击高亮
+      set.setDrawCircles(false);
+      set.setDrawCircleHole(false);
+      set.setHighlightEnabled(true);
+      set.setDrawHighlightIndicators(false); // 不画十字线，只留气泡
+
+      return set;
     };
-    this.chartController.updateData(opts);
+
+    const dataSets = new JArrayList<ILineDataSet>();
+    // 添加顺序：总计(最底层) -> 完成 -> 逾期(最上层)
+    dataSets.add(setupSet(totalEntries, "总计", blueColor, blueHex));
+    dataSets.add(setupSet(completedEntries, "完成", greenColor, greenHex));
+    dataSets.add(setupSet(overdueEntries, "逾期", redColor, redHex));
+
+    const data = new LineData(dataSets);
+
+    // 3. 先设置数据
+    this.model.setData(data);
+
+    // === 【关键修复】在 setData 之后强制配置 X 轴 ===
+    // 这样可以覆盖 MPChart 在 setData 时自动计算的 labelCount
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setValueFormatter(new IndexAxisValueFormatter(categories));
+
+      xAxis.setAxisMinimum(0);
+      // 确保最大值精确对应最后一个索引
+      xAxis.setAxisMaximum(displayStats.length - 1);
+
+      // 强制设置标签数量 = 数据长度
+      // 第二个参数 true 代表 "force"，即禁止库自动跳过标签
+      xAxis.setLabelCount(displayStats.length, true);
+    }
+
+    // 4. 动画与刷新
+    this.model.animateY(800);
+    this.model.notifyDataSetChanged();
   }
 
   build() {
     StatsCardContainer() {
-      Text("每月趋势") // stringResource(R.string.monthly_trend)
+      Text("每月趋势")
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .width('100%')
@@ -185,13 +468,11 @@ struct MonthlyTrendCard {
 
       if (this.monthlyStats.length > 0) {
         Column() {
-          UCharts({
-            controller: this.chartController,
-            onReady: () => { this.updateChart(); }
-          })
+          LineChart({ model: this.model })
+            .width('100%')
+            // 如果旋转了文字，图表高度可能需要微调增加一点，给底部文字留空间
+            .height(250)
         }
-        .width('100%')
-        .height(240) // 折线图通常可以稍高一点
       } else {
         this.EmptyView()
       }
@@ -207,52 +488,110 @@ struct MonthlyTrendCard {
   }
 }
 
-// =======================================================
-// 卡片 3: 过去几周 (PrevWeeksCard)
-// 图表类型: Column (垂直柱状图)
-// =======================================================
 @Component
 struct PrevWeeksCard {
   @Link @Watch('updateChart') weeklyStats: WeeklyStat[];
-  @State chartController: UChartsController = new UChartsController();
+
+  // 【差异点】垂直图表使用 BarChartModel
+  private model: BarChartModel = new BarChartModel();
+
+  aboutToAppear() {
+    // 1. 基础交互配置 (参考 CompletionTimeCard)
+    this.model.setTouchEnabled(true);
+    this.model.setScaleEnabled(false); // 禁止缩放
+    this.model.setDoubleTapToZoomEnabled(false);
+    this.model.getDescription()!.setEnabled(false);
+    this.model.getLegend()!.setEnabled(false);
+    this.model.setDrawGridBackground(false);
+
+    // 设置 MarkerView
+    const marker = new CustomMarkerView();
+    this.model.setMarker(marker);
+
+    // X 轴配置
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setPosition(XAxisPosition.BOTTOM);
+      xAxis.setDrawGridLines(false);
+      xAxis.setGranularity(1);
+      xAxis.setTextSize(12);
+    }
+
+    // Y 轴配置
+    const axisLeft = this.model.getAxisLeft();
+    if (axisLeft) {
+      axisLeft.enableGridDashedLine(10, 10, 0); // 虚线网格
+      axisLeft.setAxisMinimum(0);
+    }
+    this.model.getAxisRight()!.setEnabled(false);
+
+    this.updateChart();
+  }
 
   updateChart() {
-    if (!this.weeklyStats || this.weeklyStats.length === 0) return;
+    if (!this.weeklyStats || this.weeklyStats.length === 0) {
+      this.model.clear();
+      return;
+    }
+
     const ctx = getContext(this);
-    const secondaryColor = getHexColorSync(ctx, $r('app.color.chart_orange')); // 或者用其他辅色
 
-    const categories = this.weeklyStats.map(it => it.weekLabel);
-    const dataValues = this.weeklyStats.map(it => it.completed);
+    // 1. 颜色准备
+    const orangeColorStr = getHexColorSync(ctx, $r('app.color.chart_orange'));
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
-    const opts: ChartOptions = {
-      type: "column",
-      categories: categories,
-      series: [
-        { name: "完成", data: dataValues, color: secondaryColor }
-      ],
-      padding: [15, 15, 5, 15],
-      legend: { show: false }, // 单一数据不需要图例
-      xAxis: { disableGrid: true, axisLine: false },
-      yAxis: {
-        disableGrid: false,
-        gridType: 'dash',
-        data: [{ axisLine: false, tofix: 0 }]
-      },
-      extra: {
-        column: {
-          type: "group",
-          width: 30, // 柱子稍微宽一点
-          linearType: 'opacity',
-          linearOpacity: 0.5
-        }
-      }
-    };
-    this.chartController.updateData(opts);
+    const categories: string[] = [];
+    const values = new JArrayList<BarEntry>();
+
+    this.weeklyStats.forEach((item, index) => {
+      categories.push(item.weekLabel);
+      values.add(new BarEntry(index, item.completed));
+    });
+
+    // 2. DataSet 配置
+    const set1 = new BarDataSet(values, "完成");
+    set1.setDrawValues(false); // 点击才显示
+    set1.setHighLightAlpha(0); // 去掉高亮遮罩
+
+    // 3. 渐变色配置 (橙色)
+    const startColor = ColorUtils.getTransparentColorStr(orangeColorStr, '66');
+    const endColor = ColorUtils.getTransparentColorStr(orangeColorStr, 'FF');
+
+    const gradientFills = new JArrayList<Fill>();
+    for (let i = 0; i < this.weeklyStats.length; i++) {
+      // 垂直图表：通常是从下往上渐变
+      gradientFills.add(new Fill(startColor, endColor));
+    }
+    set1.setFills(gradientFills);
+
+    const dataSets = new JArrayList<IBarDataSet>();
+    dataSets.add(set1);
+
+    const data = new BarData(dataSets);
+    data.setBarWidth(0.5);
+    data.setTopRadius(4); // 设置圆角
+
+    // 4. 轴标签格式化与颜色
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setValueFormatter(new IndexAxisValueFormatter(categories));
+      xAxis.setLabelCount(categories.length);
+      xAxis.setTextColor(txtColor);
+    }
+
+    const axisLeft = this.model.getAxisLeft();
+    if (axisLeft) {
+      axisLeft.setTextColor(txtColor);
+    }
+
+    this.model.setData(data);
+    this.model.animateY(1000);
+    this.model.notifyDataSetChanged();
   }
 
   build() {
     StatsCardContainer() {
-      Text("近4周完成") // stringResource(R.string.prev4weeks)
+      Text("近4周完成")
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .width('100%')
@@ -261,13 +600,11 @@ struct PrevWeeksCard {
 
       if (this.weeklyStats.length > 0) {
         Column() {
-          UCharts({
-            controller: this.chartController,
-            onReady: () => { this.updateChart(); }
-          })
+          // 【差异点】使用 BarChart 组件
+          BarChart({ model: this.model })
+            .width('100%')
+            .height(200)
         }
-        .width('100%')
-        .height(200)
       } else {
         this.EmptyView()
       }

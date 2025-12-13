@@ -138,27 +138,6 @@ export struct UserPage {
           mainTitle: '我的'
         },
         divider: { showType: DividerShowType.OFF },
-        menu: {
-          value: [
-            {
-              content: {
-                label: '隐私协议',
-                icon: $r('sys.symbol.questionmark_circle'),
-                action: () => {
-                  const params: WebParams = {
-                    url: this.privacyUrl,
-                    title: '隐私协议',
-                  }
-
-                  this.appPathStack.pushPath({
-                    name: 'webBrowser',
-                    param: params
-                  })
-                }
-              }
-            }
-          ]
-        }
       }
     })
     .titleMode(HdsNavigationTitleMode.MINI)

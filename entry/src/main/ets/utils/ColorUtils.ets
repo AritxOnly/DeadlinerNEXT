@@ -70,4 +70,42 @@ export class ColorUtils {
       return '#000000'; // 失败回退
     }
   }
+
+  /**
+   * 将 hex 字符串转为 mpcharts 需要的 number
+   * @param colorStr 例如 "#FF0000" 或 "#80FF0000"
+   */
+  static parseColor(colorStr: string): number {
+    if (!colorStr) return Color.Black; // 兜底
+
+    let raw = colorStr;
+    if (raw.startsWith('#')) {
+      raw = raw.substring(1);
+    }
+
+    // 处理 6 位 (#RRGGBB) -> 补全为 8 位 (FFRRGGBB)
+    if (raw.length === 6) {
+      return parseInt('FF' + raw, 16);
+    }
+    // 处理 8 位 (#AARRGGBB)
+    else if (raw.length === 8) {
+      return parseInt(raw, 16);
+    }
+
+    return Color.Black; // 格式不对时的默认色
+  }
+
+  static getTransparentColorStr(hex: string, alphaStr: string = '80'): string {
+    if (!hex) return '#00000000';
+    let cleanHex = hex.startsWith('#') ? hex.substring(1) : hex;
+    // 如果是 6 位 (RRGGBB)，加前缀
+    if (cleanHex.length === 6) {
+      return `#${alphaStr}${cleanHex}`;
+    }
+    // 如果是 8 位 (AARRGGBB)，替换前两位
+    if (cleanHex.length === 8) {
+      return `#${alphaStr}${cleanHex.substring(2)}`;
+    }
+    return hex;
+  }
 }

@@ -60,12 +60,10 @@ export struct DashboardSection {
 struct DashboardHeader {
   build() {
     Stack({ alignContent: Alignment.BottomStart }) {
-      // 背景图 (使用 Image 或 颜色渐变)
-      Image($r('app.media.dashboard_background')) // 假设你有这个资源，或者用纯色代替
+      Image($r('app.media.dashboard_background'))
         .width('100%')
         .height('100%')
         .objectFit(ImageFit.Cover)
-        .backgroundColor($r('app.color.brand')) // 兜底颜色
         .opacity(0.8)
 
       // 文字
@@ -130,7 +128,7 @@ struct MetricCard {
     }
     .width('100%')
     .padding(16)
-    .backgroundColor($r('sys.color.ohos_id_color_card_bg'))
+    .backgroundColor($r('app.color.background_secondary'))
     .borderRadius(24)
     .alignItems(HorizontalAlign.Start)
   }

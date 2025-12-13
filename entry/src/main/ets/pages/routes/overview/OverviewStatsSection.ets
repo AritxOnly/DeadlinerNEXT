@@ -1,6 +1,28 @@
 import { DDLItem } from '../../../model/DDLModels';
 import { ChartOptions, UCharts, UChartsController } from '@ibestservices/ucharts';
 import { StatsCardContainer } from '../../components/OverviewComponents';
+import { BarData, BarDataSet, BarEntry,
+  HorizontalBarChart,
+  HorizontalBarChartModel, JArrayList,
+  LegendHorizontalAlignment,
+  LegendOrientation,
+  LegendVerticalAlignment,
+  PieChart,
+  PieChartModel,
+  PieData,
+  PieDataSet,
+  PieEntry,
+  XAxisPosition,
+  ChartAnimator,
+  IBarDataSet,
+  Fill,
+  OnChartValueSelectedListener,
+  EntryOhos,
+  Highlight
+} from '@ohos/mpchart';
+import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
+import { ColorUtils } from '../../../utils/ColorUtils';
+import { CustomMarkerView } from './utils/CustomMarkerView';
 
 // --- 颜色转换辅助函数 (保持不变) ---
 function getHexColorSync(context: Context, resource: Resource): string {
@@ -80,79 +102,118 @@ struct ActiveStatsCard {
   }
 }
 
-// =========================================
-// 核心修改：CompletionTimeCard
-// =========================================
 @Component
 struct CompletionTimeCard {
   @Link @Watch('updateChart') completionTimeStats: Array<[string, number]>;
-  @State chartController: UChartsController = new UChartsController();
+
+  private model: HorizontalBarChartModel = new HorizontalBarChartModel();
+
+  aboutToAppear() {
+    // 基础配置
+    this.model.setTouchEnabled(true);
+    this.model.setScaleEnabled(false);
+    this.model.setDoubleTapToZoomEnabled(false);
+    this.model.getDescription()!.setEnabled(false);
+    this.model.getLegend()!.setEnabled(false);
+    this.model.setDrawGridBackground(false);
+
+    // 【修改】设置 MarkerView (点击气泡)
+    const marker = new CustomMarkerView();
+    this.model.setMarker(marker);
+
+    // X 轴配置
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setPosition(XAxisPosition.BOTTOM);
+      xAxis.setDrawGridLines(false);
+      xAxis.setGranularity(1);
+      xAxis.setTextSize(12);
+    }
+
+    // Y 轴配置
+    const axisLeft = this.model.getAxisLeft();
+    if (axisLeft) {
+      axisLeft.setDrawGridLines(true);
+      axisLeft.setEnabled(true);
+      axisLeft.setAxisMinimum(0);
+    }
+
+    const axisRight = this.model.getAxisRight();
+    if (axisRight) {
+      axisRight.setEnabled(false);
+    }
+
+    this.updateChart();
+  }
 
   updateChart() {
     if (!this.completionTimeStats || this.completionTimeStats.length === 0) return;
 
     const ctx = getContext(this);
-    const blueColor = getHexColorSync(ctx, $r('app.color.chart_blue'));
+
+    // 1. 获取基础颜色字符串 (用于生成渐变)
+    const blueColorStr = getHexColorSync(ctx, $r('app.color.chart_blue'));
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
+
+    // 2. 准备数据
+    // 【修改】需求3：把深夜放到最下面。
+    // HorizontalBarChart 默认从下往上画 (Index 0 在最下)。
+    // 如果原数组是 [深夜, 早晨, 下午...]，深夜在 index 0，应该已经在最下了。
+    // 如果你之前看到深夜在最上面，说明原数组可能是倒序的，或者 MPChart 的绘制方向被反转了。
+    // 这里我们做一个反转操作，确保顺序颠倒过来。
+    const reversedStats = [...this.completionTimeStats].reverse();
 
     const categories: string[] = [];
-    const dataValues: number[] = [];
-    this.completionTimeStats.forEach(item => {
+    const values = new JArrayList<BarEntry>();
+
+    reversedStats.forEach((item, index) => {
       categories.push(item[0]);
-      dataValues.push(item[1]);
+      values.add(new BarEntry(index, item[1]));
     });
 
-    // 稍微加宽一点柱子，减少间距
-    let barWidth = 30;
+    // 3. 设置 DataSet
+    const dataSet = new BarDataSet(values, "完成数");
 
-    const opts: ChartOptions = {
-      type: "bar",
-      categories: categories,
-      series: [{
-        name: "完成数",
-        data: dataValues,
-      }],
-      color: [blueColor],
+    // 【修改】需求2：渐变色
+    // 计算渐变色：从 Alpha 0.5 到 实色
+    const startColor = ColorUtils.getTransparentColorStr(blueColorStr, '66'); // 约 40% 透明度
+    const endColor = ColorUtils.getTransparentColorStr(blueColorStr, 'FF'); // 100% 不透明
 
-      // [关键修复 1] Padding 调整 [上, 右, 下, 左]
-      // 左侧给 100 或更多，确保 "深夜 (00-06)" 能完全显示，不被截断
-      padding: [10, 40, 10, 0],
+    const gradientFills = new JArrayList<Fill>();
+    // HorizontalBarChart 的渐变逻辑：
+    // 渐变通常是从 Bar 的底部到顶部（对于横向图，就是从左到右）
+    // 我们给每一个 Bar 都添加这个渐变配置
+    for (let i = 0; i < reversedStats.length; i++) {
+      gradientFills.add(new Fill(endColor, startColor));
+    }
+    dataSet.setFills(gradientFills);
 
-      legend: { show: false },
+    dataSet.setHighLightAlpha(0);
 
-      // [关键修复 2] 在 bar 模式下，xAxis 控制的是左侧的分类轴
-      // 必须开启 (disabled: false)，否则文字不显示
-      xAxis: {
-        disabled: true,
-        disableGrid: true,
-        axisLine: false
-      },
+    dataSet.setDrawValues(false); // 柱子上不直接写字，点击才显示 Marker
 
-      // [关键修复 3] 在 bar 模式下，yAxis 控制的是底部的数值轴
-      // 我们可以关掉它，让界面更干净
-      yAxis: {
-        disabled: false,
-        disableGrid: true,
-        padding: 2
-      },
+    const dataSets = new JArrayList<IBarDataSet>();
+    dataSets.add(dataSet);
 
-      extra: {
-        bar: {
-          type: "group",
-          width: barWidth,
-          barBorderCircle: true,
+    const barData = new BarData(dataSets);
+    barData.setBarWidth(0.6);
 
-          seriesGap: 2,
-          categoryGap: 2,
-          // [渐变效果]
-          // opacity: 颜色从纯色(左) 渐变到 透明(右)
-          // 配合 linearOpacity 控制透明端的透明度
-          linearType: 'opacity',
-          linearOpacity: 0.5
-        }
-      }
-    };
+    // 4. 应用颜色和格式化
+    const xAxis = this.model.getXAxis();
+    if (xAxis) {
+      xAxis.setValueFormatter(new IndexAxisValueFormatter(categories));
+      xAxis.setLabelCount(categories.length);
+      xAxis.setTextColor(txtColor);
+    }
 
-    this.chartController.updateData(opts);
+    const axisLeft = this.model.getAxisLeft();
+    if (axisLeft) {
+      axisLeft.setTextColor(txtColor);
+    }
+
+    this.model.setData(barData);
+    this.model.animateY(1000);
+    this.model.notifyDataSetChanged();
   }
 
   build() {
@@ -165,13 +226,10 @@ struct CompletionTimeCard {
 
       if (this.completionTimeStats.length > 0) {
         Column() {
-          UCharts({
-            controller: this.chartController,
-            onReady: () => { this.updateChart(); }
-          })
+          HorizontalBarChart({ model: this.model })
+            .width('100%')
+            .height(280)
         }
-        .width('100%')
-        .height(280)
       } else {
         Column() {
           Text("暂无已完成数据")
@@ -186,83 +244,131 @@ struct CompletionTimeCard {
   }
 }
 
+interface SelectedItemInfo {
+  label: string;
+  value: number;
+  color: number;
+}
+
 @Component
 struct HistoryStatsCard {
   @Link @Watch('updateChart') historyStats: Map<string, number>;
-  @State chartController: UChartsController = new UChartsController();
+
+  private model: PieChartModel = new PieChartModel();
+
+  @State totalCount: number = 0;
+
+  // 【新增】用来控制中间文字显示的状态
+  @State selectedItem: SelectedItemInfo | null = null;
+
+  // 【新增】定义选择监听器
+  private valueSelectedListener: OnChartValueSelectedListener = {
+    onValueSelected: (e: EntryOhos, h: Highlight) => {
+      // 这里的 e 其实是 PieEntry，强转一下获取 label
+      const pieEntry = e as PieEntry;
+      this.selectedItem = {
+        label: pieEntry.getLabel(),
+        value: pieEntry.getY(),
+        // 尝试从 DataSet 获取颜色有点麻烦，这里简化处理：
+        // 实际上我们可以通过 highlight.getX() 也就是 index 来找颜色，
+        // 但为了简单，我们直接显示数值，或者根据 label 匹配颜色。
+        color: Color.Black as number // 占位
+      };
+    },
+    onNothingSelected: () => {
+      // 点击空白处，清空选中状态，恢复显示总计
+      this.selectedItem = null;
+    }
+  }
+
+  aboutToAppear() {
+    this.model.setTouchEnabled(true);
+    this.model.setRotationEnabled(true);
+    this.model.setHighlightPerTapEnabled(true);
+    this.model.setDragDecelerationFrictionCoef(0.95);
+
+    this.model.getDescription()!.setEnabled(false);
+    this.model.setExtraOffsets(5, 10, 5, 5);
+
+    // 环形配置
+    this.model.setDrawHoleEnabled(true);
+    this.model.setHoleColor(Color.Transparent);
+    this.model.setTransparentCircleColor(Color.White);
+    this.model.setTransparentCircleAlpha(20);
+    this.model.setHoleRadius(65);
+    this.model.setTransparentCircleRadius(70);
+    this.model.setDrawEntryLabels(false);
+
+    // 【新增】注册监听器
+    this.model.setOnChartValueSelectedListener(this.valueSelectedListener);
+
+    // 注意：环形图这种交互模式下，通常不需要气泡 Marker，
+    // 因为信息直接显示在中间了，所以删掉 setMarker
+    // const marker = new CustomMarkerView();
+    // this.model.setMarker(marker);
+
+    const l = this.model.getLegend();
+    if (l) {
+      l.setEnabled(true);
+      l.setVerticalAlignment(LegendVerticalAlignment.BOTTOM);
+      l.setHorizontalAlignment(LegendHorizontalAlignment.CENTER);
+      l.setOrientation(LegendOrientation.HORIZONTAL);
+      l.setDrawInside(false);
+      l.setYEntrySpace(5);
+      l.setTextSize(12);
+    }
+
+    this.updateChart();
+  }
 
   updateChart() {
     if (!this.historyStats || this.historyStats.size === 0) return;
 
     const ctx = getContext(this);
-
-    // 1. 获取图表数据颜色 (App定义)
-    const greenColor = getHexColorSync(ctx, $r('app.color.chart_green'));
-    const orangeColor = getHexColorSync(ctx, $r('app.color.chart_orange'));
-    const redColor = getHexColorSync(ctx, $r('app.color.chart_red'));
-
-    // 2. [新增] 获取文字和背景颜色 (系统定义，适配深色模式)
-    // 标题颜色 -> 次要文本色
-    const titleColor = getHexColorSync(ctx, $r('sys.color.ohos_id_color_text_secondary'));
-    // 数字颜色 -> 主要文本色
-    const subtitleColor = getHexColorSync(ctx, $r('sys.color.ohos_id_color_text_primary'));
-    // 背景颜色 -> 卡片背景色 (用于 Ring 的 border 和 center，实现镂空效果)
-    const cardBgColor = getHexColorSync(ctx, $r('sys.color.ohos_id_color_card_bg'));
+    const greenColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_green')));
+    const orangeColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_orange')));
+    const redColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_red')));
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     const completed = this.historyStats.get("累计完成") || 0;
     const todo = this.historyStats.get("当前待办") || 0;
     const overdue = this.historyStats.get("累计逾期") || 0;
-    const total = completed + todo + overdue;
 
-    const seriesData: ChartSeriesItem[] = [];
-    if (completed > 0) seriesData.push({ name: "完成", value: completed, color: greenColor });
-    if (todo > 0) seriesData.push({ name: "待办", value: todo, color: orangeColor });
-    if (overdue > 0) seriesData.push({ name: "逾期", value: overdue, color: redColor });
+    this.totalCount = completed + todo + overdue;
 
-    if (seriesData.length === 0) return;
+    const entries = new JArrayList<PieEntry>();
+    const colors = new JArrayList<number>();
 
-    const opts: ChartOptions = {
-      type: "ring",
-      series: [{ data: seriesData }],
-      padding: [5, 5, 20, 5],
-      legend: {
-        show: true,
-        position: "bottom",
-        float: "center",
-        padding: 5,
-        itemGap: 10,
-        lineHeight: 20,
-        margin: 5,
-        // 图例文字颜色也建议跟随次要文本
-        fontColor: titleColor
-      },
-      title: {
-        value: "总计",
-        fontSize: 14,
-        color: titleColor // [修改] 使用资源颜色
-      },
-      subtitle: {
-        value: total.toString(),
-        fontSize: 24,
-        color: subtitleColor // [修改] 使用资源颜色
-      },
-      extra: {
-        ring: {
-          ringWidth: 36,
-          activeOpacity: 0.5,
-          activeRadius: 10,
-          offsetAngle: 0,
-          labelWidth: 15,
-          border: true,
-          borderWidth: 2,
-          // [修改] 边框和中心圆颜色设为卡片背景色
-          // 这样在深色模式下，"缝隙"和"中间的洞"也是深色的，不会显得突兀
-          borderColor: cardBgColor,
-          centerColor: cardBgColor
-        }
-      }
-    };
-    this.chartController.updateData(opts);
+    if (completed > 0) {
+      entries.add(new PieEntry(completed, "完成"));
+      colors.add(greenColor);
+    }
+    if (todo > 0) {
+      entries.add(new PieEntry(todo, "待办"));
+      colors.add(orangeColor);
+    }
+    if (overdue > 0) {
+      entries.add(new PieEntry(overdue, "逾期"));
+      colors.add(redColor);
+    }
+
+    if (entries.isEmpty()) return;
+
+    const dataSet = new PieDataSet(entries, "");
+    dataSet.setColorsByList(colors);
+    dataSet.setSliceSpace(2);
+    dataSet.setSelectionShift(8); // 选中时弹出的距离
+    dataSet.setDrawValues(false);
+    dataSet.setDrawIcons(false);
+
+    const data = new PieData(dataSet);
+
+    const l = this.model.getLegend();
+    if (l) l.setTextColor(txtColor);
+
+    this.model.setData(data);
+    this.model.animateY(1200);
+    this.model.notifyDataSetChanged();
   }
 
   build() {
@@ -274,11 +380,45 @@ struct HistoryStatsCard {
         .margin({ bottom: 10 })
 
       if (this.historyStats.size > 0 && Array.from(this.historyStats.values()).some(v => v > 0)) {
-        Column() {
-          UCharts({
-            controller: this.chartController,
-            onReady: () => { this.updateChart(); }
-          })
+        Stack({ alignContent: Alignment.Center }) {
+
+          PieChart({ model: this.model })
+            .width('100%')
+            .height(260)
+
+          // 【核心修改】中间文字区域：根据是否有选中项显示不同内容
+          Column() {
+            if (this.selectedItem) {
+              // === 状态 A: 显示选中项详情 ===
+              Text(this.selectedItem.label)
+                .fontSize(14)
+                .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+                .animation({ duration: 300 }) // 添加一点过渡动画
+
+              Text(Math.round(this.selectedItem.value).toString()) // 去掉小数
+                .fontSize(24)
+                .fontWeight(FontWeight.Bold)
+                .fontColor($r('sys.color.ohos_id_color_text_primary'))
+                .margin({ top: 4 })
+                .animation({ duration: 300 })
+
+            } else {
+              // === 状态 B: 显示总计 ===
+              Text("总计")
+                .fontSize(14)
+                .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+                .animation({ duration: 300 })
+
+              Text(this.totalCount.toString())
+                .fontSize(24)
+                .fontWeight(FontWeight.Bold)
+                .fontColor($r('sys.color.ohos_id_color_text_primary'))
+                .margin({ top: 4 })
+                .animation({ duration: 300 })
+            }
+          }
+          .offset({ x: 0, y: -16 })
+          .hitTestBehavior(HitTestMode.None)
         }
         .width('100%')
         .height(260)
