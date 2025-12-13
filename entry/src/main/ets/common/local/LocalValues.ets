@@ -40,6 +40,15 @@ export class LocalValues {
       const vibration = await this.pref.get(C.KEY_VIBRATION_ENABLE, true);
       AppStorage.setOrCreate(C.KEY_VIBRATION_ENABLE, vibration);
 
+      const progressDir = await this.pref.get(C.KEY_PROGRESS_DIRECTION, true);
+      AppStorage.setOrCreate(C.KEY_PROGRESS_DIRECTION, progressDir);
+
+      const excitementText = await this.pref.get(C.KEY_EXCITEMENT_TEXT, true);
+      AppStorage.setOrCreate(C.KEY_EXCITEMENT_TEXT, excitementText);
+
+      const confetti = await this.pref.get(C.KEY_CONFETTI_AFTER_FINISHED, true);
+      AppStorage.setOrCreate(C.KEY_CONFETTI_AFTER_FINISHED, confetti);
+
       // --- 2. 敏感数据 (Asset Store Kit) ---
       // 从安全存储中读取密码，加载到内存 AppStorage 供业务逻辑使用
       const password = await SecureStorage.get(C.KEY_WEBDAV_PASSWORD);
@@ -131,6 +140,30 @@ export class LocalValues {
 
   async setVibration(status: boolean) {
     await this.setValue(C.KEY_VIBRATION_ENABLE, status);
+  }
+
+  getProgressDir(): boolean {
+    return AppStorage.get<boolean>(C.KEY_PROGRESS_DIRECTION) ?? false;
+  }
+
+  async setProgressDir(value: boolean) {
+    await this.setValue(C.KEY_PROGRESS_DIRECTION, value);
+  }
+
+  getExcitementText(): boolean {
+    return AppStorage.get<boolean>(C.KEY_EXCITEMENT_TEXT) ?? true;
+  }
+
+  async setExcitementText(value: boolean) {
+    await this.setValue(C.KEY_EXCITEMENT_TEXT, value);
+  }
+
+  getConfettiAfterFinished(): boolean {
+    return AppStorage.get<boolean>(C.KEY_CONFETTI_AFTER_FINISHED) ?? true;
+  }
+
+  async setConfettiAfterFinished(value: boolean) {
+    await this.setValue(C.KEY_CONFETTI_AFTER_FINISHED, value);
   }
 
   /**

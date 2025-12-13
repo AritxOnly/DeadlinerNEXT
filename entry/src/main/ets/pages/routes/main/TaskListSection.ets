@@ -8,6 +8,7 @@ import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { TaskListController } from "./TaskListController"
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { TimeInputButton } from "../../components/TimeInputButton";
+import { SettingsConstants as C } from "../../../common/local/SettingsConstants"
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -50,6 +51,8 @@ export struct TaskListSection {
   @State inputBgColor: ResourceColor = $r('app.color.background_tertiary');
 
   private repo = TaskRepository.getInstance();
+
+  @StorageLink(C.KEY_PROGRESS_DIRECTION) @Watch('loadData') progressDir: boolean = false;
 
   async aboutToAppear() {
     this.bindController();
@@ -174,11 +177,13 @@ export struct TaskListSection {
       }
     }
 
+    const displayProgress = this.progressDir ? progress : 1.0 - progress
+
     return {
       title: item.name,
       remainingTimeAlt: timeText,
       note: item.note || "",
-      progress: 1.0 - progress,
+      progress: displayProgress,
       isStarred: item.isStared,
       status: status,
       dbId: item.id

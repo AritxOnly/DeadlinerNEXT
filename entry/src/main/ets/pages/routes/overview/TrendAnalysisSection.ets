@@ -537,7 +537,7 @@ struct PrevWeeksCard {
     const ctx = getContext(this);
 
     // 1. 颜色准备
-    const orangeColorStr = getHexColorSync(ctx, $r('app.color.chart_orange'));
+    const barColor = getHexColorSync(ctx, $r('app.color.chart_orange'));
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     const categories: string[] = [];
@@ -554,8 +554,8 @@ struct PrevWeeksCard {
     set1.setHighLightAlpha(0); // 去掉高亮遮罩
 
     // 3. 渐变色配置 (橙色)
-    const startColor = ColorUtils.getTransparentColorStr(orangeColorStr, '66');
-    const endColor = ColorUtils.getTransparentColorStr(orangeColorStr, 'FF');
+    const startColor = ColorUtils.getTransparentColorStr(barColor, '66');
+    const endColor = ColorUtils.getTransparentColorStr(barColor, 'FF');
 
     const gradientFills = new JArrayList<Fill>();
     for (let i = 0; i < this.weeklyStats.length; i++) {

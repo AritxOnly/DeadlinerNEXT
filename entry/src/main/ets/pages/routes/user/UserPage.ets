@@ -14,11 +14,14 @@ export struct UserPage {
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   private context = getContext(this) as common.UIAbilityContext;
-  private privacyUrl: string = 'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1837914602910842752';
 
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
+  @StorageLink(C.KEY_VIBRATION_ENABLE) vibrationEnable: boolean = true;
+  @StorageLink(C.KEY_PROGRESS_DIRECTION) progressDir: boolean = false;
+  @StorageLink(C.KEY_EXCITEMENT_TEXT) excitementText: boolean = true;
+  @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
 
   private showRevokeDialog() {
     AlertDialog.show({
@@ -48,7 +51,6 @@ export struct UserPage {
   build() {
     HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
-        Scroll() {
           Column({ space: 16 }) {
             SettingsSection() {
               // [新增] 基础模式开关
@@ -59,6 +61,54 @@ export struct UserPage {
                 isOn: this.isBasicMode,
                 onChange: (isOn) => {
                   LocalValues.getInstance().setBasicMode(isOn);
+                }
+              })
+            }
+
+            SettingsSection() {
+              SettingsSwitch({
+                title: "振动反馈",
+                subtitle: "开启后，会以振动的形式反馈交互操作",
+                icon: $r('sys.symbol.a_4d_vibration'),
+                isOn: this.vibrationEnable,
+                onChange: (isOn) => {
+                  LocalValues.getInstance().setVibration(isOn);
+                }
+              })
+
+              SettingsDivider()
+
+              SettingsSwitch({
+                title: "正向进度条",
+                subtitle: "主页的任务剩余进度将被替换为任务进行进度",
+                icon: $r('sys.symbol.arrow_clockwise'),
+                isOn: this.progressDir,
+                onChange: (isOn) => {
+                  LocalValues.getInstance().setProgressDir(isOn);
+                }
+              })
+
+              SettingsDivider()
+
+              SettingsSwitch({
+                title: "激励语句",
+                subtitle: "在主页标题栏显示随机的激励文案",
+                icon: $r('sys.symbol.lightbulb_max'),
+                isOn: this.excitementText,
+                onChange: (isOn) => {
+                  LocalValues.getInstance().setExcitementText(isOn);
+                }
+              })
+
+              SettingsDivider()
+
+              SettingsSwitch({
+                title: "礼花动画",
+                subtitle: "任务完成时将显示礼花动画效果",
+                icon: $r('sys.symbol.flame'),
+                isOn: this.confetti,
+                onChange: (isOn) => {
+                  LocalValues.getInstance().setConfettiAfterFinished(isOn);
                 }
               })
             }
@@ -105,10 +155,6 @@ export struct UserPage {
           }
           .width('100%')
           .padding({ bottom: 24, start: LengthMetrics.vp(12), end: LengthMetrics.vp(12) }) // 整体页面的内边距
-        }
-        .scrollBar(BarState.Off)
-        .align(Alignment.Top)
-        .height('100%')
       }
     }
     .titleBar({
