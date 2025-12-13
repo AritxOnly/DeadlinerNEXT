@@ -3,7 +3,8 @@
   "description": "Please describe the basic information.",
   "dependencies": {
     "@mcui/mccharts": "^2.8.9",
-    "@ibestservices/ucharts": "^1.1.0"
+    "@ibestservices/ucharts": "^1.1.0",
+    "@ohos/mpchart": "^3.0.26"
   },
   "devDependencies": {
     "@ohos/hypium": "1.0.24",

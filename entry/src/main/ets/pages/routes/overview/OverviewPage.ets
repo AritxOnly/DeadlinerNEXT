@@ -41,13 +41,6 @@ export struct OverviewPage {
 
   @State allItems: DDLItem[] = [];
 
-  // --- 弹窗控制器 ---
-  settingsDialogController: CustomDialogController = new CustomDialogController({
-    builder: OverviewSettingsDialog(),
-    alignment: DialogAlignment.Center,
-    customStyle: true
-  })
-
   // --- Tab 配置 ---
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
     buttons: [
@@ -75,7 +68,6 @@ export struct OverviewPage {
       this.loadData();
     } else {
       // 如果切走了（currentTabIndex !== 1），什么都不做
-      // 这符合你的要求：离开后数据静止，不接受更新
     }
   }
 
@@ -154,13 +146,128 @@ export struct OverviewPage {
     .justifyContent(FlexAlign.Center)
   }
 
+  @State isHelpPopupShow: boolean = false
+
+  @Builder helpPopupBuilder() {
+    Column({ space: 8 }) {
+      if (this.selectedIndexes[0] === 0) {
+        // === 0: OverviewStatsSection (概览) ===
+        Text("概览说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+
+        // 1. 完成分布 (CompletionTimeCard)
+        Text() {
+          Span("• 完成分布：").fontWeight(FontWeight.Medium)
+          Span("统计任务完成的时间段（如深夜、上午等），柱状图越长代表该时段完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+        // 2. 历史统计 (HistoryStatsCard)
+        Text() {
+          Span("• 历史统计：").fontWeight(FontWeight.Medium)
+          Span("点击环形图扇区").fontColor($r('sys.color.ohos_id_color_text_primary')) // Highlight interaction
+          Span("，中间圆环内将显示该状态（完成/待办/逾期）的具体数值。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+      } else if (this.selectedIndexes[0] === 1) {
+        // === 1: TrendAnalysisSection (趋势) ===
+        Text("趋势说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+
+        // 1. 本周情况 (DailyCompletedCard)
+        Text() {
+          Span("• 本周情况：").fontWeight(FontWeight.Medium)
+          Span("展示每日完成任务数。点击右上角").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("「显示逾期」").fontColor($r('app.color.chart_red')) // Highlight specific UI element
+          Span("开关，可对比每日逾期数量。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+        // 2. 每月趋势 (MonthlyTrendCard)
+        Text() {
+          Span("• 每月趋势：").fontWeight(FontWeight.Medium)
+          Span("展示近12个月的任务总量、完成量及逾期量走势，帮助您分析长期效率变化。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+        // 3. 近4周完成 (PrevWeeksCard)
+        Text() {
+          Span("• 近4周完成：").fontWeight(FontWeight.Medium)
+          Span("对比最近4周的周完成量，直观查看短期内的效率波动。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+      } else if (this.selectedIndexes[0] === 2) {
+        // === 2: DashboardSection (看板) ===
+        Text("看板说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+
+        Text() {
+          Span("• 数据汇总：").fontWeight(FontWeight.Medium)
+          Span("基于您的所有任务数据计算出的关键指标（如总任务数、平均耗时等）。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+
+        Text() {
+          Span("• 变化指标：").fontWeight(FontWeight.Medium)
+          Span("部分指标显示的箭头（").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("↑").fontColor($r('app.color.chart_green'))
+          Span("/").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("↓").fontColor($r('app.color.chart_red'))
+          Span("）代表与上周期相比的变化幅度。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+      }
+    }
+    .alignItems(HorizontalAlign.Start)
+    .padding(16)
+    .borderRadius(12)
+    .width(280)
+  }
+
+  @Builder titleMenuBuilder() {
+    Stack({ alignContent: Alignment.Center }) {
+      Row() {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.questionmark_circle'))
+            .fontSize(24)
+            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
+        .onClick(() => {
+          this.isHelpPopupShow = true;
+        })
+        .bindPopup(this.isHelpPopupShow, {
+          builder: this.helpPopupBuilder,
+          placement: Placement.Bottom,    // 气泡位置
+          mask: false,
+          backgroundBlurStyle: BlurStyle.Regular,
+          enableArrow: true,
+          onStateChange: (e) => {
+            if (!e.isVisible) {
+              this.isHelpPopupShow = false
+            }
+          }
+        })
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ right: 16 })
+      .hitTestBehavior(HitTestMode.Transparent)
+    }
+    .height('100%')
+    .width('100%')
+  }
+
   build() {
     HdsNavigation() {
       Stack() {
-        // [核心修改] 使用 if (!this.isLoading)
-        // 确保数据准备好后，子组件才开始创建 (mount)
-        // 这样子组件的 aboutToAppear 能直接读到正确的数据，完美解决 0 0 0 和图表空白
-
         if (!this.isLoading) {
           TopSafeContainer({
             topAvoidHeight: this.statusBarHeight + this.SEGMENT_HEIGHT
@@ -224,19 +331,7 @@ export struct OverviewPage {
       },
       content: {
         title: { mainTitle: '概览' },
-        menu: {
-          value: [
-            {
-              content: {
-                label: 'Settings',
-                icon: $r('sys.symbol.gearshape'),
-                action: () => {
-                  this.settingsDialogController.open();
-                }
-              }
-            }
-          ]
-        },
+        stackBuilder: this.titleMenuBuilder.bind(this),
         bottomBuilder: {
           builder: this.tabSegment.bind(this),
           height: this.SEGMENT_HEIGHT,
