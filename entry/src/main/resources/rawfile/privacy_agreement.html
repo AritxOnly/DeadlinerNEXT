@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <title>Deadliner 隐私政策</title>
+    <style>
+        /* CSS 变量定义颜色 */
+        :root {
+            --bg-color: #ffffff;
+            --text-color: #333333;
+            --secondary-text-color: #666666;
+            /* ✅ 这里定义了你的 Light Mode Brand Color */
+            --brand-color: #1661AB;
+            --border-color: #eeeeee;
+        }
+
+        /* 深色模式适配 */
+        @media (prefers-color-scheme: dark) {
+            :root {
+                --bg-color: #000000;
+                --text-color: #e5e5e5;
+                --secondary-text-color: #999999;
+                /* ✅ 这里定义了你的 Dark Mode Brand Color */
+                --brand-color: #6BA4D6;
+                --border-color: #333333;
+            }
+        }
+
+        body {
+            background-color: var(--bg-color);
+            color: var(--text-color);
+            font-family: 'HarmonyOS Sans', 'PingFang SC', sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 20px;
+            font-size: 15px;
+            -webkit-tap-highlight-color: transparent;
+        }
+
+        /* 标题居中 */
+        h1, h2, h3 {
+            text-align: center;
+            color: var(--text-color);
+        }
+
+        h1 {
+            font-size: 20px;
+            margin-bottom: 10px;
+            font-weight: 700;
+            /* 让标题稍微下移一点，给图标留空间 */
+            margin-top: 10px;
+        }
+
+        /* 图标容器样式 */
+        .logo-container {
+            display: flex;
+            justify-content: center;
+            margin-top: 20px;
+            margin-bottom: 5px;
+        }
+
+        h2 {
+            font-size: 17px;
+            margin-top: 30px;
+            margin-bottom: 15px;
+            font-weight: 600;
+            border-bottom: 1px solid var(--border-color);
+            padding-bottom: 10px;
+        }
+
+        h3 {
+            font-size: 15px;
+            text-align: left;
+            margin-top: 20px;
+            margin-bottom: 8px;
+            font-weight: 600;
+        }
+
+        p {
+            margin-bottom: 12px;
+            text-align: justify;
+        }
+
+        ul {
+            padding-left: 20px;
+            margin-bottom: 12px;
+        }
+
+        li {
+            margin-bottom: 6px;
+        }
+
+        strong {
+            font-weight: 600;
+            color: var(--text-color);
+        }
+
+        .highlight-box {
+            /* 使用 Brand Color 的极低透明度作为背景，看起来更协调 */
+            background-color: rgba(22, 97, 171, 0.05);
+            border-left: 4px solid var(--brand-color);
+            padding: 10px 15px;
+            margin: 15px 0;
+            border-radius: 4px;
+            font-size: 14px;
+            color: var(--secondary-text-color);
+        }
+
+        @media (prefers-color-scheme: dark) {
+            .highlight-box {
+                background-color: rgba(107, 164, 214, 0.15);
+            }
+        }
+
+        .footer {
+            margin-top: 40px;
+            text-align: center;
+            font-size: 13px;
+            color: var(--secondary-text-color);
+        }
+    </style>
+</head>
+<body>
+
+<div class="logo-container">
+    <svg xmlns="http://www.w3.org/2000/svg" width="48" height="48" viewBox="0 0 24 24">
+        <rect width="24" height="24" opacity="0"></rect>
+        <g>
+            <path d="M10.66 13.08Q9.48 13.08 8.5 13.58Q7.51 14.09 6.8 14.88Q6.1 15.67 5.69 16.58Q7.25 18.74 8.66 19.88Q10.08 21.02 11.86 21.48Q12 21.53 12.19 21.48Q13.92 20.95 15.37 19.84Q16.82 18.72 18.24 16.68Q17.83 15.72 17.17 14.92Q16.51 14.11 15.54 13.6Q14.57 13.08 13.32 13.08L10.66 13.08ZM11.98 5.28Q11.02 5.28 10.21 5.76Q9.41 6.24 8.93 7.04Q8.45 7.85 8.45 8.81Q8.45 9.77 8.93 10.58Q9.41 11.4 10.21 11.88Q11.02 12.36 11.98 12.36Q12.94 12.36 13.75 11.88Q14.57 11.4 15.05 10.58Q15.53 9.77 15.53 8.81Q15.53 7.85 15.05 7.04Q14.57 6.24 13.75 5.76Q12.94 5.28 11.98 5.28Z"
+                  fill="var(--brand-color)">
+            </path>
+        </g>
+        <g>
+            <path d="M12.96 1.2Q12.5 0.98 12.02 0.98Q11.54 0.98 11.06 1.2L3.89 4.54Q3.34 4.78 3.02 5.28Q2.71 5.78 2.71 6.41L2.71 11.18Q2.71 13.82 3.82 16.24Q4.92 18.65 6.9 20.4Q8.88 22.15 11.42 22.92Q12.02 23.06 12.6 22.92Q15.17 22.15 17.14 20.41Q19.1 18.67 20.2 16.28Q21.29 13.9 21.29 11.21L21.29 6.41Q21.29 5.78 20.96 5.29Q20.64 4.8 20.11 4.56L12.96 1.2ZM19.8 11.21Q19.8 12.79 19.39 14.21Q18.98 15.62 18.24 16.68Q16.82 18.72 15.37 19.84Q13.92 20.95 12.19 21.48Q12 21.53 11.86 21.48Q10.08 21.02 8.66 19.88Q7.25 18.74 5.69 16.58Q5.02 15.5 4.61 14.1Q4.2 12.7 4.2 11.21L4.2 6.41Q4.2 6.05 4.54 5.9L11.69 2.57Q12.02 2.42 12.34 2.57L19.49 5.93Q19.63 5.98 19.72 6.12Q19.8 6.26 19.8 6.43L19.8 11.21Z"
+                  fill="var(--brand-color)"
+                  fill-opacity="0.5">
+            </path>
+        </g>
+    </svg>
+</div>
+
+<h1>Deadliner 隐私政策</h1>
+<div style="text-align: center; font-size: 13px; color: var(--secondary-text-color); margin-bottom: 20px;">
+    （HarmonyOS 版本）
+</div>
+
+<div class="highlight-box">
+    <strong>特别提示：</strong>本应用为个人开发者开发的<strong>本地工具类应用</strong>，不强制要求用户注册账号，无云端账户体系，且<strong>不会收集任何可识别您个人身份的信息</strong>（包括但不限于姓名、手机号码、身份证号码、电子邮箱等）。
+</div>
+
+<p>本隐私政策旨在向您清晰说明 <strong>Deadliner</strong>（以下简称“本应用”）在 HarmonyOS 设备运行期间，针对您个人信息的收集、使用、共享、存储及保护的具体规则与措施。请您务必在使用本应用前，仔细阅读并理解本政策全部内容。</p>
+
+<h2>一、适用范围</h2>
+<p>本隐私政策适用于 Deadliner HarmonyOS 客户端当前提供的全部功能模块，具体包括但不限于以下服务：</p>
+<ul>
+    <li>本地任务与习惯管理功能</li>
+    <li>Deadliner AI 功能（需用户自备 API 的文本生成辅助服务）</li>
+    <li>WebDAV 同步功能（需用户自备同步服务器）</li>
+</ul>
+
+<h2>二、个人信息的收集与使用</h2>
+<p>本应用严格遵循<strong>“最小必要”</strong>原则，仅在实现对应功能所必需的范围内处理相关信息。</p>
+
+<h3>1. 本地任务与习惯管理（核心必要功能）</h3>
+<ul>
+    <li><strong>功能用途：</strong>支持您在本地完成任务与习惯的创建、编辑、查询及保存。</li>
+    <li><strong>处理内容：</strong>您手动在本地输入的任务文本、时间节点等任务相关数据。</li>
+    <li><strong>处理方式：</strong>所有数据<strong>仅存储于您的 HarmonyOS 设备本地</strong>，无任何云端上传行为。</li>
+</ul>
+
+<h3>2. Deadliner AI（可选功能，需用户自备第三方服务）</h3>
+<p>本应用仅提供本地客户端工具能力，不提供、不运营任何人工智能云端服务。</p>
+<ul>
+    <li><strong>API Key 管理：</strong>由您自行获取并填写的 API Key，将通过 HarmonyOS 系统级 <strong>SecureStorage</strong> 进行加密后存储于您的设备本地。应用开发者无法访问或获取您的 API Key。</li>
+    <li><strong>数据处理：</strong>本应用不存储、不分析任何 AI 功能的请求与返回内容。您提交的文本内容仅在您的设备与您配置的第三方 AI 服务之间进行点对点实时传输。</li>
+</ul>
+
+<h3>3. WebDAV 同步（可选功能，需用户自备同步服务器）</h3>
+<p>本应用仅提供协议适配能力，不提供任何云端同步服务。</p>
+<ul>
+    <li><strong>账号与凭据：</strong>服务器账号、密码等凭据由您自行填写，并通过 HarmonyOS 系统级 <strong>SecureStorage</strong> 加密后存储于您的设备本地。</li>
+    <li><strong>责任界定：</strong>本应用不运营任何 WebDAV 服务器，也不托管任何同步数据。同步数据的安全性完全由您所选服务器及其运营方负责。</li>
+</ul>
+
+<h2>三、个人信息的存储</h2>
+<h3>1. 存储地点</h3>
+<ul>
+    <li><strong>本地任务与设置：</strong>仅存储于您的 HarmonyOS 设备本地存储空间。</li>
+    <li><strong>WebDAV 同步数据：</strong>存储于您自行配置的第三方服务器。</li>
+</ul>
+
+<h3>2. 保留期限</h3>
+<ul>
+    <li><strong>本地数据：</strong>保留至您手动删除或卸载本应用为止。</li>
+    <li><strong>敏感凭据：</strong>API Key 及 WebDAV 账号信息保留至您在应用内手动删除。</li>
+</ul>
+
+<h2>四、用户画像与营销</h2>
+<p>本应用<strong>不进行</strong>任何形式的用户画像构建，<strong>不开展</strong>用户行为分析，<strong>不提供</strong>广告推荐服务，也不会将您的相关信息用于任何营销推广用途。</p>
+
+<h2>五、Cookie 及同类技术的使用</h2>
+<p>本应用<strong>不使用</strong> Cookie、Web Beacon 等任何自动数据收集技术，仅通过本地数据库及 HarmonyOS 系统安全存储模块，保存应用运行所需的必要配置信息。</p>
+
+<h2>六、信息共享、转让与公开披露</h2>
+<p>本应用默认状态下<strong>不共享</strong>任何用户信息。仅在您主动使用 AI 或 WebDAV 功能时，数据会发送至<strong>您自行配置</strong>的第三方服务。应用开发者不参与任何数据的中转。</p>
+<p>在任何情况下，本应用及开发者均不会将用户相关信息进行转让或公开披露（法律法规强制要求除外）。</p>
+
+<h2>七、个人信息的保护措施</h2>
+<ul>
+    <li>采用 HarmonyOS 系统级 <strong>SecureStorage</strong> 对 API Key、WebDAV 凭据等敏感配置进行加密存储。</li>
+    <li>应用内无任何广告、数据统计、用户行为埋点类 SDK，杜绝第三方工具的信息采集。</li>
+    <li><strong>安全提示：</strong>请您务必妥善保管第三方服务的账号、密码及各类访问凭据。</li>
+</ul>
+
+<h2>八、个人信息的自主管理</h2>
+<p>您可在本应用内自主进行以下操作：</p>
+<ul>
+    <li>随时修改或删除本地任务数据及习惯配置。</li>
+    <li>按需删除已配置的 WebDAV 服务器账号及同步凭据。</li>
+    <li>自主清除已保存的 AI 服务 API Key。</li>
+    <li><strong>卸载本应用将一次性清除设备本地存储的全部数据。</strong></li>
+</ul>
+
+<h2>九、未成年人信息保护</h2>
+<p>本应用适用用户为年满 12 周岁及以上的自然人。本应用不会主动收集未成年人的个人信息。</p>
+
+<h2>十、联系方式</h2>
+<p>如您对本隐私政策存在任何疑问，可通过以下方式联系：</p>
+<ul>
+    <li><strong>运营主体：</strong>周擎</li>
+    <li><strong>沟通渠道：</strong>邮箱 aritxonly@outlook.com</li>
+    <li><strong>项目地址：</strong>https://github.com/AritxOnly/DeadlinerNEXT</li>
+</ul>
+<p>我们将在收到您的反馈后 15 个工作日内向您反馈处理结果。</p>
+
+<h2>十一、隐私政策的变更</h2>
+<p>如因功能迭代或法律法规更新需变更本政策，我们将通过应用内弹窗或更新说明告知您。您继续使用本应用即视为接受更新后的政策。</p>
+
+<div class="footer">
+    <p>更新日期：2025年12月</p>
+</div>
+
+</body>
+</html>

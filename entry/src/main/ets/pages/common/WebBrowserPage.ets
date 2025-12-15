@@ -1,6 +1,8 @@
 import { webview } from '@kit.ArkWeb';
-import { router } from '@kit.ArkUI';
-import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
+import { LengthMetrics, router } from '@kit.ArkUI';
+import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavDestinationAttribute,
+  ScrollEffectType } from '@kit.UIDesignKit';
+import { TopSafeContainer } from '../components/TopSafeContainer';
 
 export interface WebParams {
   url: string;
@@ -11,25 +13,50 @@ export interface WebParams {
 @Component
 struct WebBrowserPage {
   controller: webview.WebviewController = new webview.WebviewController();
-  targetUrl: string = '';
-  title: string = '';
+  @State targetUrl: string = '';
+  @State title: string = '';
 
   pathStack: NavPathStack | null = null;
 
   private onCloseCallback?: () => void;
 
+
+  @StorageProp('statusBarHeight') statusBarHeight: number = 38;
+
+  readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
+
   build() {
     HdsNavDestination() {
-      Column() {
+      TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Web({ src: this.targetUrl, controller: this.controller })
           .domStorageAccess(true)
+          .darkMode(WebDarkMode.Auto)
           .width('100%')
           .layoutWeight(1)
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
       }
-      .width('100%')
-      .height('100%')
     }
     .titleBar({
+      style: {
+        scrollEffectOpts: {
+          enableScrollEffect: true,
+          scrollEffectType: ScrollEffectType.COMMON_BLUR,
+          blurEffectiveStartOffset: LengthMetrics.vp(0),
+          blurEffectiveEndOffset: LengthMetrics.vp(10)
+        },
+        // --- 初始状态样式 (透明) ---
+        originalStyle: {
+          backgroundStyle: {
+            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
+          },
+        },
+        // --- 滚动生效后样式 (模糊) ---
+        scrollEffectStyle: {
+          backgroundStyle: {
+            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
+          },
+        },
+      },
       content: {
         title: {
           mainTitle: this.title

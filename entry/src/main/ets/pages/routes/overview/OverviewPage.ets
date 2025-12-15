@@ -337,7 +337,7 @@ export struct OverviewPage {
           height: this.SEGMENT_HEIGHT,
           showType: BottomBuilderShowType.DIRECTLY_SHOW
         },
-        divider: { showType: DividerShowType.OFF }
+        // divider: { showType: DividerShowType.OFF }
       }
     })
     .titleMode(HdsNavigationTitleMode.MINI)

@@ -21,7 +21,7 @@ struct Index {
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
 
   private context = getContext(this) as common.UIAbilityContext;
-  private privacyUrl: string = 'https://agreement-drcn.hispace.dbankcloud.cn/index.html?lang=zh&agreementId=1837914602910842752';
+  private privacyUrl: string = 'resource://rawfile/privacy_agreement.html';
 
   @State isBlocking: boolean = false;
   private isDialogOpened: boolean = false;

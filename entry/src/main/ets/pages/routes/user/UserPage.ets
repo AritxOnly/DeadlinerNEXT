@@ -11,6 +11,8 @@ import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
 export struct UserPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
+  private privacyUrl: string = 'resource://rawfile/privacy_agreement.html';
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   private context = getContext(this) as common.UIAbilityContext;
@@ -48,113 +50,138 @@ export struct UserPage {
     })
   }
 
+  private showPrivacyWebPage() {
+    const params: WebParams = {
+      url: this.privacyUrl,
+      title: '隐私协议',
+    };
+
+    this.appPathStack.pushPath({
+      name: 'webBrowser',
+      param: params,
+    });
+  }
+
   build() {
     HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
-          Column({ space: 16 }) {
-            SettingsSection() {
-              // [新增] 基础模式开关
-              SettingsSwitch({
-                title: "基础模式",
-                subtitle: "仅保留核心任务管理功能",
-                icon: $r('sys.symbol.leaf'),
-                isOn: this.isBasicMode,
-                onChange: (isOn) => {
-                  LocalValues.getInstance().setBasicMode(isOn);
-                }
-              })
-            }
-
-            SettingsSection() {
-              SettingsSwitch({
-                title: "振动反馈",
-                subtitle: "开启后，会以振动的形式反馈交互操作",
-                icon: $r('sys.symbol.a_4d_vibration'),
-                isOn: this.vibrationEnable,
-                onChange: (isOn) => {
-                  LocalValues.getInstance().setVibration(isOn);
-                }
-              })
-
-              SettingsDivider()
-
-              SettingsSwitch({
-                title: "正向进度条",
-                subtitle: "主页的任务剩余进度将被替换为任务进行进度",
-                icon: $r('sys.symbol.arrow_clockwise'),
-                isOn: this.progressDir,
-                onChange: (isOn) => {
-                  LocalValues.getInstance().setProgressDir(isOn);
-                }
-              })
-
-              SettingsDivider()
-
-              SettingsSwitch({
-                title: "激励语句",
-                subtitle: "在主页标题栏显示随机的激励文案",
-                icon: $r('sys.symbol.lightbulb_max'),
-                isOn: this.excitementText,
-                onChange: (isOn) => {
-                  LocalValues.getInstance().setExcitementText(isOn);
-                }
-              })
-
-              SettingsDivider()
-
-              SettingsSwitch({
-                title: "礼花动画",
-                subtitle: "任务完成时将显示礼花动画效果",
-                icon: $r('sys.symbol.flame'),
-                isOn: this.confetti,
-                onChange: (isOn) => {
-                  LocalValues.getInstance().setConfettiAfterFinished(isOn);
-                }
-              })
-            }
-
-            if (!this.isBasicMode) {
-              SettingsSection() {
-                // WebDAV 设置 (还原你的需求)
-                SettingsItem({
-                  title: "WebDAV 设置",
-                  subtitle: "配置数据同步与备份",
-                  icon: $r('sys.symbol.cloud'), // 替换为你想要的图标
-                  onItemClick: () => {
-                    // 路由跳转
-                    this.appPathStack.pushPath({ name: 'settingsWebDav' });
-                  }
-                })
-
-                SettingsDivider()
-
-                SettingsItem({
-                  title: "Deadliner AI",
-                  subtitle: "配置 API Key 与模型参数",
-                  icon: $r('sys.symbol.AI'),
-                  onItemClick: () => {
-                    this.appPathStack.pushPath({ name: 'settingsAI' });
-                  }
-                })
+        Column({ space: 16 }) {
+          SettingsSection() {
+            // [新增] 基础模式开关
+            SettingsSwitch({
+              title: "基础模式",
+              subtitle: "仅保留核心任务管理功能",
+              icon: $r('sys.symbol.leaf'),
+              isOn: this.isBasicMode,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setBasicMode(isOn);
               }
-            }
+            })
+          }
 
+          SettingsSection() {
+            SettingsSwitch({
+              title: "振动反馈",
+              subtitle: "开启后，会以振动的形式反馈交互操作",
+              icon: $r('sys.symbol.a_4d_vibration'),
+              isOn: this.vibrationEnable,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setVibration(isOn);
+              }
+            })
+
+            SettingsDivider()
+
+            SettingsSwitch({
+              title: "正向进度条",
+              subtitle: "主页的任务剩余进度将被替换为任务进行进度",
+              icon: $r('sys.symbol.clock_arrow_2_circlepath'),
+              isOn: this.progressDir,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setProgressDir(isOn);
+              }
+            })
+
+            SettingsDivider()
+
+            SettingsSwitch({
+              title: "激励语句",
+              subtitle: "在主页标题栏显示随机的激励文案",
+              icon: $r('sys.symbol.lightbulb_max'),
+              isOn: this.excitementText,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setExcitementText(isOn);
+              }
+            })
+
+            SettingsDivider()
+
+            SettingsSwitch({
+              title: "礼花动画",
+              subtitle: "任务完成时将显示礼花动画效果",
+              icon: $r('sys.symbol.flame'),
+              isOn: this.confetti,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setConfettiAfterFinished(isOn);
+              }
+            })
+          }
+
+          if (!this.isBasicMode) {
             SettingsSection() {
+              // WebDAV 设置 (还原你的需求)
               SettingsItem({
-                title: "撤回隐私协议",
-                subtitle: "撤回同意并退出应用",
-                icon: $r('sys.symbol.lock_shield'), // [新增] 撤回盾牌图标
+                title: "WebDAV 设置",
+                subtitle: "配置数据同步与备份",
+                icon: $r('sys.symbol.cloud'), // 替换为你想要的图标
                 onItemClick: () => {
-                  this.showRevokeDialog(); // 触发弹窗
+                  // 路由跳转
+                  this.appPathStack.pushPath({ name: 'settingsWebDav' });
+                }
+              })
+
+              SettingsDivider()
+
+              SettingsItem({
+                title: "Deadliner AI",
+                subtitle: "配置 API Key 与模型参数",
+                icon: $r('sys.symbol.AI'),
+                onItemClick: () => {
+                  this.appPathStack.pushPath({ name: 'settingsAI' });
                 }
               })
             }
-
-            // 底部留白
-            Blank().height(50)
           }
-          .width('100%')
-          .padding({ bottom: 24, start: LengthMetrics.vp(12), end: LengthMetrics.vp(12) }) // 整体页面的内边距
+
+          SettingsSection() {
+            SettingsItem({
+              title: "查看隐私协议",
+              subtitle: "浏览隐私协议的详细内容",
+              icon: $r('sys.symbol.person_shield_fill'),
+              onItemClick: () => {
+                this.showPrivacyWebPage();
+              }
+            })
+
+            SettingsDivider()
+
+            SettingsItem({
+              title: "撤回隐私协议",
+              subtitle: "撤回同意并退出应用",
+              icon: $r('sys.symbol.lock_shield'), // [新增] 撤回盾牌图标
+              onItemClick: () => {
+                this.showRevokeDialog(); // 触发弹窗
+              }
+            })
+          }
+
+          // 底部留白
+          Blank().height(50)
+        }
+        .width('100%')
+        .padding({ left: 12, right: 12 })
+        .justifyContent(FlexAlign.Start)
+        .constraintSize({ minHeight: '100%' })
       }
     }
     .titleBar({
@@ -183,7 +210,7 @@ export struct UserPage {
         title: {
           mainTitle: '我的'
         },
-        divider: { showType: DividerShowType.OFF },
+        // divider: { showType: DividerShowType.OFF },
       }
     })
     .titleMode(HdsNavigationTitleMode.MINI)

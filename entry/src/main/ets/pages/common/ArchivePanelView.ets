@@ -1,7 +1,7 @@
 import { promptAction } from '@kit.ArkUI';
 import { TaskRepository } from '../../common/repository/TaskRepository';
 import { DDLItem } from '../../model/DDLModels';
-import { ArchivedDDLItemCard } from './TaskItemCard';
+import { ArchivedDDLItemCard } from '../components/TaskItemCard';
 
 @Component
 export struct ArchivePanelView {

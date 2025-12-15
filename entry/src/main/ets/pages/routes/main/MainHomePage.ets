@@ -16,10 +16,10 @@ import { BottomBuilderShowType,
 import { TaskListController } from './TaskListController'
 import { ConfettiController } from '../../components/confetti/ConfettiController'
 import { ConfettiView } from '../../components/confetti/ConfettiView'
-import { AIPanelView } from '../../components/AIPanelView'
+import { AIPanelView } from '../../common/AIPanelView'
 import { HabitListController } from './HabitListController'
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
-import { ArchivePanelView } from '../../components/ArchivePanelView'
+import { ArchivePanelView } from '../../common/ArchivePanelView'
 
 enum MainTabIndex {
   TASKS = 0,
