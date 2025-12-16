@@ -73,6 +73,7 @@ export struct DeadlinerAISettingsPage {
               .onChange((value) => {
                 this.model = value;
               })
+              .enabled(false)
           }
 
           // API 地址 (方便将来切自定义代理)
@@ -84,6 +85,7 @@ export struct DeadlinerAISettingsPage {
               .onChange((value) => {
                 this.baseUrl = value;
               })
+              .enabled(false)
           }
         }
         .padding(12)

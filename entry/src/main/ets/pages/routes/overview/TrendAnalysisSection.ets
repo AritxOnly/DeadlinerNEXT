@@ -377,6 +377,8 @@ struct MonthlyTrendCard {
     const greenColor = ColorUtils.parseColor(greenHex);
     const redColor = ColorUtils.parseColor(redHex);
 
+    const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
+
     // 2. 截取数据
     const displayStats = this.monthlyStats.slice(-this.totalMonth);
 
@@ -417,11 +419,24 @@ struct MonthlyTrendCard {
 
       set.setGradientFillColor(gradientStops);
 
-      // 隐藏小圆点，但保留点击高亮
-      set.setDrawCircles(false);
-      set.setDrawCircleHole(false);
+      // 1. 不显示数值文字
+      set.setDrawValues(false);
+
+      // 2. 开启绘制圆点
+      set.setDrawCircles(true);
+
+      // 3. 设置圆点颜色 (与线条颜色 colorInt 一致)
+      set.setCircleColor(colorInt);
+
+      // 4. 设置圆点大小 (2.5f 比较小巧精致)
+      set.setCircleRadius(2.5);
+
+      // 5. 设置为实心点 (不画内部孔)
+      set.setDrawCircleHole(true);
+
+      // 保留点击高亮配置
       set.setHighlightEnabled(true);
-      set.setDrawHighlightIndicators(false); // 不画十字线，只留气泡
+      set.setDrawHighlightIndicators(false);
 
       return set;
     };

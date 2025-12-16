@@ -654,6 +654,7 @@ export struct HabitListSection {
             onSelectDate: (d: Date): void => this.onDateSelected(d)
           })
             .margin({ bottom: 8 })
+            .width('100%')
 
           Refresh({
             refreshing: $$this.isRefreshing
