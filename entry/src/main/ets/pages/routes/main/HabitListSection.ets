@@ -64,7 +64,8 @@ export struct HabitListSection {
   // —— 3. 业务逻辑 ——
 
   async refreshAll(date: Date) {
-    const allHabits = await this.repo.getAllHabits();
+    const allHabitsRaw = await this.repo.getAllHabits();
+    const allHabits = allHabitsRaw.filter(h => h.status !== HabitStatus.ARCHIVED);
 
     // 计算列表状态
     const statusList = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, date)));
@@ -616,9 +617,6 @@ export struct HabitListSection {
       // 5. 执行数据库更新
       await this.repo.updateHabit(updatedHabit);
 
-      // (可选) 如果你的 DDL 表也存储了 Name/Note 用于搜索，也需要更新 DDL 表
-      // 比如: await DatabaseHelper.getInstance().updateDDLNameAndNote(updatedHabit.ddlId, updatedHabit.name, updatedHabit.description);
-
       // 6. 收尾工作
       promptAction.showToast({ message: '修改成功' });
 
@@ -646,6 +644,7 @@ export struct HabitListSection {
           // 1. 顶部进度 (使用新组件)
           HabitCircleProgress({ progress: this.getTodayCompletionRatio() })
             .margin({ top: 12, bottom: 12 })
+            .align(Alignment.Center)
 
           // 2. 本周日期横条 (使用新组件)
           WeekRow({
@@ -654,7 +653,7 @@ export struct HabitListSection {
             onSelectDate: (d: Date): void => this.onDateSelected(d)
           })
             .margin({ bottom: 8 })
-            .width('100%')
+            .align(Alignment.Center)
 
           Refresh({
             refreshing: $$this.isRefreshing
@@ -676,11 +675,17 @@ export struct HabitListSection {
               }, (item: HabitWithDailyStatus) => {
                 return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
               })
+
+              ListItem() {
+                Column() {
+                  Blank().height(140)
+                }
+              }
             }
             .width('100%')
-            .height("100%")
+            .height('100%')
             .layoutWeight(1)
-            .padding({ left: 12, right: 12, bottom: 96 })
+            .padding({ left: 12, right: 12 })
             .scrollBar(BarState.Off)
             .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           }
@@ -690,7 +695,12 @@ export struct HabitListSection {
             await this.refreshAll(this.selectedDate);
             this.isRefreshing = false;
           })
+          .layoutWeight(1)
+          .width('100%')
         }
+        .height('100%')
+        .width('100%')
+        .layoutWeight(1)
       }
     }
     .width('100%')

@@ -341,7 +341,7 @@ export struct TaskListSection {
       const targets = allItems.filter(item => this.selectedIds.includes(item.id));
 
       targets.forEach(item => {
-        item.isArchived = true;
+        if (item.isCompleted) item.isArchived = true;
       });
 
       for (const item of targets) {

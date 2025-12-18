@@ -113,7 +113,7 @@ export struct SettingsWebDavPage {
       .height('100%')
       .padding(16)
     }
-    .title("WebDav设置")
+    .title("WebDAV设置")
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
