@@ -1,6 +1,7 @@
 import { DividerShowType, HdsNavigation, HdsNavigationAttribute, HdsNavigationTitleMode, ScrollEffectType } from "@kit.UIDesignKit";
 import { LengthMetrics } from "@kit.ArkUI";
-import { SettingsDivider, SettingsItem, SettingsSection, SettingsSwitch } from "../../components/SettingsComponents";
+import { SettingsDivider, SettingsItem, SettingsSection, SettingsSwitch,
+  SettingsUserProfile } from "../../components/SettingsComponents";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { common } from "@kit.AbilityKit";
 import { LocalValues } from "../../../common/local/LocalValues";
@@ -67,16 +68,7 @@ export struct UserPage {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
           SettingsSection() {
-            // [新增] 基础模式开关
-            SettingsSwitch({
-              title: "基础模式",
-              subtitle: "仅保留核心任务管理功能",
-              icon: $r('sys.symbol.leaf'),
-              isOn: this.isBasicMode,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setBasicMode(isOn);
-              }
-            })
+            SettingsUserProfile()
           }
 
           SettingsSection() {
@@ -151,6 +143,18 @@ export struct UserPage {
                 }
               })
             }
+          }
+
+          SettingsSection() {
+            SettingsSwitch({
+              title: "基础模式",
+              subtitle: "仅保留核心任务管理功能",
+              icon: $r('sys.symbol.leaf'),
+              isOn: this.isBasicMode,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setBasicMode(isOn);
+              }
+            })
           }
 
           SettingsSection() {

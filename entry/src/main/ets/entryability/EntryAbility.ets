@@ -6,6 +6,8 @@ import { LocalValues } from '../common/local/LocalValues';
 import { DatabaseHelper } from '../common/data/DatabaseHelper';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
+import { buffer } from '@kit.ArkTS';
+import auth from '@hw-agconnect/auth'
 
 const DOMAIN = 0x0000;
 
@@ -21,6 +23,12 @@ export default class EntryAbility extends UIAbility {
       hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
+
+    let file = await this.context.resourceManager.getRawFileContent('agconnect-services.json');
+    let json: string = buffer.from(file.buffer).toString();
+    auth.init(this.context, json);
+
+    this.checkLoginStatus();
   }
 
   onDestroy(): void {
@@ -57,5 +65,27 @@ export default class EntryAbility extends UIAbility {
     // Ability has back to background
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onBackground');
     WidgetUpdater.updateAllWidgets(this.context)
+  }
+
+  private checkLoginStatus() {
+    AppStorage.setOrCreate('isLoggedIn', false);
+
+    auth.getCurrentUser()
+      .then((user) => {
+        if (user) {
+          hilog.info(0x0000, 'EntryAbility', 'User already logged in: %{public}s', user.getUid());
+          hilog.info(0x0000, 'EntryAbility', 'User profile: %{public}s | %{public}s | %{public}s', user.getPhone(), user.getDisplayName(), user.getPhotoUrl());
+          // 状态确认：已登录
+          AppStorage.setOrCreate('isLoggedIn', true);
+        } else {
+          hilog.info(0x0000, 'EntryAbility', 'User not logged in');
+          // 状态确认：未登录
+          AppStorage.setOrCreate('isLoggedIn', false);
+        }
+      })
+      .catch((err: BusinessError) => {
+        hilog.error(0x0000, 'EntryAbility', 'Check user failed: %{public}s', err.message);
+        AppStorage.setOrCreate('isLoggedIn', false);
+      });
   }
 }

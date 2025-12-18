@@ -1,4 +1,6 @@
-import { LengthMetrics } from "@kit.ArkUI";
+import auth, { AuthUser } from "@hw-agconnect/auth";
+import { LengthMetrics, promptAction } from "@kit.ArkUI";
+import { LoginPanelView } from "../common/LoginPanelView";
 
 /**
  * SettingsSection: 类似 Android 的 Surface 容器
@@ -196,5 +198,141 @@ export struct SettingsDivider {
       .color($r('sys.color.ohos_id_color_list_separator'))
       .strokeWidth(0.5) // 细一点比较精致
       .margin({ left: 56, right: 16, top: 2, bottom: 2 }) // 左侧留出图标位置 (24+16+16)
+  }
+}
+
+@Component
+export struct SettingsUserProfile {
+  // 监听全局登录状态，发生变化时自动刷新用户信息
+  @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
+
+  // 控制登录半模态的显示
+  @State isLoginSheetShow: boolean = false;
+
+  // 当前用户信息对象
+  @State currentUser: AuthUser | null = null;
+
+  // 组件加载时，如果已登录，尝试获取用户信息
+  aboutToAppear(): void {
+    if (this.isLoggedIn) {
+      this.refreshUser();
+    }
+  }
+
+  // 监听器：当 isLoggedIn 变化时触发
+  onLoginStatusChange() {
+    if (this.isLoggedIn) {
+      // 状态变为已登录：刷新用户数据，关闭登录弹窗
+      this.refreshUser();
+      this.isLoginSheetShow = false;
+    } else {
+      // 状态变为未登录：清空数据
+      this.currentUser = null;
+    }
+  }
+
+  // 从 AGC 获取最新用户信息
+  async refreshUser() {
+    try {
+      this.currentUser = await auth.getCurrentUser();
+    } catch (e) {
+      console.error(`User profile refresh failed: ${e.message}`);
+      this.currentUser = null;
+    }
+  }
+
+  // 点击卡片的主逻辑
+  handleCardClick() {
+    if (this.isLoggedIn && this.currentUser) {
+      // 已登录 -> 触发登出
+      this.showLogoutDialog();
+    } else {
+      // 未登录 -> 打开登录面板
+      this.isLoginSheetShow = true;
+    }
+  }
+
+  // 登出弹窗
+  private showLogoutDialog() {
+    AlertDialog.show({
+      title: '退出登录',
+      message: '确定要退出当前账号吗？退出后将无法使用云同步及 AI 相关功能。',
+      primaryButton: {
+        value: '取消',
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '退出',
+        fontColor: Color.Red,
+        action: async () => {
+          try {
+            await auth.signOut();
+            // 更新全局状态，这会触发 onLoginStatusChange 清理数据
+            AppStorage.setOrCreate('isLoggedIn', false);
+            promptAction.showToast({ message: '已退出登录' });
+          } catch (e) {
+            const err = e as BusinessError;
+            promptAction.showToast({ message: `退出失败: ${err.message}` });
+          }
+        }
+      }
+    })
+  }
+
+  // 登录面板 Builder
+  @Builder
+  loginSheetBuilder() {
+    LoginPanelView()
+  }
+
+  build() {
+    Row() {
+      // 1. 头像区域
+      Image(this.currentUser?.getPhotoUrl() || $r('sys.symbol.person_crop_circle_fill_1'))
+        .width(56)
+        .height(56)
+        .borderRadius(28) // 圆形
+        .objectFit(ImageFit.Cover)
+        // 只有已登录且有头像时显示图片，否则显示系统图标并上色
+        .fillColor(this.currentUser ? Color.Transparent : $r('sys.color.ohos_id_color_text_secondary'))
+        .backgroundColor(this.currentUser ? Color.Transparent : $r('sys.color.ohos_id_color_foreground_contrary'))
+
+      // 2. 文本信息区域
+      Column({ space: 4 }) {
+        // 昵称
+        Text(this.currentUser?.getDisplayName() || (this.isLoggedIn ? '华为用户' : '未登录'))
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 状态提示
+        Text(this.isLoggedIn ? '已登录华为账号' : '点击登录以同步数据与使用 AI')
+          .fontSize(14)
+          .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+      }
+      .alignItems(HorizontalAlign.Start)
+      .justifyContent(FlexAlign.Center)
+      .margin({ left: 16 })
+      .layoutWeight(1) // 占满中间空间
+    }
+    .width('100%')
+    .padding({ top: 12, bottom: 12, left: 12, right: 12 })
+    .backgroundColor(Color.Transparent) // 背景透明，由父容器控制
+    // 点击交互
+    .onClick(() => {
+      this.handleCardClick();
+    })
+    // 绑定登录半模态 Sheet
+    .bindSheet($$this.isLoginSheetShow, this.loginSheetBuilder(), {
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      title: { title: '登录' }
+    })
   }
 }

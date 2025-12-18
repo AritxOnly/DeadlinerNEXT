@@ -3,6 +3,7 @@ import { i18n } from '@kit.LocalizationKit'
 import { AIService } from '../../ai/AIServcice'
 import { AITask } from '../../ai/model/AIModels'
 import { AddTaskParams } from '../routes/add/AddTaskPage'
+import { LoginPanelView } from './LoginPanelView'
 
 // 定义简单的消息模型
 export interface AIChatMessage {
@@ -95,7 +96,8 @@ export struct AIPanelView {
     }, 100);
   }
 
-  build() {
+  @Builder
+  RealAIContent() {
     Column() {
       // 1. 对话列表区域
       List({ scroller: this.scroller }) {
@@ -288,5 +290,22 @@ export struct AIPanelView {
     }
     .margin({ top: 4 })
     .width('85%') // 稍微缩一点，增加层次感
+  }
+
+  @StorageLink('isLoggedIn') isLoggedIn: boolean = false;
+
+  build() {
+    Column() {
+      if (this.isLoggedIn) {
+        // 场景 A：已登录 -> 显示真正的 AI 功能
+        this.RealAIContent()
+      } else {
+        // 场景 B：未登录 -> 显示登录面板
+        // LoginPanelView 会处理登录逻辑并在成功后修改 isLoggedIn 为 true
+        LoginPanelView()
+      }
+    }
+    .width('100%')
+    .height('100%')
   }
 }
