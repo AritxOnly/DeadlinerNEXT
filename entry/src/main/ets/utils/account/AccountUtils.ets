@@ -1,5 +1,7 @@
+import { SignInResult } from "@hw-agconnect/auth";
+
 export interface AccountController {
-  onSignInSucc: () => void;
+  onSignInSucc: (s: SignInResult) => void;
   onSignInFail: (e: BusinessError) => void;
   onSignOutSucc: () => void;
   onSignOutFail: (e: BusinessError) => void;

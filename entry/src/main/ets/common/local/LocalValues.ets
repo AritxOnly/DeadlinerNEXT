@@ -248,4 +248,43 @@ export class LocalValues {
   getBasicMode(): boolean {
     return AppStorage.get<boolean>(C.KEY_BASIC_MODE) ?? false;
   }
+
+  async clearAllAdvancedSettings() {
+    if (!this.pref) {
+      return;
+    }
+
+    try {
+      // 1. 清除 AI 相关配置
+      await this.pref.delete(C.KEY_AI_DEEPSEEK_API_KEY); // 核心敏感数据
+      await this.pref.delete(C.KEY_AI_PROVIDER);
+      await this.pref.delete(C.KEY_AI_MODEL);
+      await this.pref.delete(C.KEY_AI_BASE_URL);
+
+      // 2. 清除 WebDAV 相关配置
+      await this.pref.delete(C.KEY_WEBDAV_URL);
+      await this.pref.delete(C.KEY_WEBDAV_USERNAME);
+      await this.pref.delete(C.KEY_WEBDAV_PASSWORD);
+      await this.pref.delete(C.KEY_CLOUD_SYNC_ENABLE);
+
+      // 3. 立即持久化更改
+      await this.pref.flush();
+
+      // 4. 同步更新 AppStorage，确保 UI 立即响应（清空）
+      AppStorage.setOrCreate(C.KEY_AI_DEEPSEEK_API_KEY, '');
+      AppStorage.setOrCreate(C.KEY_AI_PROVIDER, 'deepseek'); // 恢复默认值
+      AppStorage.setOrCreate(C.KEY_AI_MODEL, 'deepseek-chat');
+      AppStorage.setOrCreate(C.KEY_AI_BASE_URL, 'https://api.deepseek.com');
+
+      // 如果你的 WebDAV 也有 AppStorage 绑定，也需要置空
+      AppStorage.setOrCreate(C.KEY_WEBDAV_URL, '');
+      AppStorage.setOrCreate(C.KEY_WEBDAV_USERNAME, '');
+      AppStorage.setOrCreate(C.KEY_WEBDAV_PASSWORD, '');
+      AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, false);
+
+      console.info('LocalValues', 'All advanced settings cleared successfully.');
+    } catch (e) {
+      console.error('LocalValues', `Failed to clear advanced settings: ${e.message}`);
+    }
+  }
 }

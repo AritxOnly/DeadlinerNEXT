@@ -7,6 +7,7 @@ import { common } from "@kit.AbilityKit";
 import { LocalValues } from "../../../common/local/LocalValues";
 import { WebParams } from "../../common/WebBrowserPage";
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants';
+import { HuaweiAccountUtils } from "../../../utils/account/HuaweiAccountUtils";
 
 @Component
 export struct UserPage {
@@ -29,7 +30,7 @@ export struct UserPage {
   private showRevokeDialog() {
     AlertDialog.show({
       title: '撤回隐私协议',
-      message: '撤回协议后，应用将无法继续为您提供服务，并会自动退出。下次启动应用时，您需要重新同意协议。\n\n确定要撤回吗？',
+      message: '撤回协议后，应用将无法继续为您提供服务，并会自动退出账号，清除您的 WebDAV 与 AI API Key 设置。下次启动应用时，您需要重新同意协议。\n\n确定要撤回吗？',
       autoCancel: true,
       alignment: DialogAlignment.Bottom,
       offset: { dx: 0, dy: -20 },
@@ -44,11 +45,44 @@ export struct UserPage {
         fontColor: Color.Red,
         action: async () => {
           await LocalValues.getInstance().revokePrivacy();
+          await LocalValues.getInstance().clearAllAdvancedSettings();
+          (new HuaweiAccountUtils()).signOut();
           this.context.terminateSelf();
         }
       },
       backgroundBlurStyle: BlurStyle.Regular
     })
+  }
+
+  private showTurnOnBasicDialog() {
+
+    AlertDialog.show({
+      title: '开启基础模式',
+      message: '开启后将清除所有高级设置（AI Key、WebDAV 账号等）并退出当前华为账号。\n\n此操作不可撤销，确定要继续吗？',
+      autoCancel: false,
+      alignment: DialogAlignment.Bottom,
+      offset: { dx: 0, dy: -20 },
+      primaryButton: {
+        value: '取消',
+        action: () => {
+          this.isBasicMode = false;
+        },
+        fontColor: $r('app.color.brand')
+      },
+      secondaryButton: {
+        value: '确认开启',
+        fontColor: Color.Red,
+        action: async () => {
+          // 1. 清除高级设置
+          await LocalValues.getInstance().clearAllAdvancedSettings();
+
+          new HuaweiAccountUtils().signOut();
+          AppStorage.setOrCreate('isLoggedIn', false);
+          // 3. 设置基础模式为 true
+          LocalValues.getInstance().setBasicMode(true);
+        }
+      }
+    });
   }
 
   private showPrivacyWebPage() {
@@ -67,8 +101,10 @@ export struct UserPage {
     HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
-          SettingsSection() {
-            SettingsUserProfile()
+          if (!this.isBasicMode) {
+            SettingsSection() {
+              SettingsUserProfile()
+            }
           }
 
           SettingsSection() {
@@ -148,11 +184,17 @@ export struct UserPage {
           SettingsSection() {
             SettingsSwitch({
               title: "基础模式",
-              subtitle: "仅保留核心任务管理功能",
+              subtitle: "仅保留核心任务管理功能，清除所有高级配置",
               icon: $r('sys.symbol.leaf'),
               isOn: this.isBasicMode,
               onChange: (isOn) => {
-                LocalValues.getInstance().setBasicMode(isOn);
+                if (isOn) {
+                  // 用户试图开启基础模式 -> 弹出警告
+                  this.showTurnOnBasicDialog();
+                } else {
+                  // 用户关闭基础模式 -> 直接执行
+                  LocalValues.getInstance().setBasicMode(false);
+                }
               }
             })
           }

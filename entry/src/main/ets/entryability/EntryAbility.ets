@@ -73,8 +73,7 @@ export default class EntryAbility extends UIAbility {
     auth.getCurrentUser()
       .then((user) => {
         if (user) {
-          hilog.info(0x0000, 'EntryAbility', 'User already logged in: %{public}s', user.getUid());
-          hilog.info(0x0000, 'EntryAbility', 'User profile: %{public}s | %{public}s | %{public}s', user.getPhone(), user.getDisplayName(), user.getPhotoUrl());
+          hilog.info(0x0000, 'EntryAbility', 'User already logged in: %{public}s | %{public}s', user.getUid(), user.getDisplayName());
           // 状态确认：已登录
           AppStorage.setOrCreate('isLoggedIn', true);
         } else {

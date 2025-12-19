@@ -205,12 +205,20 @@ export struct SettingsDivider {
 export struct SettingsUserProfile {
   // 监听全局登录状态，发生变化时自动刷新用户信息
   @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
+  @StorageProp('userProfileRefreshTrigger') @Watch('onTriggerRefresh') refreshTrigger: number = 0;
 
   // 控制登录半模态的显示
   @State isLoginSheetShow: boolean = false;
 
   // 当前用户信息对象
   @State currentUser: AuthUser | null = null;
+
+  onTriggerRefresh() {
+    if (this.isLoggedIn) {
+      console.info('SettingsUserProfile: Received refresh trigger, reloading user...');
+      this.refreshUser();
+    }
+  }
 
   // 组件加载时，如果已登录，尝试获取用户信息
   aboutToAppear(): void {
@@ -287,19 +295,30 @@ export struct SettingsUserProfile {
 
   build() {
     Row() {
-      // 1. 头像区域
-      Image(this.currentUser?.getPhotoUrl() || $r('sys.symbol.person_crop_circle_fill_1'))
-        .width(56)
-        .height(56)
-        .borderRadius(28) // 圆形
-        .objectFit(ImageFit.Cover)
-        // 只有已登录且有头像时显示图片，否则显示系统图标并上色
-        .fillColor(this.currentUser ? Color.Transparent : $r('sys.color.ohos_id_color_text_secondary'))
-        .backgroundColor(this.currentUser ? Color.Transparent : $r('sys.color.ohos_id_color_foreground_contrary'))
+      // 1. 头像区域 (核心修改)
+      // 使用条件渲染，强制组件销毁重建，解决缓存和样式切换问题
+      if (this.currentUser && this.currentUser.getPhotoUrl()) {
+        // A. 显示网络头像
+        Image(this.currentUser.getPhotoUrl())
+          .width(56)
+          .height(56)
+          .borderRadius(28)
+          .objectFit(ImageFit.Cover)
+          .backgroundColor(Color.Transparent)
+      } else {
+        // B. 显示默认系统图标
+        Image($r('sys.symbol.person_crop_circle_fill_1'))
+          .width(56)
+          .height(56)
+          .borderRadius(28)
+          .objectFit(ImageFit.Cover)
+          // 系统 Symbol 需要填充颜色才能看清
+          .fillColor($r('sys.color.ohos_id_color_text_secondary'))
+          .backgroundColor($r('sys.color.ohos_id_color_foreground_contrary'))
+      }
 
       // 2. 文本信息区域
       Column({ space: 4 }) {
-        // 昵称
         Text(this.currentUser?.getDisplayName() || (this.isLoggedIn ? '华为用户' : '未登录'))
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
@@ -307,7 +326,6 @@ export struct SettingsUserProfile {
           .maxLines(1)
           .textOverflow({ overflow: TextOverflow.Ellipsis })
 
-        // 状态提示
         Text(this.isLoggedIn ? '已登录华为账号' : '点击登录以同步数据与使用 AI')
           .fontSize(14)
           .fontColor($r('sys.color.ohos_id_color_text_secondary'))
@@ -321,12 +339,10 @@ export struct SettingsUserProfile {
     }
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 12, right: 12 })
-    .backgroundColor(Color.Transparent) // 背景透明，由父容器控制
-    // 点击交互
+    .backgroundColor(Color.Transparent)
     .onClick(() => {
       this.handleCardClick();
     })
-    // 绑定登录半模态 Sheet
     .bindSheet($$this.isLoginSheetShow, this.loginSheetBuilder(), {
       height: SheetSize.FIT_CONTENT,
       dragBar: true,

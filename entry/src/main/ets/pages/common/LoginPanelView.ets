@@ -1,13 +1,14 @@
 import { LoginWithHuaweiIDButton, loginComponentManager } from '@kit.AccountKit';
 import { promptAction } from '@kit.ArkUI';
-import { HuaweiAccountUtils } from '../../utils/account/HuaweiAccountUtils'; // 假设你的路径
+import { HuaweiAccountController, HuaweiAccountUtils } from '../../utils/account/HuaweiAccountUtils'; // 假设你的路径
 import { BusinessError } from '@kit.BasicServicesKit';
+import auth from '@hw-agconnect/auth';
+import { hilog } from '@kit.PerformanceAnalysisKit';
 
 @Component
 export struct LoginPanelView {
   @State isPrivacyChecked: boolean = false;
 
-  // 1. 实例化我们封装的工具类
   private accountUtils: HuaweiAccountUtils = new HuaweiAccountUtils();
 
   // 2. 创建官方组件的 Controller
@@ -33,9 +34,31 @@ export struct LoginPanelView {
       });
 
   aboutToAppear(): void {
+    const ctx = this.getUIContext().getHostContext();
+
     // 3. 初始化 Utils 的回调监听 (处理 AGC 登录的结果)
     this.accountUtils.init({
-      onSignInSucc: () => {
+      onSignInSucc: async (s) => {
+        if (ctx) {
+          let userResult = s.getUser();
+          let profile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx);
+          console.log(`[User] Profile photoUrl: ${profile.avatar} | displayName: ${profile.nickname}`)
+          userResult.updateProfile({
+            displayName: profile.nickname ?? "华为用户",
+            photoUrl: profile.avatar ?? "empty",
+          }).then(() => {
+            auth.getCurrentUser().then(user => {
+              if (user) {
+                let photo = user.getPhotoUrl();
+                let name = user.getDisplayName();
+                console.log(`[User] photoUrl: ${photo} | displayName: ${name}`)
+              }
+            })
+
+            AppStorage.setOrCreate('userProfileRefreshTrigger', Date.now());
+          })
+        }
+
         console.info('AGC Login Success');
         promptAction.showToast({ message: '登录成功' });
 
@@ -108,15 +131,15 @@ export struct LoginPanelView {
       Row() {
         Checkbox({ name: 'privacy', group: 'login' })
           .select(this.isPrivacyChecked)
-          .selectedColor('#FA2A2D') // 匹配华为红
+          .selectedColor($r('app.color.brand')) // 匹配华为红
           .onChange((value: boolean) => {
             this.updateAgreementStatus(value);
           })
         Text() {
-          Span('我已阅读并同意 ')
-          Span('《用户协议》').fontColor('#0A59F7')
-          Span(' 和 ')
-          Span('《隐私政策》').fontColor('#0A59F7')
+          Span('应 ')
+          Span('国家法律法规').fontColor($r('app.color.warning'))
+          Span(' 要求，使用人工智能功能需要核验用户身份，勾选此项代表您同意使用。')
+          Span('我们仅通过您的华为账号核验身份，不会在云端存储任何您的用户信息。').fontColor($r('app.color.font_secondary'))
         }
         .fontSize(12)
         .fontColor($r('sys.color.font_secondary'))
