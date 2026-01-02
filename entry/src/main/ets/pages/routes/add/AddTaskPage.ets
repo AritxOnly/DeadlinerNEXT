@@ -146,7 +146,7 @@ export struct AddTaskPage {
     }
   }
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary')
+  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
 
   build() {
     NavDestination() {
@@ -231,5 +231,6 @@ export struct AddTaskPage {
     .menus([
       this.saveMenuItem
     ])
+    .backgroundColor($r('app.color.background_primary'))
   }
 }

@@ -48,7 +48,7 @@ export struct TaskListSection {
   @State editingStartTime: Date = new Date();
   @State editingEndTime: Date = new Date();
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary');
+  @State inputBgColor: ResourceColor = $r('app.color.background_secondary');
 
   private repo = TaskRepository.getInstance();
 

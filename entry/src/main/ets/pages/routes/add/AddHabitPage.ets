@@ -34,7 +34,7 @@ export struct AddHabitPage {
   @State timesPerPeriod: string = '1';
   @State totalTarget: string = '';
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary')
+  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
 
   private periodOptions: ChipGroupItemOptions[] = [
     { label: { text: "每日" } },
@@ -273,5 +273,6 @@ export struct AddHabitPage {
     .menus([
       this.saveMenuItem
     ])
+    .backgroundColor($r('app.color.background_primary'))
   }
 }

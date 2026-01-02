@@ -11,11 +11,11 @@ export struct ArchivedDDLItemCard {
 
   // 主题颜色状态 - 固定为 Undergo 风格
   @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo');
-  @State private bgColor: ResourceColor = $r('app.color.background_color_undergo');
+  @State private bgColor: ResourceColor = $r('app.color.background_secondary');
   @State private titleColor: ResourceColor = Color.Black;
   @State private noteColor: ResourceColor = Color.Gray;
   @State private timeColor: ResourceColor = Color.Gray; // 新增时间颜色
-  @State private globalBgColor: ResourceColor = $r('app.color.background_primary');
+  @State private globalBgColor: ResourceColor = $r('app.color.background_secondary');
 
   onWillApplyTheme(theme: Theme) {
     this.titleColor = theme.colors.fontPrimary;
@@ -25,7 +25,7 @@ export struct ArchivedDDLItemCard {
 
     // 强制使用 Undergo 风格
     this.indicatorColor = $r('app.color.indicator_color_undergo');
-    this.bgColor = $r('app.color.background_color_undergo');
+    this.bgColor = $r('app.color.background_secondary');
   }
 
   build() {
@@ -34,7 +34,7 @@ export struct ArchivedDDLItemCard {
       Row()
         .width('100%')
         .height('100%')
-        .backgroundColor(this.addAlpha(this.bgColor, 0.3)) // 背景底色
+        .backgroundColor(this.bgColor) // 背景底色
 
       // 2. 内容层
       Row() {

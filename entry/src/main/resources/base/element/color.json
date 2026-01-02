@@ -37,11 +37,11 @@
 
     {
       "name": "background_primary",
-      "value": "#FFFFFF"
+      "value": "#F2F3F5"
     },
     {
       "name": "background_secondary",
-      "value": "#F2F2F2"
+      "value": "#FFFFFF"
     },
     {
       "name": "background_tertiary",
@@ -49,7 +49,7 @@
     },
     {
       "name": "background_emphasize",
-      "value": "#DDDDDD"
+      "value": "#DBDBDB"
     },
 
     {
@@ -95,39 +95,15 @@
       "value": "#FF97A5C0"
     },
 
-    {
-      "name": "indicator_color_undergo",
-      "value": "#FF98ADD6"
-    },
-    {
-      "name": "indicator_color_near",
-      "value": "#D8C8A3"
-    },
-    {
-      "name": "indicator_color_passed",
-      "value": "#B8A398"
-    },
-    {
-      "name": "indicator_color_completed",
-      "value": "#A4B3B0"
-    },
+    { "name": "indicator_color_undergo", "value": "#FF86A0D2" },
+    { "name": "indicator_color_near", "value": "#FFC8AD7A" },
+    { "name": "indicator_color_passed", "value": "#FFB89A95" },
+    { "name": "indicator_color_completed", "value": "#FF8FAFA6" },
 
-    {
-      "name": "background_color_undergo",
-      "value": "#E2E2E2"
-    },
-    {
-      "name": "background_color_near",
-      "value": "#F0E5D8"
-    },
-    {
-      "name": "background_color_passed",
-      "value": "#F1E4E0"
-    },
-    {
-      "name": "background_color_completed",
-      "value": "#D4E1DD"
-    },
+    { "name": "background_color_undergo", "value": "#FFD9E0EA" },
+    { "name": "background_color_near", "value": "#FFE9E1D7" },
+    { "name": "background_color_passed", "value": "#FFE8DCDD" },
+    { "name": "background_color_completed", "value": "#FFDCE7E3" },
 
     {
       "name": "item_title_font",

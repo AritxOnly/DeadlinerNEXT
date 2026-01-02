@@ -28,20 +28,16 @@ export struct HabitCircleProgress {
   @Prop progress: number;
   // 直接定义默认颜色
   private indicatorColor: ResourceColor = $r('app.color.brand');
-  private bgColor: ResourceColor = $r('app.color.background_secondary');
+  private bgColor: ResourceColor = $r('app.color.background_emphasize');
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
-      Progress({ value: 100, total: 100, type: ProgressType.Ring })
-        .width(84)
-        .height(84)
-        .color(this.bgColor) // 背景色
-        .style({ strokeWidth: 8 })
 
       Progress({ value: this.progress * 100, total: 100, type: ProgressType.Ring })
         .width(84)
         .height(84)
         .color(this.indicatorColor)
+        .backgroundColor(this.bgColor)
         .style({ strokeWidth: 8 })
         .animation({ duration: 800, curve: Curve.Smooth })
 

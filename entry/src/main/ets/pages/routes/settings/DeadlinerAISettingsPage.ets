@@ -58,7 +58,7 @@ export struct DeadlinerAISettingsPage {
             .width('100%')
         }
         .padding(12)
-        .backgroundColor($r('sys.color.comp_background_secondary'))
+        .backgroundColor($r('app.color.background_secondary'))
         .borderRadius(24)
 
 
@@ -133,7 +133,7 @@ export struct DeadlinerAISettingsPage {
           }
         }
         .padding(12)
-        .backgroundColor($r('sys.color.comp_background_secondary'))
+        .backgroundColor($r('app.color.background_secondary'))
         .borderRadius(24)
 
         Blank()
@@ -207,5 +207,6 @@ export struct DeadlinerAISettingsPage {
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
+    .backgroundColor($r('app.color.background_primary'))
   }
 }

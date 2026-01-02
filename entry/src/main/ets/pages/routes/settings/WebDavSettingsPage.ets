@@ -117,5 +117,6 @@ export struct SettingsWebDavPage {
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
+    .backgroundColor($r('app.color.background_primary'))
   }
 }

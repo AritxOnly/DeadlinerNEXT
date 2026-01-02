@@ -387,7 +387,7 @@ export struct HabitListSection {
   // == 编辑表单 ==
   @State isEditSheetShow: boolean = false
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_tertiary')
+  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
 
   @State editingHabitId: number = -1;
   @State editingHabitName: string = '';
