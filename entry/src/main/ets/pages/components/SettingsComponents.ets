@@ -1,6 +1,8 @@
 import auth, { AuthUser } from "@hw-agconnect/auth";
 import { LengthMetrics, promptAction } from "@kit.ArkUI";
 import { LoginPanelView } from "../common/LoginPanelView";
+import { authentication } from "@kit.AccountKit";
+import { HuaweiAccountUtils } from "../../utils/account/HuaweiAccountUtils";
 
 /**
  * SettingsSection: 类似 Android 的 Surface 容器
@@ -203,70 +205,89 @@ export struct SettingsDivider {
 
 @Component
 export struct SettingsUserProfile {
-  // 监听全局登录状态，发生变化时自动刷新用户信息
   @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
   @StorageProp('userProfileRefreshTrigger') @Watch('onTriggerRefresh') refreshTrigger: number = 0;
 
-  // 控制登录半模态的显示
   @State isLoginSheetShow: boolean = false;
 
-  // 当前用户信息对象
+  // 我们不再直接依赖 currentUser 来显示，而是拆分成独立的显示变量
   @State currentUser: AuthUser | null = null;
+  @State displayNickname: string = ''; // [新增] 专门用于显示的昵称
+  @State displayAvatar: string = '';   // [新增] 专门用于显示的头像
 
   onTriggerRefresh() {
     if (this.isLoggedIn) {
-      console.info('SettingsUserProfile: Received refresh trigger, reloading user...');
       this.refreshUser();
     }
   }
 
-  // 组件加载时，如果已登录，尝试获取用户信息
   aboutToAppear(): void {
     if (this.isLoggedIn) {
       this.refreshUser();
     }
   }
 
-  // 监听器：当 isLoggedIn 变化时触发
   onLoginStatusChange() {
     if (this.isLoggedIn) {
-      // 状态变为已登录：刷新用户数据，关闭登录弹窗
       this.refreshUser();
       this.isLoginSheetShow = false;
     } else {
-      // 状态变为未登录：清空数据
       this.currentUser = null;
+      this.displayNickname = '';
+      this.displayAvatar = '';
     }
   }
 
-  // 从 AGC 获取最新用户信息
+  // [核心修改] 刷新逻辑：混合查询
   async refreshUser() {
     try {
-      this.currentUser = await auth.getCurrentUser();
+      // 1. 获取 AGC 用户 (为了拿 UID 和 Session)
+      const agcUser = await auth.getCurrentUser();
+      this.currentUser = agcUser;
+
+      if (agcUser) {
+        // 先用 AGC 的数据垫底 (此时可能是乱码)
+        this.displayNickname = agcUser.getDisplayName();
+        this.displayAvatar = agcUser.getPhotoUrl();
+
+        const ctx = this.getUIContext().getHostContext();
+
+        if (!ctx) return;
+
+        try {
+          const sysProfile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx);
+          if (sysProfile.nickname) {
+            console.info(`[Fix] Overwriting AGC nickname with System nickname: ${sysProfile.nickname}`);
+            this.displayNickname = sysProfile.nickname;
+          }
+          if (sysProfile.avatar) {
+            this.displayAvatar = sysProfile.avatar;
+          }
+        } catch (sysErr) {
+          console.warn('System profile check failed, using AGC cache.');
+        }
+      }
     } catch (e) {
       console.error(`User profile refresh failed: ${e.message}`);
       this.currentUser = null;
     }
   }
 
-  // 点击卡片的主逻辑
   handleCardClick() {
     if (this.isLoggedIn && this.currentUser) {
-      // 已登录 -> 触发登出
       this.showLogoutDialog();
     } else {
-      // 未登录 -> 打开登录面板
       this.isLoginSheetShow = true;
     }
   }
 
-  // 登出弹窗
   private showLogoutDialog() {
     AlertDialog.show({
       title: '退出登录',
-      message: '确定要退出当前账号吗？退出后将无法使用云同步及 AI 相关功能。',
+      message: '确定要退出当前账号吗？',
       primaryButton: {
         value: '取消',
+        fontColor: $r('app.color.brand'),
         action: () => {}
       },
       secondaryButton: {
@@ -275,19 +296,19 @@ export struct SettingsUserProfile {
         action: async () => {
           try {
             await auth.signOut();
-            // 更新全局状态，这会触发 onLoginStatusChange 清理数据
             AppStorage.setOrCreate('isLoggedIn', false);
             promptAction.showToast({ message: '已退出登录' });
           } catch (e) {
-            const err = e as BusinessError;
-            promptAction.showToast({ message: `退出失败: ${err.message}` });
+            promptAction.showToast({ message: '退出失败' });
           }
         }
-      }
+      },
+      alignment: DialogAlignment.Bottom,
+      offset: { dx: 0, dy: -20 },
+      backgroundBlurStyle: BlurStyle.Regular,
     })
   }
 
-  // 登录面板 Builder
   @Builder
   loginSheetBuilder() {
     LoginPanelView()
@@ -295,31 +316,28 @@ export struct SettingsUserProfile {
 
   build() {
     Row() {
-      // 1. 头像区域 (核心修改)
-      // 使用条件渲染，强制组件销毁重建，解决缓存和样式切换问题
-      if (this.currentUser && this.currentUser.getPhotoUrl()) {
-        // A. 显示网络头像
-        Image(this.currentUser.getPhotoUrl())
+      // 1. 头像区域：使用 displayAvatar
+      if (this.displayAvatar) {
+        Image(this.displayAvatar)
           .width(56)
           .height(56)
           .borderRadius(28)
           .objectFit(ImageFit.Cover)
           .backgroundColor(Color.Transparent)
       } else {
-        // B. 显示默认系统图标
         Image($r('sys.symbol.person_crop_circle_fill_1'))
           .width(56)
           .height(56)
           .borderRadius(28)
           .objectFit(ImageFit.Cover)
-          // 系统 Symbol 需要填充颜色才能看清
           .fillColor($r('sys.color.ohos_id_color_text_secondary'))
           .backgroundColor($r('sys.color.ohos_id_color_foreground_contrary'))
       }
 
       // 2. 文本信息区域
       Column({ space: 4 }) {
-        Text(this.currentUser?.getDisplayName() || (this.isLoggedIn ? '华为用户' : '未登录'))
+        // 昵称：使用 displayNickname
+        Text(this.displayNickname || (this.isLoggedIn ? '华为用户' : '未登录'))
           .fontSize(18)
           .fontWeight(FontWeight.Bold)
           .fontColor($r('sys.color.ohos_id_color_text_primary'))
@@ -335,7 +353,7 @@ export struct SettingsUserProfile {
       .alignItems(HorizontalAlign.Start)
       .justifyContent(FlexAlign.Center)
       .margin({ left: 16 })
-      .layoutWeight(1) // 占满中间空间
+      .layoutWeight(1)
     }
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 12, right: 12 })

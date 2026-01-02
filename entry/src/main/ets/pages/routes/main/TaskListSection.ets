@@ -336,23 +336,43 @@ export struct TaskListSection {
   // [新增] 批量逻辑：归档
   private async handleBatchArchive() {
     if (this.selectedIds.length === 0) return;
+
     try {
       const allItems = await this.repo.getAllDDLs();
       const targets = allItems.filter(item => this.selectedIds.includes(item.id));
 
+      // 1. 筛选出符合归档条件的项，并统计跳过的项
+      const itemsToArchive: DDLItem[] = [];
+      let skippedCount = 0;
+
       targets.forEach(item => {
-        if (item.isCompleted) item.isArchived = true;
+        if (item.isCompleted) {
+          item.isArchived = true;
+          itemsToArchive.push(item);
+        } else {
+          skippedCount++;
+        }
       });
 
-      for (const item of targets) {
-        await this.repo.updateDDL(item);
+      // 2. 仅更新真正发生变化的数据 (使用 Promise.all 并行执行以提高性能)
+      const updatePromises = itemsToArchive.map(item => this.repo.updateDDL(item));
+      await Promise.all(updatePromises);
+
+      // 3. 根据结果构建提示信息
+      let message = `已归档 ${itemsToArchive.length} 项任务`;
+
+      //如果有未完成的任务被跳过，追加提示
+      if (skippedCount > 0) {
+        message += `，${skippedCount} 项因未完成无法归档`;
       }
 
-      promptAction.showToast({ message: `已归档 ${targets.length} 项任务` });
+      promptAction.showToast({ message: message });
+
       this.exitSelectionMode();
       await this.loadData();
     } catch (e) {
       console.error('Batch archive failed:', e);
+      promptAction.showToast({ message: '批量归档失败' });
     }
   }
 
