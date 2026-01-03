@@ -148,7 +148,7 @@ export struct MainHomePage {
     buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-    buttonPadding: 8
+    buttonPadding: 10
   })
 
   updateTabOptions() {
@@ -159,26 +159,8 @@ export struct MainHomePage {
       ] as ItemRestriction<SegmentButtonTextItem>,
       backgroundBlurStyle: BlurStyle.NONE,
       selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-      buttonPadding: 8
+      buttonPadding: 10
     });
-  }
-
-  @Builder tabSegment() {
-    Column() {
-      SegmentButton({
-        options: this.tabOptions,
-        selectedIndexes: $selectedIndexes,
-        maxFontScale: 2
-      })
-        .width('100%')
-        .height('100%')
-    }
-    .width('100%')
-    .height('100%')
-    .padding({
-      start: LengthMetrics.vp(16), end: LengthMetrics.vp(16),
-    })
-    .justifyContent(FlexAlign.Center)
   }
 
   @Builder topSegment() {
@@ -212,7 +194,8 @@ export struct MainHomePage {
         })
           .width('50%')
           .height(this.SEGMENT_HEIGHT)
-          .padding({ top: 6 })
+          .align(Alignment.Center)
+          // .padding({ top: 6 })
       }
       .justifyContent(FlexAlign.Center)
       .hitTestBehavior(HitTestMode.None) // 避免容器拦截，具体视 SegmentButton 实现而定

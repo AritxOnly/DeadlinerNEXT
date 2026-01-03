@@ -48,7 +48,7 @@ export struct TrendAnalysisSection {
   @Link weeklyStats: WeeklyStat[];
 
   build() {
-    Column({ space: 16 }) {
+    Column({ space: 8 }) {
       // 1. 每日完成情况 (柱状图)
       DailyCompletedCard({ dailyStats: $dailyStats })
 

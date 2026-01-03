@@ -221,6 +221,17 @@ export struct UserPage {
             })
           }
 
+          SettingsSection() {
+            SettingsItem({
+              title: "开发人员模式",
+              subtitle: "Developer Options",
+              icon: $r('sys.symbol.code'),
+              onItemClick: () => {
+                this.appPathStack.pushPath({ name: 'devMode' });
+              }
+            })
+          }
+
           // 底部留白
           Blank().height(50)
         }

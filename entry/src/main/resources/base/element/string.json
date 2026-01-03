@@ -127,6 +127,10 @@
     {
       "name": "toast_deletion",
       "value": "已删除Deadline❌"
+    },
+    {
+      "name": "publish_reminder_reason",
+      "value": "Deadliner 使用该权限为用户推送任务通知"
     }
   ]
 }

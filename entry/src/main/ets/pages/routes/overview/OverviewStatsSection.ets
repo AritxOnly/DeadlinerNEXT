@@ -55,7 +55,7 @@ export struct OverviewStatsSection {
   @ObjectLink overdueItems: DDLItem[];
 
   build() {
-    Column({ space: 16 }) {
+    Column({ space: 8 }) {
       ActiveStatsCard({
         completed: this.todayCompleted,
         todo: this.todayTodo,

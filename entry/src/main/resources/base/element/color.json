@@ -100,10 +100,10 @@
     { "name": "indicator_color_passed", "value": "#FFB89A95" },
     { "name": "indicator_color_completed", "value": "#FF8FAFA6" },
 
-    { "name": "background_color_undergo", "value": "#FFD9E0EA" },
-    { "name": "background_color_near", "value": "#FFE9E1D7" },
-    { "name": "background_color_passed", "value": "#FFE8DCDD" },
-    { "name": "background_color_completed", "value": "#FFDCE7E3" },
+    { "name": "background_color_undergo", "value": "#FFBFCADF" },
+    { "name": "background_color_near", "value": "#FFC7B49B" },
+    { "name": "background_color_passed", "value": "#FFC9B4B5" },
+    { "name": "background_color_completed", "value": "#FFB7C9C3" },
 
     {
       "name": "item_title_font",

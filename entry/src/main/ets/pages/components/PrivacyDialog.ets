@@ -30,7 +30,7 @@ export struct PrivacyDialog {
 
       // 富文本内容
       Text() {
-        Span('欢迎使用 Deadliner！\n\n在使用本应用前，请您务必认真阅读并充分理解')
+        Span('欢迎使用 Deadliner待办日历！\n\n在使用本应用前，请您务必认真阅读并充分理解')
           .fontSize(16)
           .fontColor($r('app.color.font_primary'))
 

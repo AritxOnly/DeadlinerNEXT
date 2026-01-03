@@ -39,6 +39,14 @@
       "data": {
         "description": "WebView"
       }
+    },
+    {
+      "name": "devMode",
+      "pageSourceFile": "src/main/ets/pages/routes/settings/DevOptionsPage.ets",
+      "buildFunction": "DevOptionsBuilder",
+      "data": {
+        "description": "Dev Options"
+      }
     }
   ]
 }

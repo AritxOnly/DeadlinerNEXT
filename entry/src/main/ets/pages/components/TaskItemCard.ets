@@ -132,7 +132,7 @@ export struct DDLItemCardSimplified {
   onWillApplyTheme(theme: Theme) {
     this.titleColor = theme.colors.fontPrimary;
     this.noteColor = theme.colors.fontSecondary;
-    this.globalBgColor = theme.colors.backgroundPrimary
+    this.globalBgColor = theme.colors.backgroundSecondary
 
     // 根据 Status 映射颜色
     if (this.status === DDLStatus.UNDERGO) {

@@ -17,7 +17,7 @@ import { TrendAnalysisSection } from "./TrendAnalysisSection";
 export struct OverviewPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
-  readonly SEGMENT_HEIGHT: number = 44;
+  readonly SEGMENT_HEIGHT: number = 48;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   // --- 状态控制 ---
@@ -50,7 +50,7 @@ export struct OverviewPage {
     ] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-    buttonPadding: 8
+    buttonPadding: 10
   })
 
   aboutToAppear(): void {

@@ -370,3 +370,21 @@ export struct SettingsUserProfile {
     })
   }
 }
+
+@Component
+export struct SubSettingsSwitch {
+  @State isOn: boolean = false
+  onChange: (isOn: boolean) => void = () => {}
+  @State text: string = ''
+
+  build() {
+    Row() {
+      Text(this.text).fontSize(16).fontWeight(FontWeight.Medium)
+      Blank()
+      Toggle({ type: ToggleType.Switch, isOn: this.isOn })
+        .onChange(this.onChange)
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+  }
+}
