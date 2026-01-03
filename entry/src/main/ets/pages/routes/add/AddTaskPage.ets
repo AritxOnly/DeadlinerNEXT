@@ -1,6 +1,8 @@
 import { promptAction } from '@kit.ArkUI';
 import { TaskRepository } from '../../../common/repository/TaskRepository';
 import { DeadlineType } from '../../../model/DDLModels';
+import { DateTimeUtils } from '../../../utils/DateTimeUtils';
+import { DateTimePicker } from '../../components/DateTimePicker';
 import { TimeInputButton } from '../../components/TimeInputButton';
 
 // 统一的样式常量
@@ -41,73 +43,18 @@ export struct AddTaskPage {
   }
 
   private showTimePicker(isStart: boolean) {
-    DatePickerDialog.show({
-      start: new Date("2000-1-1"),
-      end: new Date("2100-12-31"),
+    DateTimePicker.show(this.getUIContext(), {
+      // 传入当前时间
       selected: isStart ? this.startTime : this.endTime,
-      onAccept: (value: DatePickerResult) => {
-        const selectedDate = new Date(value.year!, value.month!, value.day!);
-        TimePickerDialog.show({
-          selected: isStart ? this.startTime : this.endTime,
-          useMilitaryTime: true,
-          onAccept: (timeValue: TimePickerResult) => {
-            selectedDate.setHours(timeValue.hour, timeValue.minute);
-            if (isStart) {
-              this.startTime = selectedDate;
-            } else {
-              this.endTime = selectedDate;
-            }
-          },
-          backgroundBlurStyle: BlurStyle.Regular,
-          selectedTextStyle: {
-            color: $r('app.color.brand')
-          },
-          acceptButtonStyle: {
-            fontColor: $r('app.color.brand')
-          },
-          cancelButtonStyle: {
-            fontColor: $r('app.color.brand')
-          }
-        })
-      },
-      backgroundBlurStyle: BlurStyle.Regular,
-      selectedTextStyle: {
-        color: $r('app.color.brand')
-      },
-      acceptButtonStyle: {
-        fontColor: $r('app.color.brand')
-      },
-      cancelButtonStyle: {
-        fontColor: $r('app.color.brand')
-      }
-    })
-  }
-
-  private parseDateString(dateStr: string): Date | null {
-    if (!dateStr) return null;
-    try {
-      // 兼容 "2023-12-01 12:00" 这种格式
-      // 替换空格为 T，并补全秒，变成标准 ISO 格式尝试解析
-      const isoStr = dateStr.replace(' ', 'T') + ':00';
-      const date = new Date(isoStr);
-      if (isNaN(date.getTime())) {
-        // 如果失败，尝试手动解析
-        const parts = dateStr.split(/[- :]/);
-        if (parts.length >= 5) {
-          return new Date(
-            parseInt(parts[0]),
-            parseInt(parts[1]) - 1, // 月份从0开始
-            parseInt(parts[2]),
-            parseInt(parts[3]),
-            parseInt(parts[4])
-          );
+      // 接收回调
+      onAccept: (newDate: Date) => {
+        if (isStart) {
+          this.startTime = newDate;
+        } else {
+          this.endTime = newDate;
         }
-        return null;
       }
-      return date;
-    } catch (e) {
-      return null;
-    }
+    });
   }
 
   private async saveTask() {
@@ -117,16 +64,10 @@ export struct AddTaskPage {
     }
 
     try {
-      const toLocalISO = (d: Date) => {
-        const offset = d.getTimezoneOffset() * 60000;
-        const local = new Date(d.getTime() - offset);
-        return local.toISOString().slice(0, 19);
-      };
-
       await TaskRepository.getInstance().insertDDL({
         name: this.name,
-        startTime: toLocalISO(this.startTime),
-        endTime: toLocalISO(this.endTime),
+        startTime: DateTimeUtils.toLocalISOString(this.startTime),
+        endTime: DateTimeUtils.toLocalISOString(this.endTime),
         note: this.note,
         isCompleted: false,
         completeTime: "",
@@ -218,7 +159,7 @@ export struct AddTaskPage {
 
         // 处理时间
         if (param.dueTime) {
-          const parsedDate = this.parseDateString(param.dueTime);
+          const parsedDate = DateTimeUtils.parseDateString(param.dueTime);
           if (parsedDate) {
             this.endTime = parsedDate;
             // 智能设定开始时间：如果截止时间很近，开始时间设为现在；否则设为截止前1小时

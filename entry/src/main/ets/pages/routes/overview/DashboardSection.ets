@@ -1,6 +1,7 @@
 import { DDLItem } from "../../../model/DDLModels";
 import { Metric, generateDashboardMetrics } from "../../../utils/OverviewUtils";
 import { LengthMetrics } from '@kit.ArkUI';
+import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 
 @Component
 export struct DashboardSection {
@@ -24,6 +25,7 @@ export struct DashboardSection {
       DashboardHeader()
         .width('100%')
         .padding({ left: 16, right: 16, top: 16 })
+        .attributeModifier(new FloatUpModifier(0))
 
       WaterFlow() {
         ForEach(this.metrics, (item: Metric, index: number) => {
@@ -31,6 +33,7 @@ export struct DashboardSection {
             MetricCard({ metric: item })
           }
           .width('100%') // 在两列模式下，这会让它填充列宽
+          .attributeModifier(new FloatUpModifier(index + 1, 20))
         })
       }
       .columnsTemplate("1fr 1fr") // 两列布局

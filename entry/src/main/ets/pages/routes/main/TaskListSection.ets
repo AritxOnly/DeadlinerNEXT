@@ -9,6 +9,9 @@ import { TaskListController } from "./TaskListController"
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { TimeInputButton } from "../../components/TimeInputButton";
 import { SettingsConstants as C } from "../../../common/local/SettingsConstants"
+import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
+import { DateTimeUtils } from "../../../utils/DateTimeUtils";
+import { DateTimePicker } from "../../components/DateTimePicker";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -78,7 +81,10 @@ export struct TaskListSection {
     this.controller.requestBatchDelete = (): void => this.handleBatchDelete();
     this.controller.requestBatchEdit = (): Promise<void> => this.handleBatchEdit();
     this.controller.requestExitSelection = (): void => this.exitSelectionMode();
+    this.controller.loadData = (): Promise<void> => this.loadData();
   }
+
+  @State isFirstLoad: boolean = true;
 
   // 加载数据：过滤 + 排序 + 映射
   async loadData() {
@@ -106,7 +112,6 @@ export struct TaskListSection {
           return timeA - timeB;
         });
 
-      // 3. 映射为 UI 模型
       this.taskList = processedItems.map((item) => {
         return this.mapToUI(item, now);
       });
@@ -118,6 +123,12 @@ export struct TaskListSection {
       // 无论成功失败，都要关闭刷新动画
       this.isRefreshing = false;
       this.isLoading = false;
+
+      if (this.isFirstLoad) {
+        setTimeout(() => {
+          this.isFirstLoad = false;
+        }, 750)
+      }
     }
   }
 
@@ -450,17 +461,10 @@ export struct TaskListSection {
     }
 
     try {
-      // 🔥 ISO 时间转换逻辑 (复用自 AddTaskPage)
-      const toLocalISO = (d: Date) => {
-        const offset = d.getTimezoneOffset() * 60000;
-        const local = new Date(d.getTime() - offset);
-        return local.toISOString().slice(0, 19);
-      };
-
       this.editingTask.name = this.editingTitle;
       this.editingTask.note = this.editingNote;
-      this.editingTask.startTime = toLocalISO(this.editingStartTime);
-      this.editingTask.endTime = toLocalISO(this.editingEndTime);
+      this.editingTask.startTime = DateTimeUtils.toLocalISOString(this.editingStartTime);
+      this.editingTask.endTime = DateTimeUtils.toLocalISOString(this.editingEndTime);
 
       await this.repo.updateDDL(this.editingTask);
 
@@ -474,52 +478,19 @@ export struct TaskListSection {
     }
   }
 
-  private formatTime(date: Date): string {
-    const pad = (n: number) => n.toString().padStart(2, '0');
-    return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())} ${pad(date.getHours())}:${pad(date.getMinutes())}`;
-  }
-
   private showTimePicker(isStart: boolean) {
-    DatePickerDialog.show({
-      start: new Date("2000-1-1"),
-      end: new Date("2100-12-31"),
+    DateTimePicker.show(this.getUIContext(), {
+      // 传入当前时间
       selected: isStart ? this.editingStartTime : this.editingEndTime,
-      onAccept: (value: DatePickerResult) => {
-        const selectedDate = new Date(value.year!, value.month!, value.day!);
-        TimePickerDialog.show({
-          selected: isStart ? this.editingStartTime : this.editingEndTime,
-          useMilitaryTime: true,
-          onAccept: (timeValue: TimePickerResult) => {
-            selectedDate.setHours(timeValue.hour, timeValue.minute);
-            if (isStart) {
-              this.editingStartTime = selectedDate;
-            } else {
-              this.editingEndTime = selectedDate;
-            }
-          },
-          backgroundBlurStyle: BlurStyle.Regular,
-          selectedTextStyle: {
-            color: $r('app.color.brand')
-          },
-          acceptButtonStyle: {
-            fontColor: $r('app.color.brand')
-          },
-          cancelButtonStyle: {
-            fontColor: $r('app.color.brand')
-          }
-        })
-      },
-      backgroundBlurStyle: BlurStyle.Regular,
-      selectedTextStyle: {
-        color: $r('app.color.brand')
-      },
-      acceptButtonStyle: {
-        fontColor: $r('app.color.brand')
-      },
-      cancelButtonStyle: {
-        fontColor: $r('app.color.brand')
+      // 接收回调
+      onAccept: (newDate: Date) => {
+        if (isStart) {
+          this.editingStartTime = newDate;
+        } else {
+          this.editingEndTime = newDate;
+        }
       }
-    })
+    });
   }
 
   @Builder
@@ -542,14 +513,14 @@ export struct TaskListSection {
         // 开始时间
         TimeInputButton({
           title: '开始时间',
-          content: this.formatTime(this.editingStartTime),
+          content: DateTimeUtils.formatForUI(this.editingStartTime),
           onClickButton: (): void => this.showTimePicker(true)
         })
 
         // 结束时间
         TimeInputButton({
           title: '结束',
-          content: this.formatTime(this.editingEndTime),
+          content: DateTimeUtils.formatForUI(this.editingEndTime),
           onClickButton: (): void => this.showTimePicker(false)
         })
 
@@ -597,7 +568,7 @@ export struct TaskListSection {
                 space: 8,
                 scroller: this.scroller,
               }) {
-                ForEach(this.taskList, (item: TaskUIModel) => {
+                ForEach(this.taskList, (item: TaskUIModel, index: number) => {
                   ListItem() {
                     DDLItemCardSwipeable({
                       title: item.title,
@@ -626,6 +597,7 @@ export struct TaskListSection {
                       }
                     })
                   }
+                  .attributeModifier(new FloatUpModifier(index, 15, this.isFirstLoad))
                 }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
 
                 ListItem() {

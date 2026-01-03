@@ -68,6 +68,19 @@ export struct MainHomePage {
 
   @State confettiController: ConfettiController = new ConfettiController();
 
+  @Prop @Watch('onTabSwitch') currentTabIndex: number = 0;
+
+  readonly TARGET_INDEX: number = 0;
+
+  onTabSwitch() {
+    if (this.currentTabIndex === this.TARGET_INDEX) {
+      this.taskController.loadData();
+      this.selectedIndexes[0] = MainTabIndex.TASKS;
+      this.currentIndex = MainTabIndex.TASKS;
+    } else {
+    }
+  }
+
   // 定义常量：SegmentButton 区域的高度 (标准高度 + 上下padding)
   readonly SEGMENT_HEIGHT: number = 48;
 

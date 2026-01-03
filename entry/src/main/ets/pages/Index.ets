@@ -7,6 +7,7 @@ import { OverviewPage } from './routes/overview/OverviewPage';
 import { UserPage } from './routes/user/UserPage';
 import { common } from '@kit.AbilityKit';
 import { WebParams } from './common/WebBrowserPage';
+import { TabAnimModifier } from '../utils/animation/TabAnimModifier';
 
 interface TabData {
   title: string,
@@ -148,26 +149,44 @@ struct Index {
       }) {
         // --- Tab 1: 主页 ---
         TabContent() {
-          MainHomePage()
+          MainHomePage({ currentTabIndex: this.currentIndex })
             .width("100%")
             .height("100%")
+            .attributeModifier(new TabAnimModifier(0, this.currentIndex))
+            .animation({
+              duration: 300, // 保持与 Tabs 动画时长一致
+              curve: Curve.EaseInOut
+            })
         }
         .tabBar(this.getTabBarStyle(this.tabs[0]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+        .backgroundColor($r('app.color.background_primary'))
 
         // --- Tab 2: 概览 ---
         TabContent() {
           OverviewPage({ currentTabIndex: this.currentIndex })
+            .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+            .animation({
+              duration: 300, // 保持与 Tabs 动画时长一致
+              curve: Curve.EaseInOut
+            })
         }
         .tabBar(this.getTabBarStyle(this.tabs[1]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+        .backgroundColor($r('app.color.background_primary'))
 
         // --- Tab 3: 我的 ---
         TabContent() {
           UserPage()
+            .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+            .animation({
+              duration: 300, // 保持与 Tabs 动画时长一致
+              curve: Curve.EaseInOut
+            })
         }
         .tabBar(this.getTabBarStyle(this.tabs[2]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+        .backgroundColor($r('app.color.background_primary'))
       }
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .barMode(BarMode.Fixed) // 固定布局

@@ -166,15 +166,15 @@ export struct DDLItemCardSimplified {
             .linearGradient({
               direction: GradientDirection.Right,
               colors: [
-                [this.addAlpha(this.indicatorColor, 0.4), 1.0],
-                [this.addAlpha(this.indicatorColor, 0.6), 0.0]
+                [this.addAlpha(this.indicatorColor, 0.5), 0.0],
+                [this.addAlpha(this.indicatorColor, 0.8), 1.0]
               ]
             })
         }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.addAlpha(this.bgColor, 0.3)) // 背景底色
+      .backgroundColor(this.addAlpha(this.bgColor, 0.45)) // 背景底色
 
       // 2. 内容层
       Column() {

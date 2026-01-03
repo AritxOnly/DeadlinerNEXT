@@ -62,12 +62,11 @@ export struct OverviewPage {
   readonly TARGET_INDEX: number = 1;
 
   onTabSwitch() {
-    // 只有当切换到的目标索引 == 本页面的索引时，才刷新数据
     if (this.currentTabIndex === this.TARGET_INDEX) {
       console.debug('[OverviewPage] Tab switched to Overview. Reloading data...');
       this.loadData();
+      this.selectedIndexes[0] = 0;
     } else {
-      // 如果切走了（currentTabIndex !== 1），什么都不做
     }
   }
 

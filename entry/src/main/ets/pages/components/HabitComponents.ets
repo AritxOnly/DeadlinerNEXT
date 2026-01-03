@@ -33,18 +33,27 @@ export struct HabitCircleProgress {
   build() {
     Stack({ alignContent: Alignment.Center }) {
 
-      Progress({ value: this.progress * 100, total: 100, type: ProgressType.Ring })
+      Progress({ value: this.progress * 100, total: 100, type: ProgressType.Eclipse })
         .width(84)
         .height(84)
-        .color(this.indicatorColor)
-        .backgroundColor(this.bgColor)
-        .style({ strokeWidth: 8 })
+        .color(this.addAlpha(this.indicatorColor, 0.5))
+        // .backgroundColor(this.bgColor)
+        // .style({ strokeWidth: 8 })
         .animation({ duration: 800, curve: Curve.Smooth })
 
       Text(`${(this.progress * 100).toFixed(0)}%`)
         .fontSize(20)
         .fontWeight(FontWeight.Bold)
         .fontColor($r('app.color.font_primary'))
+    }
+  }
+
+  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
+    try {
+      let context = this.getUIContext().getHostContext();
+      return ColorUtils.addAlpha(color, alpha, context);
+    } catch (e) {
+      return color;
     }
   }
 }
@@ -57,7 +66,7 @@ export struct WeekRow {
 
   // 颜色资源
   private primaryColor: ResourceColor = $r('app.color.brand');
-  private bgColor: ResourceColor = $r('app.color.background_emphasize');
+  private bgColor: ResourceColor = this.addAlpha(this.primaryColor, 0.3);
   private secondaryColor: ResourceColor = $r('app.color.font_secondary')
   private surfaceVariant: ResourceColor = $r('app.color.background_primary');
 
@@ -114,6 +123,16 @@ export struct WeekRow {
     .height(80)
     .alignListItem(ListItemAlign.Center)
     .scrollBar(BarState.Off)
+  }
+
+
+  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
+    try {
+      let context = this.getUIContext().getHostContext();
+      return ColorUtils.addAlpha(color, alpha, context);
+    } catch (e) {
+      return color;
+    }
   }
 }
 
@@ -240,7 +259,7 @@ export struct HabitRow {
         Rect()
           .width('100%')
           .height('100%')
-          .fill(this.addAlpha(this.getBackgroundColor(), 0.3))
+          .fill(this.addAlpha(this.getBackgroundColor(), 0.45))
 
         // 进度条前景
         if (this.getProgress() > 0) {
@@ -250,8 +269,8 @@ export struct HabitRow {
             .linearGradient({
               direction: GradientDirection.Right,
               colors: [
-                [this.addAlpha(this.getIndicatorColor(), 0.4), 1.0],
-                [this.addAlpha(this.getIndicatorColor(), 0.6), 0.0]
+                [this.addAlpha(this.getIndicatorColor(), 0.5), 0.0],
+                [this.addAlpha(this.getIndicatorColor(), 0.8), 1.0]
               ]
             })
             .animation({ duration: 800, curve: Curve.Smooth })

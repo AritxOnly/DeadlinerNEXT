@@ -28,6 +28,7 @@ import {
 import { ColorUtils } from '../../../utils/ColorUtils';
 import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
 import { CustomMarkerView } from './utils/CustomMarkerView';
+import { FloatUpModifier } from '../../../utils/animation/FloatUpModifier';
 
 function getHexColorSync(context: Context, resource: Resource): string {
   try {
@@ -51,12 +52,15 @@ export struct TrendAnalysisSection {
     Column({ space: 8 }) {
       // 1. 每日完成情况 (柱状图)
       DailyCompletedCard({ dailyStats: $dailyStats })
+        .attributeModifier(new FloatUpModifier(0))
 
       // 2. 每月趋势 (折线图)
       MonthlyTrendCard({ monthlyStats: $monthlyStats })
+        .attributeModifier(new FloatUpModifier(1))
 
       // 3. 过去几周 (柱状图)
       PrevWeeksCard({ weeklyStats: $weeklyStats })
+        .attributeModifier(new FloatUpModifier(2))
 
       // 底部留白
       Blank().height(40)

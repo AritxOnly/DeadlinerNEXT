@@ -6,4 +6,5 @@ export class HabitListController implements DDLListController {
   requestBatchDelete: () => void = () => {};
   requestBatchEdit: () => void = () => {};
   requestExitSelection: () => void = () => {};
+  loadData: () => void = () => {};
 }

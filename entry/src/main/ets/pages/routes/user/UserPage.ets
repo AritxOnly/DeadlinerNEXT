@@ -8,6 +8,7 @@ import { LocalValues } from "../../../common/local/LocalValues";
 import { WebParams } from "../../common/WebBrowserPage";
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants';
 import { HuaweiAccountUtils } from "../../../utils/account/HuaweiAccountUtils";
+import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 
 @Component
 export struct UserPage {

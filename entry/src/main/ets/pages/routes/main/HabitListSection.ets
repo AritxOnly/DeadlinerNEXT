@@ -6,6 +6,7 @@ import { HabitListController } from "./HabitListController";
 import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.ArkUI'
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
+import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -59,9 +60,10 @@ export struct HabitListSection {
     this.controller.requestBatchDelete = (): Promise<void> => this.handleBatchDelete();
     this.controller.requestBatchEdit = (): void => this.handleBatchEdit();
     this.controller.requestExitSelection = (): void => this.exitSelectionMode();
+    this.controller.loadData = (): Promise<void> => this.refreshAll(this.selectedDate);
   }
 
-  // —— 3. 业务逻辑 ——
+  @State isFirstLoad: boolean = true;
 
   async refreshAll(date: Date) {
     const allHabitsRaw = await this.repo.getAllHabits();
@@ -74,6 +76,12 @@ export struct HabitListSection {
 
     // 计算周视图
     this.calculateWeekOverview(date, allHabits);
+
+    if (this.isFirstLoad) {
+      setTimeout(() => {
+        this.isFirstLoad = false;
+      }, 750)
+    }
   }
 
   private async buildStatusForDate(habit: Habit, date: Date): Promise<HabitWithDailyStatus> {
@@ -645,6 +653,7 @@ export struct HabitListSection {
           HabitCircleProgress({ progress: this.getTodayCompletionRatio() })
             .margin({ top: 12, bottom: 12 })
             .align(Alignment.Center)
+            .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
 
           // 2. 本周日期横条 (使用新组件)
           WeekRow({
@@ -654,12 +663,13 @@ export struct HabitListSection {
           })
             .margin({ bottom: 8 })
             .align(Alignment.Center)
+            .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
 
           Refresh({
             refreshing: $$this.isRefreshing
           }) {
             List({ scroller: this.scroller, space: 10 }) {
-              ForEach(this.displayHabits, (item: HabitWithDailyStatus) => {
+              ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
                 ListItem() {
                   // 使用新组件 HabitRow
                   HabitRow({
@@ -672,6 +682,7 @@ export struct HabitListSection {
                     onLongPress: (): void => this.onLongPress(item.habit.ddlId)
                   })
                 }
+                .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
               }, (item: HabitWithDailyStatus) => {
                 return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
               })

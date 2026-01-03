@@ -23,6 +23,7 @@ import { BarData, BarDataSet, BarEntry,
 import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
 import { ColorUtils } from '../../../utils/ColorUtils';
 import { CustomMarkerView } from './utils/CustomMarkerView';
+import { FloatUpModifier } from '../../../utils/animation/FloatUpModifier';
 
 // --- 颜色转换辅助函数 (保持不变) ---
 function getHexColorSync(context: Context, resource: Resource): string {
@@ -61,10 +62,13 @@ export struct OverviewStatsSection {
         todo: this.todayTodo,
         overdue: this.todayOverdue
       })
+        .attributeModifier(new FloatUpModifier(0))
 
       CompletionTimeCard({ completionTimeStats: $completionTimeStats })
+        .attributeModifier(new FloatUpModifier(1))
 
       HistoryStatsCard({ historyStats: $historyStats })
+        .attributeModifier(new FloatUpModifier(2))
 
       Blank().height(40)
     }
