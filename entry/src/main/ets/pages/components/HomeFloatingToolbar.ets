@@ -1,4 +1,5 @@
 import { HdsActionBar, ActionBarButton, ActionBarStyle, BlurStrategy } from '@kit.UIDesignKit'
+import { ColorMetrics } from '@kit.ArkUI'
 
 @Component
 export struct HomeFloatingToolbar {
@@ -27,6 +28,7 @@ export struct HomeFloatingToolbar {
       primaryButton: new ActionBarButton({
         baseIcon: $r('sys.symbol.plus'),
         altIcon: $r('sys.symbol.xmark'),
+        backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
         onClick: () => { this.onClickAdd() }
       }),
       endButtons: [

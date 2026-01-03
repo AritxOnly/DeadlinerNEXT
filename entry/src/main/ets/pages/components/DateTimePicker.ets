@@ -1,26 +1,21 @@
 import { ComponentContent, promptAction } from '@kit.ArkUI';
 
-// 1. 定义参数接口
 class DateTimeDialogParams {
   selectedDate: Date = new Date();
   onAccept: (date: Date) => void = () => {};
   close: () => void = () => {};
 }
 
-// 2. 核心组件：处理状态联动
 @Component
 struct DateTimeContent {
-  // 接收初始参数
-  @Prop initialDate: Date = new Date();
-  onAccept: (date: Date) => void = () => {};
-  close: () => void = () => {};
+  params: DateTimeDialogParams = new DateTimeDialogParams();
 
   // 内部状态，用于驱动标题和选择器联动
   @State currentDate: Date = new Date();
 
   aboutToAppear() {
     // 初始化内部状态
-    this.currentDate = new Date(this.initialDate);
+    this.currentDate = new Date(this.params.selectedDate);
   }
 
   // 辅助方法：获取格式化的日期标题
@@ -36,8 +31,8 @@ struct DateTimeContent {
       Row() {
         Text(this.getTitle(this.currentDate)) // 绑定 @State
           .fontSize(18) // 稍微调小一点点看起来更精致
-          .fontWeight(FontWeight.Bold)
-          .fontColor(Color.Black)
+          .fontWeight(FontWeight.Medium)
+          // .fontColor(Color.Black)
       }
       .width('100%')
       .justifyContent(FlexAlign.Center) // 居中对齐
@@ -61,15 +56,14 @@ struct DateTimeContent {
           })
           .layoutWeight(3)
           .height(220)
-          // 🔥 修改点1：选中项颜色改为 Brand 颜色
           .selectedTextStyle({
-            color: $r('app.color.brand'),
+            color: $r('app.color.accent'),
             font: { weight: FontWeight.Medium, size: 18 }
           })
 
         // 右侧：时间选择器
         TimePicker({
-          selected: this.currentDate // 绑定状态
+          selected: this.currentDate
         })
           .useMilitaryTime(true)
           .onChange((value: TimePickerResult) => {
@@ -79,9 +73,8 @@ struct DateTimeContent {
           })
           .layoutWeight(2)
           .height(220)
-          // 🔥 修改点1：选中项颜色改为 Brand 颜色
           .selectedTextStyle({
-            color: $r('app.color.brand'),
+            color: $r('app.color.accent'),
             font: { weight: FontWeight.Medium, size: 18 }
           })
       }
@@ -92,9 +85,9 @@ struct DateTimeContent {
       Row() {
         Button("取消")
           .backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.brand')) // 按钮也保持 Brand 颜色
+          .fontColor($r('app.color.accent')) // 按钮也保持 accent 颜色
           .onClick(() => {
-            this.close();
+            this.params.close();
           })
           .layoutWeight(1)
 
@@ -102,10 +95,10 @@ struct DateTimeContent {
 
         Button("确定")
           .backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.brand')) // 按钮也保持 Brand 颜色
+          .fontColor($r('app.color.accent')) // 按钮也保持 accent 颜色
           .onClick(() => {
-            this.onAccept(this.currentDate);
-            this.close();
+            this.params.onAccept(this.currentDate);
+            this.params.close();
           })
           .layoutWeight(1)
       }
@@ -119,17 +112,11 @@ struct DateTimeContent {
   }
 }
 
-// 3. 全局 Builder 包装器 (仅负责实例化组件)
 @Builder
 function DateTimeBuilderWrapper(params: DateTimeDialogParams) {
-  DateTimeContent({
-    initialDate: params.selectedDate,
-    onAccept: params.onAccept,
-    close: params.close
-  })
+  DateTimeContent({ params: params })
 }
 
-// 4. 静态工具类 (保持不变)
 interface DateTimePickerOptions {
   selected?: Date;
   onAccept: (date: Date) => void;
@@ -141,13 +128,14 @@ export class DateTimePicker {
     params.selectedDate = options.selected ? new Date(options.selected) : new Date();
     params.onAccept = options.onAccept;
 
-    // 使用 Wrapper Builder
     const contentNode = new ComponentContent(context, wrapBuilder(DateTimeBuilderWrapper), params);
 
     params.close = () => {
       const prompt = context.getPromptAction();
       prompt.closeCustomDialog(contentNode);
     };
+
+    contentNode.update(params);
 
     const prompt = context.getPromptAction();
     prompt.openCustomDialog(contentNode, {

@@ -1,103 +1,53 @@
-{
+{  
   "color": [
-    {
-      "name": "start_window_background",
-      "value": "#000000"
-    },
-    {
-      "name": "brand",
-      "value": "#6BA4D6"
-    },
+    { "name": "start_window_background", "value": "#000000"},
+    { "name": "brand", "value": "#6BA4D6"},
+    { "name": "brand_50", "value": "#806BA4D6"},
+    { "name": "font_primary", "value": "#FFFFFF"},
+    { "name": "font_secondary", "value": "#B3B3B3"},
+    { "name": "font_emphasize", "value": "#FFFFFF"},
+    { "name": "icon_primary", "value": "#FFFFFF"},
+    { "name": "icon_secondary", "value": "#B3B3B3"},
+    { "name": "icon_emphasize", "value": "#FFFFFF"},
+    { "name": "background_primary", "value": "#000000"},
+    { "name": "background_secondary", "value": "#191919"},
+    { "name": "background_tertiary", "value": "#CC222222"},
+    { "name": "background_emphasize", "value": "#474747"},
+    { "name": "comp_divider", "value": "#3D3D3D"},
+    { "name": "interactive_active", "value": "#FFFFFF"},
+    { "name": "interactive_select", "value": "#333333"},
+    { "name": "interactive_pressed", "value": "#4D4D4D"},
+    { "name": "warning", "value": "#FFC28B"},
+    { "name": "confirm", "value": "#A0D8A0"},
+    { "name": "chart_red", "value": "#FFF77E66"},
+    { "name": "chart_green", "value": "#FFBFD1C4"},
+    { "name": "chart_orange", "value": "#FFFED59E"},
+    { "name": "chart_blue", "value": "#FFB3CAD8"},
 
-    {
-      "name": "font_primary",
-      "value": "#FFFFFF"
-    },
-    {
-      "name": "font_secondary",
-      "value": "#B3B3B3"
-    },
-    {
-      "name": "font_emphasize",
-      "value": "#FFFFFF"
-    },
+    { "name": "indicator_color_undergo", "value": "#FF86A0D2" },
+    { "name": "indicator_color_near", "value": "#FFC8AD7A" },
+    { "name": "indicator_color_passed", "value": "#FFB89A95" },
+    { "name": "indicator_color_completed", "value": "#FF8FAFA6" },
 
-    {
-      "name": "icon_primary",
-      "value": "#FFFFFF"
-    },
-    {
-      "name": "icon_secondary",
-      "value": "#B3B3B3"
-    },
-    {
-      "name": "icon_emphasize",
-      "value": "#FFFFFF"
-    },
+    { "name": "background_color_undergo", "value": "#FF2F3C4F" },
+    { "name": "background_color_near", "value": "#FF453C2A" },
+    { "name": "background_color_passed", "value": "#FF453232" },
+    { "name": "background_color_completed", "value": "#FF30423D" },
 
-    {
-      "name": "background_primary",
-      "value": "#000000"
-    },
-    {
-      "name": "background_secondary",
-      "value": "#191919"
-    },
-    {
-      "name": "background_tertiary",
-      "value": "#CC222222"
-    },
-    {
-      "name": "background_emphasize",
-      "value": "#474747"
-    },
+    { "name": "indicator_color_undergo_50", "value": "#8086A0D2" },
+    { "name": "indicator_color_undergo_70", "value": "#B386A0D2"},
+    { "name": "background_color_undergo_40", "value": "#662F3C4F"},
 
-    {
-      "name": "comp_divider",
-      "value": "#3D3D3D"
-    },
+    { "name": "indicator_color_near_50", "value": "#80C8AD7A"},
+    { "name": "indicator_color_near_70", "value": "#B3C8AD7A"},
+    { "name": "background_color_near_40", "value": "#66453C2A"},
 
-    {
-      "name": "interactive_active",
-      "value": "#FFFFFF"
-    },
-    {
-      "name": "interactive_select",
-      "value": "#333333"
-    },
-    {
-      "name": "interactive_pressed",
-      "value": "#4D4D4D"
-    },
+    { "name": "indicator_color_passed_50", "value": "#80B89A95"},
+    { "name": "indicator_color_passed_70", "value": "#B3B89A95"},
+    { "name": "background_color_passed_40", "value": "#66453232"},
 
-    {
-      "name": "warning",
-      "value": "#FFC28B"
-    },
-    {
-      "name": "confirm",
-      "value": "#A0D8A0"
-    },
-
-    {
-      "name": "chart_red",
-      "value": "#FFF77E66"
-    },
-    {
-      "name": "chart_green",
-      "value": "#FFBFD1C4"
-    },
-    {
-      "name": "chart_orange",
-      "value": "#FFFED59E"
-    },
-    {
-      "name": "chart_blue",
-      "value": "#FFB3CAD8"
-    },
-    {
-      "name": "background_color_undergo",
-      "value": "#2A2A2A"
-    }
+    { "name": "indicator_color_completed_50", "value": "#808FAFA6"},
+    { "name": "indicator_color_completed_70", "value": "#B38FAFA6"},
+    { "name": "background_color_completed_40", "value": "#6630423D"}
   ]
 }

@@ -20,6 +20,10 @@ import { AIPanelView } from '../../common/AIPanelView'
 import { HabitListController } from './HabitListController'
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
 import { ArchivePanelView } from '../../common/ArchivePanelView'
+import { AddTaskPage } from '../modify/AddTaskPage'
+import { AddTaskSheet } from '../modify/AddTaskSheet'
+import { AddHabitSheet } from '../modify/AddHabitSheet'
+import { LocalValues } from '../../../common/local/LocalValues'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -237,6 +241,20 @@ export struct MainHomePage {
       .height('100%')
   }
 
+  @State isAddShow: boolean = false;
+  @Builder
+  addSheet() {
+    if (this.currentIndex == MainTabIndex.TASKS) {
+      AddTaskSheet()
+        .width('100%')
+        .height('100%')
+    } else {
+      AddHabitSheet()
+        .width('100%')
+        .height('100%')
+    }
+  }
+
   build() {
     HdsNavigation() {
         RelativeContainer() {
@@ -286,6 +304,15 @@ export struct MainHomePage {
               right: { anchor: '__container__', align: HorizontalAlign.End },
             })
             .zIndex(1)
+            .bindSheet($$this.isAddShow, this.addSheet(), {
+              height: SheetSize.FIT_CONTENT,
+              onDisappear: () => {
+                this.isAddShow = false;
+              },
+              blurStyle: BlurStyle.Regular,
+              backgroundColor: Color.Transparent,
+              showClose: false
+            })
 
           if (this.currentIndex === MainTabIndex.TASKS) {
             HomeFloatingToolbar({
@@ -296,7 +323,8 @@ export struct MainHomePage {
                 if (this.isTaskSelectionMode) {
                   this.taskController.requestExitSelection();
                 } else {
-                  this.appPathStack.pushPathByName('addTask', null);
+                  if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddShow = true;
+                  else this.appPathStack.pushPathByName('addTask', null);
                 }
               },
 
@@ -320,7 +348,8 @@ export struct MainHomePage {
                 if (this.isHabitSelectionMode) {
                   this.habitController.requestExitSelection();
                 } else {
-                  this.appPathStack.pushPathByName('addHabit', null);
+                  if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddShow = true;
+                  else this.appPathStack.pushPathByName('addHabit', null);
                 }
               },
               handleBatchComplete: () => this.habitController.requestBatchComplete(),

@@ -7,6 +7,7 @@ import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.Ar
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
+import { HabitEditSheet } from "../modify/HabitEditSheet";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -334,32 +335,7 @@ export struct HabitListSection {
     this.exitSelectionMode();
 
     // 6. 填充数据并打开编辑页
-    this.prepareEditData(targetItem.habit);
-  }
-
-  private prepareEditData(habit: Habit) {
-    // 基础信息
-    this.editingHabitId = habit.id;
-    this.editingHabitName = habit.name;
-
-    // 周期：枚举 -> 索引
-    // 这里的顺序必须与 periodOptions 数组一致: [DAILY, WEEKLY, MONTHLY]
-    const pMap = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
-    const pIndex = pMap.indexOf(habit.period);
-    // 如果找不到(比如数据错误)，默认选第一个(DAILY)
-    this.editingPeriodIndex = [pIndex !== -1 ? pIndex : 0];
-
-    // 目标类型：枚举 -> 索引
-    // 这里的顺序必须与 goalTypeOptions 数组一致: [PER_PERIOD, TOTAL]
-    const gMap = [HabitGoalType.PER_PERIOD, HabitGoalType.TOTAL];
-    const gIndex = gMap.indexOf(habit.goalType);
-    this.editingGoalTypeIndex = [gIndex !== -1 ? gIndex : 0];
-
-    // 数字转字符串
-    this.editingTimesPerPeriod = habit.timesPerPeriod.toString();
-    this.editingTotalTarget = habit.totalTarget ? habit.totalTarget.toString() : "";
-
-    // 打开 Sheet
+    this.currentEditingHabit = targetItem.habit;
     this.isEditSheetShow = true;
   }
 
@@ -394,28 +370,7 @@ export struct HabitListSection {
 
   // == 编辑表单 ==
   @State isEditSheetShow: boolean = false
-
-  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
-
-  @State editingHabitId: number = -1;
-  @State editingHabitName: string = '';
-
-  @State editingPeriodIndex: number[] = [0];
-  @State editingGoalTypeIndex: number[] = [0];
-
-  @State editingTimesPerPeriod: string = '1';
-  @State editingTotalTarget: string = '';
-
-  private periodOptions: ChipGroupItemOptions[] = [
-    { label: { text: "每日" } },
-    { label: { text: "每周" } },
-    { label: { text: "每月" } }
-  ];
-
-  private goalTypeOptions: ChipGroupItemOptions[] = [
-    { label: { text: "坚持" } },
-    { label: { text: "定量" } }
-  ];
+  @State currentEditingHabit: Habit | undefined = undefined;
 
   // —— 辅助函数 ——
   private getGoalTypeFromIndex(index: number): HabitGoalType {
@@ -430,217 +385,20 @@ export struct HabitListSection {
 
   @Builder
   habitEditSheet() {
-    Column() {
-      Column({ space: 16 }) {
-
-        // 1. 习惯名称
-        TextInput({ placeholder: '习惯名称', text: this.editingHabitName })
-          .height(ITEM_HEIGHT)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor)
-          .borderRadius(COMMON_RADIUS)
-          .padding({ left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.editingHabitName = val;
-          })
-
-        // 2. 周期选择 (ChipGroup)
-        Column({ space: 8 }) {
-          Text("重复周期")
-            .fontSize(14)
-            .fontColor(Color.Gray)
-            .padding({ left: 4 })
-
-          ChipGroup({
-            items: this.periodOptions,
-            itemStyle: {
-              size: ChipSize.NORMAL,
-              backgroundColor: this.inputBgColor,
-              fontColor: Color.Gray,
-              selectedBackgroundColor: $r('app.color.brand'),
-              selectedFontColor: Color.White
-            },
-            selectedIndexes: this.editingPeriodIndex,
-            onChange: (indexes: number[]) => {
-              this.editingPeriodIndex = indexes;
-            }
-          })
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
-
-        // 3. 目标设置 (Row 布局)
-        Row({ space: 12 }) {
-          // 左侧：频率次数
-          Column({ space: 8 }) {
-            Text("每次/频次")
-              .fontSize(14)
-              .fontColor(Color.Gray)
-              .padding({ left: 4 })
-
-            TextInput({ placeholder: '1', text: this.editingTimesPerPeriod })
-              .type(InputType.Number)
-              .height(ITEM_HEIGHT)
-              .fontSize(16)
-              .backgroundColor(this.inputBgColor)
-              .borderRadius(COMMON_RADIUS)
-              .padding({ left: 16, right: 16 })
-              .width('100%')
-              .onChange((val) => {
-                this.editingTimesPerPeriod = val;
-              })
-          }
-          .layoutWeight(1)
-
-          // 右侧：目标类型
-          Column({ space: 8 }) {
-            Text("目标类型")
-              .fontSize(14)
-              .fontColor(Color.Gray)
-              .padding({ left: 4 })
-
-            ChipGroup({
-              items: this.goalTypeOptions,
-              itemStyle: {
-                size: ChipSize.NORMAL,
-                backgroundColor: this.inputBgColor,
-                fontColor: Color.Gray,
-                selectedBackgroundColor: $r('app.color.brand'),
-                selectedFontColor: Color.White
-              },
-              selectedIndexes: this.editingGoalTypeIndex,
-              onChange: (indexes: number[]) => {
-                this.editingGoalTypeIndex = indexes;
-              }
-            })
-          }
-          .layoutWeight(1)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
-
-        // 4. 总目标输入框 (动态显示)
-        if (this.editingGoalTypeIndex.length > 0 &&
-          this.getGoalTypeFromIndex(this.editingGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
-          Column({ space: 8 }) {
-            Text("总目标数量")
-              .fontSize(14)
-              .fontColor(Color.Gray)
-              .padding({ left: 4 })
-
-            TextInput({ placeholder: '例如：100 (页/次)', text: this.editingTotalTarget })
-              .type(InputType.Number)
-              .height(ITEM_HEIGHT)
-              .fontSize(16)
-              .backgroundColor(this.inputBgColor)
-              .borderRadius(COMMON_RADIUS)
-              .padding({ left: 16, right: 16 })
-              .width('100%')
-              .onChange((val) => {
-                this.editingTotalTarget = val;
-              })
-          }
-          .width('100%')
-        }
-
-        Button('保存').onClick((event: ClickEvent) => {
-          this.saveHabitEdit();
-        })
-          .width('100%')
-          .backgroundColor($r('app.color.brand'))
-
-        Blank().height(60)
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16, top: 16 }) // 稍微增加顶部padding
+    HabitEditSheet({
+      isShow: $isEditSheetShow,
+      editingHabit: this.currentEditingHabit,
+      onSave: (habit): Promise<void> => this.handleSaveHabit(habit)
+    })
   }
 
-  // —— 保存编辑逻辑 ——
-  private async saveHabitEdit() {
-    // 1. 基础校验
-    if (!this.editingHabitName.trim()) {
-      promptAction.showToast({ message: '请输入习惯名称' });
-      return;
-    }
-
-    const times = parseInt(this.editingTimesPerPeriod);
-    if (isNaN(times) || times <= 0) {
-      promptAction.showToast({ message: '请输入有效的单次目标' });
-      return;
-    }
-
-    // 2. 获取枚举值
-    // 防御性编程：确保数组不为空
-    const pIndex = this.editingPeriodIndex.length > 0 ? this.editingPeriodIndex[0] : 0;
-    const gIndex = this.editingGoalTypeIndex.length > 0 ? this.editingGoalTypeIndex[0] : 0;
-
-    const newPeriod = this.getPeriodFromIndex(pIndex); // 需要确保组件内有这个 helper
-    const newGoalType = this.getGoalTypeFromIndex(gIndex); // 需要确保组件内有这个 helper
-
-    // 3. 校验总目标 (如果是 TOTAL 类型)
-    let total: number | null = null;
-    if (newGoalType === HabitGoalType.TOTAL) {
-      total = parseInt(this.editingTotalTarget);
-      if (isNaN(total) || total <= 0) {
-        promptAction.showToast({ message: '请输入有效的总目标' });
-        return;
-      }
-    }
-
-    try {
-      // 4. 获取原始对象并更新
-      // 我们需要先从缓存或Repo里拿到完整的 Habit 对象，因为 update 需要 id, ddlId, createdAt 等字段
-      // 假设我们通过 editingHabitId 能找到它
-      const originalItem = this.allHabitsCache.find(it => it.habit.id === this.editingHabitId);
-
-      if (!originalItem) {
-        promptAction.showToast({ message: '未找到原始习惯数据' });
-        return;
-      }
-
-      const originalHabit = originalItem.habit;
-
-      // 构建更新后的对象
-      const updatedHabit: Habit = {
-        id: originalHabit.id,
-        ddlId: originalHabit.ddlId,
-        name: this.editingHabitName,
-        description: "",
-        color: originalHabit.color,
-        iconKey: originalHabit.iconKey,
-        period: newPeriod,
-        timesPerPeriod: times,
-        goalType: newGoalType,
-        totalTarget: total,
-        createdAt: originalHabit.createdAt,
-        updatedAt: new Date().toISOString(),
-        status: originalHabit.status,
-        sortOrder: originalHabit.sortOrder,
-        alarmTime: originalHabit.alarmTime
-      };
-
-      // 5. 执行数据库更新
-      await this.repo.updateHabit(updatedHabit);
-
-      // 6. 收尾工作
-      promptAction.showToast({ message: '修改成功' });
-
-      // 关闭 Sheet (假设你用 isEditSheetShow 控制)
-      this.isEditSheetShow = false;
-
-      // 刷新列表
-      await this.refreshAll(this.selectedDate);
-
-      // 通知全局 (如果需要)
-      getContext(this).eventHub.emit('sync_done');
-
-    } catch (e) {
-      console.error(`Update habit failed: ${e}`);
-      promptAction.showToast({ message: '修改失败' });
-    }
+  async handleSaveHabit(updatedHabit: Habit) {
+    // 执行数据库更新
+    await this.repo.updateHabit(updatedHabit);
+    // 刷新列表
+    await this.refreshAll(this.selectedDate);
+    // 全局通知
+    getContext(this).eventHub.emit('sync_done');
   }
 
   @State isRefreshing: boolean = false;
@@ -721,12 +479,7 @@ export struct HabitListSection {
       dragBar: true,
       onDisappear: () => {
         this.isEditSheetShow = false;
-        this.editingHabitId = -1;
-        this.editingHabitName = '';
-        this.editingPeriodIndex = [];
-        this.editingGoalTypeIndex = [];
-        this.editingTimesPerPeriod = '';
-        this.editingTotalTarget = '';
+        this.currentEditingHabit = undefined;
       },
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,

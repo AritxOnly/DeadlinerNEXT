@@ -66,7 +66,7 @@ export struct WeekRow {
 
   // 颜色资源
   private primaryColor: ResourceColor = $r('app.color.brand');
-  private bgColor: ResourceColor = this.addAlpha(this.primaryColor, 0.3);
+  private bgColor: ResourceColor = $r('app.color.brand_50');
   private secondaryColor: ResourceColor = $r('app.color.font_secondary')
   private surfaceVariant: ResourceColor = $r('app.color.background_primary');
 
@@ -123,16 +123,6 @@ export struct WeekRow {
     .height(80)
     .alignListItem(ListItemAlign.Center)
     .scrollBar(BarState.Off)
-  }
-
-
-  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
-    try {
-      let context = this.getUIContext().getHostContext();
-      return ColorUtils.addAlpha(color, alpha, context);
-    } catch (e) {
-      return color;
-    }
   }
 }
 
@@ -196,7 +186,7 @@ export struct HabitRow {
   @State private titleColor: ResourceColor = $r('app.color.font_primary');
   @State private noteColor: ResourceColor = $r('app.color.font_secondary');
 
-  // 颜色计算逻辑
+  // --- 1. 获取纯色 (用于 Checkbox 选中色) ---
   private getIndicatorColor(): ResourceColor {
     switch (this.status) {
       case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo');
@@ -207,13 +197,36 @@ export struct HabitRow {
     }
   }
 
-  private getBackgroundColor(): ResourceColor {
+  // --- 2. 新增：获取 50% 透明度的主色 (用于渐变起色) ---
+  private getIndicatorColor50(): ResourceColor {
     switch (this.status) {
-      case DDLStatus.UNDERGO: return $r('app.color.background_color_undergo');
-      case DDLStatus.NEAR: return $r('app.color.background_color_near');
-      case DDLStatus.PASSED: return $r('app.color.background_color_passed');
-      case DDLStatus.COMPLETED: return $r('app.color.background_color_completed');
-      default: return $r('app.color.background_color_undergo');
+      case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo_50');
+      case DDLStatus.NEAR: return $r('app.color.indicator_color_near_50');
+      case DDLStatus.PASSED: return $r('app.color.indicator_color_passed_50');
+      case DDLStatus.COMPLETED: return $r('app.color.indicator_color_completed_50');
+      default: return $r('app.color.indicator_color_undergo_50');
+    }
+  }
+
+  // --- 3. 新增：获取 70% 透明度的主色 (用于渐变终色) ---
+  private getIndicatorColor70(): ResourceColor {
+    switch (this.status) {
+      case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo_70');
+      case DDLStatus.NEAR: return $r('app.color.indicator_color_near_70');
+      case DDLStatus.PASSED: return $r('app.color.indicator_color_passed_70');
+      case DDLStatus.COMPLETED: return $r('app.color.indicator_color_completed_70');
+      default: return $r('app.color.indicator_color_undergo_70');
+    }
+  }
+
+  // --- 4. 新增：获取 40% 透明度的背景色 (用于底色) ---
+  private getBgColor40(): ResourceColor {
+    switch (this.status) {
+      case DDLStatus.UNDERGO: return $r('app.color.background_color_undergo_40');
+      case DDLStatus.NEAR: return $r('app.color.background_color_near_40');
+      case DDLStatus.PASSED: return $r('app.color.background_color_passed_40');
+      case DDLStatus.COMPLETED: return $r('app.color.background_color_completed_40');
+      default: return $r('app.color.background_color_undergo_40');
     }
   }
 
@@ -241,25 +254,17 @@ export struct HabitRow {
     return Math.min(1, Math.max(0, this.data.doneCount / Math.max(1, this.data.targetCount)));
   }
 
-  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
-    try {
-      let context = this.getUIContext().getHostContext();
-      return ColorUtils.addAlpha(color, alpha, context);
-    } catch (e) {
-      return color;
-    }
-  }
+  // 【删除】 addAlpha 函数已不再需要
 
   build() {
-    // 【修改点1】最外层 Stack 负责统一的圆角和裁剪
     Stack() {
-      // 1. 内容层 (包括背景、进度条、文本)
+      // 1. 内容层
       Stack({ alignContent: Alignment.Start }) {
-        // 底色
+        // 底色：直接使用对应的资源 Getter
         Rect()
           .width('100%')
           .height('100%')
-          .fill(this.addAlpha(this.getBackgroundColor(), 0.45))
+          .fill(this.getBgColor40())
 
         // 进度条前景
         if (this.getProgress() > 0) {
@@ -269,8 +274,9 @@ export struct HabitRow {
             .linearGradient({
               direction: GradientDirection.Right,
               colors: [
-                [this.addAlpha(this.getIndicatorColor(), 0.5), 0.0],
-                [this.addAlpha(this.getIndicatorColor(), 0.8), 1.0]
+                // 渐变色：直接使用对应的资源 Getter
+                [this.getIndicatorColor50(), 0.0],
+                [this.getIndicatorColor70(), 1.0]
               ]
             })
             .animation({ duration: 800, curve: Curve.Smooth })
@@ -280,7 +286,7 @@ export struct HabitRow {
         Row() {
           Checkbox({ name: 'done', group: 'habit' })
             .select(this.data.isCompleted)
-            .selectedColor(this.getIndicatorColor())
+            .selectedColor(this.getIndicatorColor()) // 选中色保持使用纯色
             .onChange(() => {
               if (this.canToggle) this.onToggle();
             })
@@ -314,17 +320,16 @@ export struct HabitRow {
       }
       .width('100%')
       .height(72)
-      // 注意：这里不需要再设置 clip(true) 了，因为父容器会统一剪裁
 
-      // 【修改点2】选中态遮罩层，放在最上层
+      // 选中态遮罩层
       if (this.isSelected) {
         HabitSelectionOverlay()
       }
     }
     .width('100%')
     .height(72)
-    .borderRadius(24) // 【修改点3】由最外层统一设置圆角
-    .clip(true)       // 【修改点4】由最外层统一裁剪，消除锯齿
+    .borderRadius(24)
+    .clip(true)
     .onClick(() => {
       if (this.canToggle) this.onToggle();
     })

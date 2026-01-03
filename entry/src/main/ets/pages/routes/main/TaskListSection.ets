@@ -12,9 +12,7 @@ import { SettingsConstants as C } from "../../../common/local/SettingsConstants"
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
-
-const COMMON_RADIUS = 24;
-const ITEM_HEIGHT = 56;
+import { TaskEditSheet } from "../modify/TaskEditSheet";
 
 interface TaskUIModel {
   title: string;
@@ -50,8 +48,6 @@ export struct TaskListSection {
 
   @State editingStartTime: Date = new Date();
   @State editingEndTime: Date = new Date();
-
-  @State inputBgColor: ResourceColor = $r('app.color.background_secondary');
 
   private repo = TaskRepository.getInstance();
 
@@ -438,6 +434,8 @@ export struct TaskListSection {
         this.editingTitle = target.name;
         this.editingNote = target.note || "";
 
+        console.log("[EDIT DEBUG] editingTask | target: ", this.editingTask.name, '|', target.name);
+
         // 🔥 解析时间字符串为 Date 对象
         this.editingStartTime = target.startTime ? new Date(target.startTime) : new Date();
         this.editingEndTime = target.endTime ? new Date(target.endTime) : new Date();
@@ -453,102 +451,20 @@ export struct TaskListSection {
     }
   }
 
-  private async saveEdit() {
-    if (!this.editingTask) return;
-    if (!this.editingTitle.trim()) {
-      promptAction.showToast({ message: '任务名称不能为空' });
-      return;
-    }
+  private async handleSave(task: DDLItem) {
+    await this.repo.updateDDL(task);
 
-    try {
-      this.editingTask.name = this.editingTitle;
-      this.editingTask.note = this.editingNote;
-      this.editingTask.startTime = DateTimeUtils.toLocalISOString(this.editingStartTime);
-      this.editingTask.endTime = DateTimeUtils.toLocalISOString(this.editingEndTime);
-
-      await this.repo.updateDDL(this.editingTask);
-
-      this.isEditSheetShow = false;
-      await this.loadData();
-      promptAction.showToast({ message: '修改已保存' });
-
-    } catch (e) {
-      console.error('Save edit failed:', e);
-      promptAction.showToast({ message: '保存失败' });
-    }
-  }
-
-  private showTimePicker(isStart: boolean) {
-    DateTimePicker.show(this.getUIContext(), {
-      // 传入当前时间
-      selected: isStart ? this.editingStartTime : this.editingEndTime,
-      // 接收回调
-      onAccept: (newDate: Date) => {
-        if (isStart) {
-          this.editingStartTime = newDate;
-        } else {
-          this.editingEndTime = newDate;
-        }
-      }
-    });
+    this.isEditSheetShow = false;
+    await this.loadData();
   }
 
   @Builder
   taskEditSheet() {
-    Column() {
-      Column({ space: 16 }) {
-
-        // 任务名称
-        TextInput({ placeholder: '任务名称', text: this.editingTitle })
-          .height(ITEM_HEIGHT)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor)
-          .borderRadius(COMMON_RADIUS)
-          .padding({ left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.editingTitle = val;
-          })
-
-        // 开始时间
-        TimeInputButton({
-          title: '开始时间',
-          content: DateTimeUtils.formatForUI(this.editingStartTime),
-          onClickButton: (): void => this.showTimePicker(true)
-        })
-
-        // 结束时间
-        TimeInputButton({
-          title: '结束',
-          content: DateTimeUtils.formatForUI(this.editingEndTime),
-          onClickButton: (): void => this.showTimePicker(false)
-        })
-
-        // 备注
-        TextArea({ placeholder: '备注 (可选)', text: this.editingNote })
-          .height(120)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor)
-          .borderRadius(COMMON_RADIUS)
-          .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.editingNote = val;
-          })
-          .enableKeyboardOnFocus(false) // 防止Sheet一打开键盘就弹起遮挡
-
-        Button('保存').onClick((event: ClickEvent) => {
-          this.saveEdit();
-        })
-          .width('100%')
-          .backgroundColor($r('app.color.brand'))
-
-        Blank().height(60)
-      }
-      .width('100%')
-    }
-    .width('100%')
-    .padding({ left: 16, right: 16 })
+    TaskEditSheet({
+      isShow: $isEditSheetShow,        // 绑定显隐状态
+      editingTask: this.editingTask, // 传递数据
+      onSave: (task): Promise<void> => this.handleSave(task)
+    })
   }
 
   build() {

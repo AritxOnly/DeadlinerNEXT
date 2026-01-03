@@ -36,6 +36,9 @@ export class ColorUtils {
    * @returns rgba 字符串，可直接用于属性赋值
    */
   static applyAlpha(context: Context, color: ResourceColor, alpha: number): string {
+    const config = context.resourceManager.getConfigurationSync();
+    console.debug(`ColorUtils: Current ColorMode is ${config.colorMode}`);
+
     let colorValue: number;
 
     try {

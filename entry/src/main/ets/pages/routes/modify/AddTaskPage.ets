@@ -87,7 +87,7 @@ export struct AddTaskPage {
     }
   }
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
+  @State inputBgColor: ResourceColor = $r('sys.color.search_container_focus_color')
 
   build() {
     NavDestination() {

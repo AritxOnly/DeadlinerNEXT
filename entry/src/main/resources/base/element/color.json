@@ -6,7 +6,15 @@
     },
     {
       "name": "brand",
-      "value": "#1661AB"
+      "value": "#FF3A6EA5"
+    },
+    {
+      "name": "brand_50",
+      "value": "#803A6EA5"
+    },
+    {
+      "name": "accent",
+      "value": "#FFF08A7E"
     },
 
     {
@@ -104,6 +112,22 @@
     { "name": "background_color_near", "value": "#FFC7B49B" },
     { "name": "background_color_passed", "value": "#FFC9B4B5" },
     { "name": "background_color_completed", "value": "#FFB7C9C3" },
+
+    { "name": "indicator_color_undergo_50", "value": "#8086A0D2" },
+    { "name": "indicator_color_undergo_70", "value": "#B386A0D2" },
+    { "name": "background_color_undergo_40", "value": "#66BFCADF" },
+
+    { "name": "indicator_color_near_50", "value": "#80C8AD7A" },
+    { "name": "indicator_color_near_70", "value": "#B3C8AD7A" },
+    { "name": "background_color_near_40", "value": "#66C7B49B" },
+
+    { "name": "indicator_color_passed_50", "value": "#80B89A95" },
+    { "name": "indicator_color_passed_70", "value": "#B3B89A95" },
+    { "name": "background_color_passed_40", "value": "#66C9B4B5" },
+
+    { "name": "indicator_color_completed_50", "value": "#808FAFA6" },
+    { "name": "indicator_color_completed_70", "value": "#B38FAFA6" },
+    { "name": "background_color_completed_40", "value": "#66B7C9C3" },
 
     {
       "name": "item_title_font",

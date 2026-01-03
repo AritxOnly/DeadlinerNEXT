@@ -1,30 +1,21 @@
 import { ChipSize, promptAction } from '@kit.ArkUI';
 import { ChipGroup, ChipGroupItemOptions } from '@ohos.arkui.advanced.ChipGroup';
+import { HdsNavigation, HdsNavigationAttribute, HdsNavigationTitleMode } from '@kit.UIDesignKit';
 import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { DatabaseHelper } from '../../../common/data/DatabaseHelper';
-import { DeadlineType, HabitGoalType, HabitPeriod, HabitStatus } from '../../../model/DDLModels';
-import { TimeInputButton } from '../../components/TimeInputButton';
+import { DeadlineType, HabitGoalType, HabitPeriod } from '../../../model/DDLModels';
+import { AITextInput } from '../../components/AITextInput';
 
+// 统一的样式常量
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
 
-@Builder
-export function AddHabitBuilder(name: string, param: Object) {
-  AddHabitPage()
-}
-
 @Component
-export struct AddHabitPage {
-  pageStack: NavPathStack = new NavPathStack();
+export struct AddHabitSheet {
+  // 回调函数：完成或取消时调用
+  onDone: () => void = () => {}
 
-  saveMenuItem: NavigationMenuItem = {
-    value: "Save",
-    icon: 'resources/base/media/checkmark.svg',
-    action: async () => {
-      await this.saveHabit();
-    }
-  }
-
+  // —— 状态定义 ——
   @State name: string = '';
   // 习惯周期状态
   @State selectedPeriodIndex: number[] = [0];
@@ -34,29 +25,34 @@ export struct AddHabitPage {
   @State timesPerPeriod: string = '1';
   @State totalTarget: string = '';
 
-  @State inputBgColor: ResourceColor = $r('app.color.background_secondary')
+  @State aiInputText: string = ''
 
+  @State inputBgColor: ResourceColor = $r('sys.color.search_container_focus_color')
+
+  // —— 选项定义 ——
   private periodOptions: ChipGroupItemOptions[] = [
     { label: { text: "每日" } },
     { label: { text: "每周" } },
     { label: { text: "每月" } }
   ];
 
-  private getPeriodFromIndex(index: number): HabitPeriod {
-    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
-    return map[index] || HabitPeriod.DAILY;
-  }
-
   private goalTypeOptions: ChipGroupItemOptions[] = [
     { label: { text: "坚持" } },
     { label: { text: "定量" } }
   ];
+
+  // —— 辅助函数 ——
+  private getPeriodFromIndex(index: number): HabitPeriod {
+    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
+    return map[index] || HabitPeriod.DAILY;
+  }
 
   private getGoalTypeFromIndex(index: number): HabitGoalType {
     const map = [HabitGoalType.PER_PERIOD, HabitGoalType.TOTAL];
     return map[index] || HabitGoalType.PER_PERIOD;
   }
 
+  // —— 保存逻辑 ——
   private async saveHabit() {
     if (!this.name.trim()) {
       promptAction.showToast({ message: '请输入习惯名称' });
@@ -69,7 +65,7 @@ export struct AddHabitPage {
       return;
     }
 
-    // 防御性检查：确保索引数组不为空
+    // 防御性检查
     const pIndex = this.selectedPeriodIndex.length > 0 ? this.selectedPeriodIndex[0] : 0;
     const gIndex = this.selectedGoalTypeIndex.length > 0 ? this.selectedGoalTypeIndex[0] : 0;
 
@@ -120,32 +116,35 @@ export struct AddHabitPage {
       );
 
       promptAction.showToast({ message: '习惯创建成功' });
+
+      // 通知全局刷新
       getContext(this).eventHub.emit('sync_done');
-      this.pageStack.pop();
+
+      // 调用关闭回调
+      this.onDone();
 
     } catch (e) {
       console.error(`Add habit failed: ${e}`);
-      promptAction.showToast({ message: '创建失败: ' + e.message });
+      promptAction.showToast({ message: '创建失败: ' + (e.message || e) });
     }
   }
 
   build() {
-    NavDestination() {
+    HdsNavigation() {
       Column({ space: 16 }) {
-        // 1. 顶部说明
-        Text("创建新习惯")
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .padding({ left: 4, top: 8 })
+        // 顶部留白，配合 Modal 样式
+        Blank().height(40)
 
+        AITextInput({ text: $aiInputText })
+
+        // 副标题说明
         Text("设定一个你想坚持的目标。")
-          .fontSize(14)
           .fontColor($r('app.color.font_secondary'))
+          .fontSize(14)
           .width('100%')
-          .padding({ left: 4, bottom: 8 })
+          .padding({ left: 16, right: 16 })
 
-        // 2. 习惯名称
+        // 1. 习惯名称
         TextInput({ placeholder: '习惯名称', text: this.name })
           .height(ITEM_HEIGHT)
           .fontSize(16)
@@ -157,7 +156,7 @@ export struct AddHabitPage {
             this.name = val;
           })
 
-        // 3. 周期选择 (使用 ChipGroup)
+        // 2. 周期选择 (使用 ChipGroup)
         Column({ space: 8 }) {
           Text("重复周期")
             .fontSize(14)
@@ -170,12 +169,10 @@ export struct AddHabitPage {
               size: ChipSize.NORMAL,
               backgroundColor: this.inputBgColor,
               fontColor: $r('app.color.font_secondary'),
-              selectedBackgroundColor: $r('app.color.brand'),
+              selectedBackgroundColor: $r('app.color.accent'),
               selectedFontColor: Color.White
             },
-            // 修改点 1：直接传值
             selectedIndexes: this.selectedPeriodIndex,
-            // 修改点 2：监听 onChange 手动更新状态
             onChange: (indexes: number[]) => {
               this.selectedPeriodIndex = indexes;
             }
@@ -184,7 +181,7 @@ export struct AddHabitPage {
         .width('100%')
         .alignItems(HorizontalAlign.Start)
 
-        // 4. 目标设置
+        // 3. 目标设置
         Row({ space: 12 }) {
           // 左侧：频率次数
           Column({ space: 8 }) {
@@ -219,12 +216,10 @@ export struct AddHabitPage {
                 size: ChipSize.NORMAL,
                 backgroundColor: this.inputBgColor,
                 fontColor: $r('app.color.font_secondary'),
-                selectedBackgroundColor: $r('app.color.brand'),
+                selectedBackgroundColor: $r('app.color.accent'),
                 selectedFontColor: Color.White
               },
-              // 修改点 1：直接传值
               selectedIndexes: this.selectedGoalTypeIndex,
-              // 修改点 2：监听 onChange 手动更新状态 -> 触发 UI 刷新
               onChange: (indexes: number[]) => {
                 this.selectedGoalTypeIndex = indexes;
               }
@@ -235,9 +230,7 @@ export struct AddHabitPage {
         .width('100%')
         .alignItems(VerticalAlign.Top)
 
-        // 5. 总目标输入框
-        // 这里的判断逻辑依赖于 selectedGoalTypeIndex 的变化
-        // 加上非空判断防止数组为空报错
+        // 4. 总目标输入框 (条件渲染)
         if (this.selectedGoalTypeIndex.length > 0 &&
           this.getGoalTypeFromIndex(this.selectedGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
           Column({ space: 8 }) {
@@ -263,16 +256,37 @@ export struct AddHabitPage {
 
       }
       .width('100%')
-      .height('100%')
       .padding(16)
     }
-    .title('')
-    .onReady((ctx) => {
-      this.pageStack = ctx.pathStack;
+    .titleBar({
+      content: {
+        title: {
+          mainTitle: "创建新习惯",
+        },
+        // 右上角：保存 (Checkmark)
+        menu: {
+          value: [
+            {
+              content: {
+                icon: $r('sys.symbol.checkmark'), // 使用系统图标
+                action: async () => {
+                  await this.saveHabit();
+                }
+              }
+            }
+          ]
+        },
+        // 左上角：关闭 (Xmark)
+        subIcon: {
+          content: {
+            icon: $r('sys.symbol.xmark'), // 使用系统图标
+            action: this.onDone
+          }
+        }
+      }
     })
-    .menus([
-      this.saveMenuItem
-    ])
-    .backgroundColor($r('app.color.background_primary'))
+    .titleMode(HdsNavigationTitleMode.MODAL)
+    .hideBackButton(false)
+    .backgroundColor(Color.Transparent)
   }
 }

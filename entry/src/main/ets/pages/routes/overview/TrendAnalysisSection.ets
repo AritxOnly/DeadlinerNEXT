@@ -63,8 +63,10 @@ export struct TrendAnalysisSection {
         .attributeModifier(new FloatUpModifier(2))
 
       // 底部留白
-      Blank().height(40)
+      Blank().height(48)
     }
+    .justifyContent(FlexAlign.Start)
+    .constraintSize({ minHeight: '100%' })
     .width('100%')
     .padding({ left: 16, right: 16, top: 16 })
   }

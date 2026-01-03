@@ -1,5 +1,6 @@
 import { DDLStatus } from "../../model/DDLStatus";
 import { ColorUtils } from "../../utils/ColorUtils";
+import { common } from "@kit.AbilityKit";
 
 @Component
 export struct ArchivedDDLItemCard {
@@ -121,36 +122,49 @@ export struct DDLItemCardSimplified {
   @Prop isStarred: boolean;
   @Prop status: DDLStatus = DDLStatus.UNDERGO;
 
-  // 主题颜色状态
-  @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo'); // 使用莫兰迪色系的颜色
-  @State private bgColor: ResourceColor = $r('app.color.background_color_undergo'); // 使用莫兰迪色系的背景色
+  // 1. 状态定义：增加专门用于不同透明度的状态变量
+  // 仍然保留 indicatorColor 用于星标 Icon (纯色)
+  @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo');
+
+  // 新增：直接对应 json 中的透明度资源
+  @State private indicatorColor50: ResourceColor = $r('app.color.indicator_color_undergo_50');
+  @State private indicatorColor70: ResourceColor = $r('app.color.indicator_color_undergo_70');
+  @State private bgColor40: ResourceColor = $r('app.color.background_color_undergo_40');
+
   @State private titleColor: ResourceColor = Color.Black;
   @State private noteColor: ResourceColor = Color.Gray;
-  @State private globalBgColor: ResourceColor = $r('app.color.background_primary')
+  @State private globalBgColor: ResourceColor = $r('app.color.background_secondary');
 
-  // 模拟 onWillApplyTheme，实际项目中由系统或框架回调
   onWillApplyTheme(theme: Theme) {
     this.titleColor = theme.colors.fontPrimary;
     this.noteColor = theme.colors.fontSecondary;
-    this.globalBgColor = theme.colors.backgroundSecondary
+    this.globalBgColor = theme.colors.backgroundSecondary;
 
-    // 根据 Status 映射颜色
+    // 2. 根据 Status 映射资源 ID
+    // 系统会自动根据当前深浅模式解析这些 ID
     if (this.status === DDLStatus.UNDERGO) {
-      // 使用主题颜色
       this.indicatorColor = $r('app.color.indicator_color_undergo');
-      this.bgColor = $r('app.color.background_color_undergo');
+      this.indicatorColor50 = $r('app.color.indicator_color_undergo_50');
+      this.indicatorColor70 = $r('app.color.indicator_color_undergo_70');
+      this.bgColor40 = $r('app.color.background_color_undergo_40');
+
     } else if (this.status === DDLStatus.NEAR) {
-      // 使用莫兰迪色系：淡黄色
       this.indicatorColor = $r('app.color.indicator_color_near');
-      this.bgColor = $r('app.color.background_color_near');
+      this.indicatorColor50 = $r('app.color.indicator_color_near_50');
+      this.indicatorColor70 = $r('app.color.indicator_color_near_70');
+      this.bgColor40 = $r('app.color.background_color_near_40');
+
     } else if (this.status === DDLStatus.PASSED) {
-      // 使用莫兰迪色系：浅棕色
       this.indicatorColor = $r('app.color.indicator_color_passed');
-      this.bgColor = $r('app.color.background_color_passed');
+      this.indicatorColor50 = $r('app.color.indicator_color_passed_50');
+      this.indicatorColor70 = $r('app.color.indicator_color_passed_70');
+      this.bgColor40 = $r('app.color.background_color_passed_40');
+
     } else if (this.status === DDLStatus.COMPLETED) {
-      // 使用莫兰迪色系：柔和绿色
       this.indicatorColor = $r('app.color.indicator_color_completed');
-      this.bgColor = $r('app.color.background_color_completed');
+      this.indicatorColor50 = $r('app.color.indicator_color_completed_50');
+      this.indicatorColor70 = $r('app.color.indicator_color_completed_70');
+      this.bgColor40 = $r('app.color.background_color_completed_40');
     }
   }
 
@@ -166,22 +180,23 @@ export struct DDLItemCardSimplified {
             .linearGradient({
               direction: GradientDirection.Right,
               colors: [
-                [this.addAlpha(this.indicatorColor, 0.5), 0.0],
-                [this.addAlpha(this.indicatorColor, 0.8), 1.0]
+                // 3. 直接使用资源变量，无需 addAlpha
+                [this.indicatorColor50, 0.0],
+                [this.indicatorColor70, 1.0]
               ]
             })
         }
       }
       .width('100%')
       .height('100%')
-      .backgroundColor(this.addAlpha(this.bgColor, 0.45)) // 背景底色
+      // 4. 直接使用带透明度的背景色资源
+      .backgroundColor(this.bgColor40)
 
       // 2. 内容层
       Column() {
-        // 第一行：标题 + 时间 + 星标
         Row() {
           Text(this.title)
-            .fontSize(20) // titleLarge
+            .fontSize(20)
             .fontWeight(FontWeight.Bold)
             .fontColor(this.titleColor)
             .maxLines(1)
@@ -190,24 +205,24 @@ export struct DDLItemCardSimplified {
             .margin({ right: 4 })
 
           Text(this.remainingTimeAlt)
-            .fontSize(12) // bodySmall
+            .fontSize(12)
             .fontColor(this.titleColor)
             .maxLines(1)
-            .margin({ right: 8 })
 
           if (this.isStarred) {
             SymbolGlyph($r('sys.symbol.star_fill'))
               .fontSize(20)
+              // 星标继续使用纯色
               .fontColor([this.indicatorColor])
+              .margin({ left: 8 })
           }
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
 
-        // 第二行：备注 (如果有)
         if (this.note && this.note.length > 0) {
           Text(this.note)
-            .fontSize(12) // bodySmall
+            .fontSize(12)
             .fontColor(this.noteColor)
             .maxLines(1)
             .textOverflow({ overflow: TextOverflow.Ellipsis })
@@ -222,17 +237,9 @@ export struct DDLItemCardSimplified {
     }
     .width('100%')
     .height(76)
-    .borderRadius(24) // R.dimen.item_corner_radius
+    .borderRadius(24)
     .backgroundColor(this.globalBgColor)
     .clip(true)
-  }
-
-  // 辅助函数：简单的颜色透明度处理 (ArkTS中颜色处理通常需要具体工具类，这里简化处理)
-  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
-    let context = this.getUIContext().getHostContext()
-    let alphaColor = ColorUtils.addAlpha(color, alpha, context);  // 使用 ColorUtils 中的 addAlpha 函数来处理透明度
-    console.debug(`ColorUtils: alpha ${alpha} | alphaColor ${alphaColor}}`)
-    return alphaColor
   }
 }
 

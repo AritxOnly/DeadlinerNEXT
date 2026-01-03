@@ -49,6 +49,9 @@ export class LocalValues {
       const confetti = await this.pref.get(C.KEY_CONFETTI_AFTER_FINISHED, true);
       AppStorage.setOrCreate(C.KEY_CONFETTI_AFTER_FINISHED, confetti);
 
+      const fullScreenAdd = await this.pref.get(C.KEY_FULL_SCREEN_ADD, false);
+      AppStorage.setOrCreate(C.KEY_FULL_SCREEN_ADD, fullScreenAdd);
+
       // --- 2. 敏感数据 (Asset Store Kit) ---
       // 从安全存储中读取密码，加载到内存 AppStorage 供业务逻辑使用
       const password = await SecureStorage.get(C.KEY_WEBDAV_PASSWORD);
@@ -164,6 +167,14 @@ export class LocalValues {
 
   async setConfettiAfterFinished(value: boolean) {
     await this.setValue(C.KEY_CONFETTI_AFTER_FINISHED, value);
+  }
+
+  getFullScreenAdd(): boolean {
+    return AppStorage.get<boolean>(C.KEY_FULL_SCREEN_ADD) ?? true;
+  }
+
+  async setFullScreenAdd(value: boolean) {
+    await this.setValue(C.KEY_FULL_SCREEN_ADD, value);
   }
 
   /**

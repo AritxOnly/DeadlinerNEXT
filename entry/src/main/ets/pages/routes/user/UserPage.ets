@@ -27,6 +27,7 @@ export struct UserPage {
   @StorageLink(C.KEY_PROGRESS_DIRECTION) progressDir: boolean = false;
   @StorageLink(C.KEY_EXCITEMENT_TEXT) excitementText: boolean = true;
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
+  @StorageLink(C.KEY_FULL_SCREEN_ADD) fullScreenAdd: boolean = false;
 
   private showRevokeDialog() {
     AlertDialog.show({
@@ -154,6 +155,18 @@ export struct UserPage {
                 LocalValues.getInstance().setConfettiAfterFinished(isOn);
               }
             })
+
+            SettingsDivider()
+
+            SettingsSwitch({
+              title: "全屏添加页面",
+              subtitle: "添加任务或习惯时展示全屏界面",
+              icon: $r('sys.symbol.full_screen'),
+              isOn: this.fullScreenAdd,
+              onChange: (isOn) => {
+                LocalValues.getInstance().setFullScreenAdd(isOn);
+              }
+            })
           }
 
           if (!this.isBasicMode) {
@@ -222,16 +235,16 @@ export struct UserPage {
             })
           }
 
-          SettingsSection() {
-            SettingsItem({
-              title: "开发人员模式",
-              subtitle: "Developer Options",
-              icon: $r('sys.symbol.code'),
-              onItemClick: () => {
-                this.appPathStack.pushPath({ name: 'devMode' });
-              }
-            })
-          }
+          // SettingsSection() {
+          //   SettingsItem({
+          //     title: "开发人员模式",
+          //     subtitle: "Developer Options",
+          //     icon: $r('sys.symbol.code'),
+          //     onItemClick: () => {
+          //       this.appPathStack.pushPath({ name: 'devMode' });
+          //     }
+          //   })
+          // }
 
           // 底部留白
           Blank().height(50)

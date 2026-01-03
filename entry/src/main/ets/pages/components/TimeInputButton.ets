@@ -32,7 +32,7 @@ export struct TimeInputButton {
     .width('100%')
     .height(56) // ITEM_HEIGHT
     .padding({ left: 16, right: 16 })
-    .backgroundColor($r('app.color.background_secondary')) // 保持一致的背景色
+    .backgroundColor($r('sys.color.search_container_focus_color')) // 保持一致的背景色
     .borderRadius(24) // COMMON_RADIUS
     .onClick(() => {
       this.onClickButton();
