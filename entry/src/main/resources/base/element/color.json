@@ -59,7 +59,10 @@
       "name": "background_emphasize",
       "value": "#DBDBDB"
     },
-
+    {
+      "name": "background_primary_30",
+      "value": "#4DF2F3F5"
+    },
     {
       "name": "comp_divider",
       "value": "#D0D0D0"
