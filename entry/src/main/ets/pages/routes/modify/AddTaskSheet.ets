@@ -6,6 +6,9 @@ import { DateTimePicker } from '../../components/DateTimePicker';
 import { TimeInputButton } from '../../components/TimeInputButton';
 import { HdsNavigation, HdsNavigationAttribute, HdsNavigationTitleMode } from '@kit.UIDesignKit';
 import { AITextInput } from '../../components/AITextInput';
+import { AIService } from '../../../ai/AIServcice';
+import { i18n } from '@kit.LocalizationKit';
+import { LoadingMask } from '../../components/LoadingMask';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24; // 需求1：圆角 24
@@ -40,6 +43,8 @@ export struct AddTaskSheet {
   }
 
   private showTimePicker(isStart: boolean) {
+    if (this.isAILoading) return;
+
     DateTimePicker.show(this.getUIContext(), {
       // 传入当前时间
       selected: isStart ? this.startTime : this.endTime,
@@ -85,62 +90,108 @@ export struct AddTaskSheet {
   }
 
   @State aiInputText: string = ''
+  @State isAILoading: boolean = false
+
+  async onAITriggered() {
+    if (!this.aiInputText || !this.aiInputText.trim()) {
+      promptAction.showToast({ message: '请输入内容后再尝试' });
+      return;
+    }
+
+    this.isAILoading = true;
+    try {
+      const service = AIService.getInstance();
+      const sysLang = i18n.System.getSystemLanguage();
+      const results = await service.extractTasks(this.aiInputText, sysLang);
+      if (results && results.length !== 0) {
+        const task = results[0];
+        this.name = task.name;
+        this.note = task.note;
+        const endDate = DateTimeUtils.parseDateString(task.dueTime);
+        if (endDate) {
+          this.endTime = endDate;
+        }
+      }
+    } catch (err) {
+      promptAction.showToast({
+        message: `抱歉，遇到了一些问题：${err.message || '网络连接失败'}`
+      })
+    } finally {
+      this.isAILoading = false;
+    }
+  }
 
   @State inputBgColor: ResourceColor = $r('sys.color.search_container_focus_color')
 
   build() {
     HdsNavigation() {
-      Column({ space: 16 }) {
-        Blank().height(40)
+      Stack() {
+        if (this.isAILoading) {
+          LoadingMask()
+            .transition(TransitionEffect.OPACITY.animation({ duration: 200 }))
+        }
 
-        AITextInput({ text: $aiInputText })
+        Column({ space: 16 }) {
+          Blank().height(40)
 
-        Text("填写以下信息以设定你的 Deadline。")
-          .fontColor($r('app.color.font_secondary'))
-          .fontSize(14)
-          .width('100%')
-          .padding({ left: 16, right: 16 })
-
-        // 2. 任务名称 (标准 TextInput)
-        TextInput({ placeholder: '任务名称', text: this.name })
-          .height(ITEM_HEIGHT)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor) // 显式设置背景色，确保一致
-          .borderRadius(COMMON_RADIUS)     // 圆角 24
-          .padding({ left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.name = val;
+          AITextInput({
+            text: $aiInputText,
+            onAITriggered: (): Promise<void> => this.onAITriggered()
           })
 
-        // 3. 时间选择 (使用自定义 Builder 模拟 TextInput 样式)
-        TimeInputButton({
-          title: '开始时间',
-          content: this.formatTime(this.startTime),
-          onClickButton: (): void => this.showTimePicker(true)
-        })
+          Text("填写以下信息以设定你的 Deadline。")
+            .fontColor($r('app.color.font_secondary'))
+            .fontSize(14)
+            .width('100%')
+            .padding({ left: 16, right: 16 })
 
-        TimeInputButton({
-          title: '结束',
-          content: this.formatTime(this.endTime),
-          onClickButton: (): void => this.showTimePicker(false)
-        })
+          // 2. 任务名称 (标准 TextInput)
+          TextInput({ placeholder: '任务名称', text: this.name })
+            .height(ITEM_HEIGHT)
+            .fontSize(16)
+            .backgroundColor(this.inputBgColor) // 显式设置背景色，确保一致
+            .borderRadius(COMMON_RADIUS)     // 圆角 24
+            .padding({ left: 16, right: 16 })
+            .width('100%')
+            .onChange((val) => {
+              this.name = val;
+            })
 
-        // 4. 备注 (TextArea)
-        TextArea({ placeholder: '备注 (可选)', text: this.note })
-          .height(120)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor) // 显式设置背景色
-          .borderRadius(COMMON_RADIUS)     // 圆角 24
-          .padding({ top: 12, bottom: 12, left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.note = val;
+          // 3. 时间选择 (使用自定义 Builder 模拟 TextInput 样式)
+          TimeInputButton({
+            title: '开始时间',
+            content: this.formatTime(this.startTime),
+            onClickButton: (): void => this.showTimePicker(true)
           })
 
+          TimeInputButton({
+            title: '结束',
+            content: this.formatTime(this.endTime),
+            onClickButton: (): void => this.showTimePicker(false)
+          })
+
+          // 4. 备注 (TextArea)
+          TextArea({ placeholder: '备注 (可选)', text: this.note })
+            .height(120)
+            .fontSize(16)
+            .backgroundColor(this.inputBgColor) // 显式设置背景色
+            .borderRadius(COMMON_RADIUS)     // 圆角 24
+            .padding({
+              top: 12,
+              bottom: 12,
+              left: 16,
+              right: 16
+            })
+            .width('100%')
+            .onChange((val) => {
+              this.note = val;
+            })
+
+        }
+        .width('100%')
+        .height('100%')
+        .padding(16)
       }
-      .width('100%')
-      .padding(16)
     }
     .titleBar({
       content: {

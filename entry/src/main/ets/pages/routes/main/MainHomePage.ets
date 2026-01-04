@@ -242,14 +242,18 @@ export struct MainHomePage {
   }
 
   @State isAddShow: boolean = false;
+  onAddSheetQuit: () => void = () => {
+    this.isAddShow = false
+  }
+
   @Builder
   addSheet() {
     if (this.currentIndex == MainTabIndex.TASKS) {
-      AddTaskSheet()
+      AddTaskSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
         .height('100%')
     } else {
-      AddHabitSheet()
+      AddHabitSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
         .height('100%')
     }

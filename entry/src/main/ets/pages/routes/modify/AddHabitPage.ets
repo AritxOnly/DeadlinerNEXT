@@ -4,6 +4,11 @@ import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { DatabaseHelper } from '../../../common/data/DatabaseHelper';
 import { DeadlineType, HabitGoalType, HabitPeriod, HabitStatus } from '../../../model/DDLModels';
 import { TimeInputButton } from '../../components/TimeInputButton';
+import { LocalValues } from '../../../common/local/LocalValues';
+import { AITextInput } from '../../components/AITextInput';
+import { LoadingMask } from '../../components/LoadingMask';
+import { AIService } from '../../../ai/AIServcice';
+import { i18n } from '@kit.LocalizationKit';
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -129,92 +134,107 @@ export struct AddHabitPage {
     }
   }
 
+  @State aiInputText: string = ''
+  @State isAILoading: boolean = false;
+
+  async onAITriggered() {
+    if (!this.aiInputText || !this.aiInputText.trim()) {
+      promptAction.showToast({ message: '请输入内容后再尝试' });
+      return;
+    }
+
+    this.isAILoading = true;
+    try {
+      const service = AIService.getInstance();
+      const sysLang = i18n.System.getSystemLanguage();
+
+      const results = await service.extractHabits(this.aiInputText, sysLang);
+
+      if (results && results.length !== 0) {
+        const habit = results[0];
+
+        // --- 数据回填逻辑 Start ---
+
+        this.name = habit.name;
+
+        // 对应 this.periodOptions 的顺序
+        let pIndex = 0;
+        if (habit.period === 'WEEKLY') pIndex = 1;
+        else if (habit.period === 'MONTHLY') pIndex = 2;
+        this.selectedPeriodIndex = [pIndex];
+
+        this.timesPerPeriod = habit.timesPerPeriod.toString();
+
+        // 对应 this.goalTypeOptions 的顺序
+        let gIndex = 0;
+        if (habit.goalType === 'TOTAL') {
+          gIndex = 1;
+          // 只有是定量目标时，才填充总目标数
+          if (habit.totalTarget) {
+            this.totalTarget = habit.totalTarget.toString();
+          }
+        }
+        this.selectedGoalTypeIndex = [gIndex];
+
+        // --- 数据回填逻辑 End ---
+      }
+    } catch (err) {
+      promptAction.showToast({
+        message: `抱歉，遇到了一些问题：${err.message || '网络连接失败'}`
+      })
+    } finally {
+      this.isAILoading = false;
+    }
+  }
+
   build() {
     NavDestination() {
-      Column({ space: 16 }) {
-        // 1. 顶部说明
-        Text("创建新习惯")
-          .fontSize(24)
-          .fontWeight(FontWeight.Bold)
-          .width('100%')
-          .padding({ left: 4, top: 8 })
+      Stack() {
+        if (this.isAILoading) {
+          LoadingMask()
+            .transition(TransitionEffect.OPACITY.animation({ duration: 200 }))
+        }
 
-        Text("设定一个你想坚持的目标。")
-          .fontSize(14)
-          .fontColor($r('app.color.font_secondary'))
-          .width('100%')
-          .padding({ left: 4, bottom: 8 })
+        Column({ space: 16 }) {
+          // 1. 顶部说明
+          Text("创建新习惯")
+            .fontSize(24)
+            .fontWeight(FontWeight.Bold)
+            .width('100%')
+            .padding({ left: 4, top: 8 })
 
-        // 2. 习惯名称
-        TextInput({ placeholder: '习惯名称', text: this.name })
-          .height(ITEM_HEIGHT)
-          .fontSize(16)
-          .backgroundColor(this.inputBgColor)
-          .borderRadius(COMMON_RADIUS)
-          .padding({ left: 16, right: 16 })
-          .width('100%')
-          .onChange((val) => {
-            this.name = val;
-          })
-
-        // 3. 周期选择 (使用 ChipGroup)
-        Column({ space: 8 }) {
-          Text("重复周期")
+          Text("设定一个你想坚持的目标。")
             .fontSize(14)
             .fontColor($r('app.color.font_secondary'))
-            .padding({ left: 4 })
+            .width('100%')
+            .padding({ left: 4, bottom: 8 })
 
-          ChipGroup({
-            items: this.periodOptions,
-            itemStyle: {
-              size: ChipSize.NORMAL,
-              backgroundColor: this.inputBgColor,
-              fontColor: $r('app.color.font_secondary'),
-              selectedBackgroundColor: $r('app.color.accent'),
-              selectedFontColor: Color.White
-            },
-            // 修改点 1：直接传值
-            selectedIndexes: this.selectedPeriodIndex,
-            // 修改点 2：监听 onChange 手动更新状态
-            onChange: (indexes: number[]) => {
-              this.selectedPeriodIndex = indexes;
-            }
+          AITextInput({
+            text: $aiInputText,
+            onAITriggered: (): Promise<void> => this.onAITriggered()
           })
-        }
-        .width('100%')
-        .alignItems(HorizontalAlign.Start)
 
-        // 4. 目标设置
-        Row({ space: 12 }) {
-          // 左侧：频率次数
-          Column({ space: 8 }) {
-            Text("每次/频次")
-              .fontSize(14)
-              .fontColor($r('app.color.font_secondary'))
-              .padding({ left: 4 })
-            TextInput({ placeholder: '1', text: this.timesPerPeriod })
-              .type(InputType.Number)
-              .height(ITEM_HEIGHT)
-              .fontSize(16)
-              .backgroundColor(this.inputBgColor)
-              .borderRadius(COMMON_RADIUS)
-              .padding({ left: 16, right: 16 })
-              .width('100%')
-              .onChange((val) => {
-                this.timesPerPeriod = val;
-              })
-          }
-          .layoutWeight(1)
+          // 2. 习惯名称
+          TextInput({ placeholder: '习惯名称', text: this.name })
+            .height(ITEM_HEIGHT)
+            .fontSize(16)
+            .backgroundColor(this.inputBgColor)
+            .borderRadius(COMMON_RADIUS)
+            .padding({ left: 16, right: 16 })
+            .width('100%')
+            .onChange((val) => {
+              this.name = val;
+            })
 
-          // 右侧：目标类型 (使用 ChipGroup)
+          // 3. 周期选择 (使用 ChipGroup)
           Column({ space: 8 }) {
-            Text("目标类型")
+            Text("重复周期")
               .fontSize(14)
               .fontColor($r('app.color.font_secondary'))
               .padding({ left: 4 })
 
             ChipGroup({
-              items: this.goalTypeOptions,
+              items: this.periodOptions,
               itemStyle: {
                 size: ChipSize.NORMAL,
                 backgroundColor: this.inputBgColor,
@@ -223,48 +243,98 @@ export struct AddHabitPage {
                 selectedFontColor: Color.White
               },
               // 修改点 1：直接传值
-              selectedIndexes: this.selectedGoalTypeIndex,
-              // 修改点 2：监听 onChange 手动更新状态 -> 触发 UI 刷新
+              selectedIndexes: this.selectedPeriodIndex,
+              // 修改点 2：监听 onChange 手动更新状态
               onChange: (indexes: number[]) => {
-                this.selectedGoalTypeIndex = indexes;
+                this.selectedPeriodIndex = indexes;
               }
             })
           }
-          .layoutWeight(1)
-        }
-        .width('100%')
-        .alignItems(VerticalAlign.Top)
+          .width('100%')
+          .alignItems(HorizontalAlign.Start)
 
-        // 5. 总目标输入框
-        // 这里的判断逻辑依赖于 selectedGoalTypeIndex 的变化
-        // 加上非空判断防止数组为空报错
-        if (this.selectedGoalTypeIndex.length > 0 &&
-          this.getGoalTypeFromIndex(this.selectedGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
-          Column({ space: 8 }) {
-            Text("总目标数量")
-              .fontSize(14)
-              .fontColor($r('app.color.font_secondary'))
-              .padding({ left: 4 })
+          // 4. 目标设置
+          Row({ space: 12 }) {
+            // 左侧：频率次数
+            Column({ space: 8 }) {
+              Text("每次/频次")
+                .fontSize(14)
+                .fontColor($r('app.color.font_secondary'))
+                .padding({ left: 4 })
+              TextInput({ placeholder: '1', text: this.timesPerPeriod })
+                .type(InputType.Number)
+                .height(ITEM_HEIGHT)
+                .fontSize(16)
+                .backgroundColor(this.inputBgColor)
+                .borderRadius(COMMON_RADIUS)
+                .padding({ left: 16, right: 16 })
+                .width('100%')
+                .onChange((val) => {
+                  this.timesPerPeriod = val;
+                })
+            }
+            .layoutWeight(1)
 
-            TextInput({ placeholder: '例如：100 (页/次)', text: this.totalTarget })
-              .type(InputType.Number)
-              .height(ITEM_HEIGHT)
-              .fontSize(16)
-              .backgroundColor(this.inputBgColor)
-              .borderRadius(COMMON_RADIUS)
-              .padding({ left: 16, right: 16 })
-              .width('100%')
-              .onChange((val) => {
-                this.totalTarget = val;
+            // 右侧：目标类型 (使用 ChipGroup)
+            Column({ space: 8 }) {
+              Text("目标类型")
+                .fontSize(14)
+                .fontColor($r('app.color.font_secondary'))
+                .padding({ left: 4 })
+
+              ChipGroup({
+                items: this.goalTypeOptions,
+                itemStyle: {
+                  size: ChipSize.NORMAL,
+                  backgroundColor: this.inputBgColor,
+                  fontColor: $r('app.color.font_secondary'),
+                  selectedBackgroundColor: $r('app.color.accent'),
+                  selectedFontColor: Color.White
+                },
+                // 修改点 1：直接传值
+                selectedIndexes: this.selectedGoalTypeIndex,
+                // 修改点 2：监听 onChange 手动更新状态 -> 触发 UI 刷新
+                onChange: (indexes: number[]) => {
+                  this.selectedGoalTypeIndex = indexes;
+                }
               })
+            }
+            .layoutWeight(1)
           }
           .width('100%')
-        }
+          .alignItems(VerticalAlign.Top)
 
+          // 5. 总目标输入框
+          // 这里的判断逻辑依赖于 selectedGoalTypeIndex 的变化
+          // 加上非空判断防止数组为空报错
+          if (this.selectedGoalTypeIndex.length > 0 &&
+            this.getGoalTypeFromIndex(this.selectedGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
+            Column({ space: 8 }) {
+              Text("总目标数量")
+                .fontSize(14)
+                .fontColor($r('app.color.font_secondary'))
+                .padding({ left: 4 })
+
+              TextInput({ placeholder: '例如：100 (页/次)', text: this.totalTarget })
+                .type(InputType.Number)
+                .height(ITEM_HEIGHT)
+                .fontSize(16)
+                .backgroundColor(this.inputBgColor)
+                .borderRadius(COMMON_RADIUS)
+                .padding({ left: 16, right: 16 })
+                .width('100%')
+                .onChange((val) => {
+                  this.totalTarget = val;
+                })
+            }
+            .width('100%')
+          }
+
+        }
+        .width('100%')
+        .height('100%')
+        .padding(16)
       }
-      .width('100%')
-      .height('100%')
-      .padding(16)
     }
     .title('')
     .onReady((ctx) => {

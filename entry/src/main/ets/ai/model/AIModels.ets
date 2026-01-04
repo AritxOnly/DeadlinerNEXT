@@ -39,6 +39,7 @@ export enum IntentType {
 export interface MixedResult {
   primaryIntent: string; // "ExtractTasks" | "PlanDay" | "SplitToSteps"
   tasks?: AITask[];
+  habits?: AIHabit[];
   planBlocks?: PlanBlock[];
   steps?: SplitStepsResult[];
 }
@@ -47,6 +48,14 @@ export interface AITask {
   name: string;
   dueTime: string; // "yyyy-MM-dd HH:mm"
   note: string;
+}
+
+export interface AIHabit {
+  name: string;
+  period: 'DAILY' | 'WEEKLY' | 'MONTHLY'; // 对应 HabitPeriod
+  timesPerPeriod: number; // 每次/频次
+  goalType: 'PER_PERIOD' | 'TOTAL'; // 对应 HabitGoalType
+  totalTarget?: number; // 如果是 TOTAL 类型，需要总目标
 }
 
 export interface PlanBlock {

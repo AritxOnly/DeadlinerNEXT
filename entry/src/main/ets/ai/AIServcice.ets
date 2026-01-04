@@ -1,7 +1,7 @@
 import { LocalValues } from '../common/local/LocalValues';
 import { DirectProvider } from './core/DirectProvider';
 import { LLMProvider } from './core/LLMProvider';
-import { ChatRequest, Message, MixedResult, AITask } from './model/AIModels';
+import { ChatRequest, Message, MixedResult, AITask, AIHabit } from './model/AIModels';
 
 export class AIService {
   private static instance: AIService;
@@ -100,6 +100,101 @@ export class AIService {
       const resultObj = JSON.parse(cleanJson) as MixedResult;
 
       return resultObj.tasks ?? [];
+
+    } catch (err) {
+      console.error('[AIService] Extract failed:', JSON.stringify(err));
+      if (err instanceof Error) throw err;
+      throw new Error('AI 处理失败，请检查网络或配置');
+    }
+  }
+
+  /**
+   * 核心功能：智能提取习惯
+   */
+  async extractHabits(text: string, preferredLang: string = 'zh-CN'): Promise<AIHabit[]> {
+    const provider = this.getProvider();
+    const local = LocalValues.getInstance();
+    const modelId = local.getAIModel();
+
+    // --- 构造中文 System Prompt (习惯专用版) ---
+    const systemPrompt = `
+你是一个追求极致效率的习惯养成助手 (Deadliner AI)。
+当前时间：${new Date().toLocaleString('zh-CN', { hour12: false })}
+用户语言：${preferredLang}
+
+任务：将用户的自然语言转化为“习惯(Habit)”条目。
+
+**字段说明与提取原则：**
+1. **name (习惯名)**：
+   - 极简主义，提取核心关键词。例如 "背单词", "跑步", "喝水"。
+   - 去除冗余词，字数控制在 2-8 个字。
+
+2. **period (周期)**：
+   - 必须是以下三个值之一： "DAILY" (每日), "WEEKLY" (每周), "MONTHLY" (每月)。
+   - 默认值：如果未明确提及周期，默认为 "DAILY"。
+   - 示例："每天跑步" -> DAILY; "每周去健身房" -> WEEKLY。
+
+3. **timesPerPeriod (单周期频次)**：
+   - 表示在上述周期内需要完成的次数或数量。
+   - 必须是整数，默认值为 1。
+   - 示例："每天背20个单词" -> period: DAILY, timesPerPeriod: 20; "每周运动3次" -> period: WEEKLY, timesPerPeriod: 3。
+
+4. **goalType (目标类型)**：
+   - "PER_PERIOD" (坚持型/周期型): 只要每个周期完成指定次数即可。这是默认类型。
+   - "TOTAL" (定量型/总目标型): 有一个宏大的总目标，完成后习惯即终止。
+   - 判别依据：如果用户提到了“总共要完成X次/X个”，则为 TOTAL。
+
+5. **totalTarget (总目标)**：
+   - 仅当 goalType 为 "TOTAL" 时需要此字段。表示总共要完成的数量。
+
+**示例参考：**
+- 输入："我要每天背50个单词"
+  -> { "name": "背单词", "period": "DAILY", "timesPerPeriod": 50, "goalType": "PER_PERIOD" }
+- 输入："每周去三次健身房"
+  -> { "name": "健身房运动", "period": "WEEKLY", "timesPerPeriod": 3, "goalType": "PER_PERIOD" }
+- 输入："我要在一个月内读完这本300页的书，每天读10页"
+  -> { "name": "读书", "period": "DAILY", "timesPerPeriod": 10, "goalType": "TOTAL", "totalTarget": 300 }
+
+请返回纯 JSON：
+{
+  "primaryIntent": "ExtractHabits",
+  "habits": [
+    {
+      "name": "习惯名称",
+      "period": "DAILY",
+      "timesPerPeriod": 1,
+      "goalType": "PER_PERIOD"
+    }
+  ]
+}
+`;
+
+
+    const messages: Message[] = [
+      { role: 'system', content: systemPrompt },
+      { role: 'user', content: text }
+    ];
+
+    const request: ChatRequest = {
+      model: modelId,
+      messages: messages,
+      temperature: 0.1 // 保持低温度以确保格式稳定
+    };
+
+    try {
+      const response = await provider.chat(request);
+
+      const content = response.choices[0]?.message?.content;
+      if (!content) {
+        throw new Error('AI 返回内容为空');
+      }
+
+      console.info('[AIService] Raw Response:', content);
+
+      const cleanJson = this.cleanJsonString(content);
+      const resultObj = JSON.parse(cleanJson) as MixedResult;
+
+      return resultObj.habits ?? [];
 
     } catch (err) {
       console.error('[AIService] Extract failed:', JSON.stringify(err));
