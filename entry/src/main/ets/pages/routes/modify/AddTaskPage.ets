@@ -174,7 +174,7 @@ export struct AddTaskPage {
           })
 
           TimeInputButton({
-            title: '结束',
+            title: '结束时间',
             content: this.formatTime(this.endTime),
             onClickButton: (): void => this.showTimePicker(false)
           })

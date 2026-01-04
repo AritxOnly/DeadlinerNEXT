@@ -111,7 +111,7 @@ export struct TaskEditSheet {
 
         // 结束时间
         TimeInputButton({
-          title: '结束',
+          title: '结束时间',
           content: DateTimeUtils.formatForUI(this.editingEndTime),
           onClickButton: (): void => this.showTimePicker(false)
         })

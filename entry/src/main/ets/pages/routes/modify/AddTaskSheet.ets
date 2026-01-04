@@ -136,6 +136,7 @@ export struct AddTaskSheet {
 
           AITextInput({
             text: $aiInputText,
+            placeholder: "询问 AI 以快速添加任务...",
             onAITriggered: (): Promise<void> => this.onAITriggered()
           })
 
@@ -165,7 +166,7 @@ export struct AddTaskSheet {
           })
 
           TimeInputButton({
-            title: '结束',
+            title: '结束时间',
             content: this.formatTime(this.endTime),
             onClickButton: (): void => this.showTimePicker(false)
           })

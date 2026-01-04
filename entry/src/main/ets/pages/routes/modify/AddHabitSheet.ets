@@ -198,6 +198,7 @@ export struct AddHabitSheet {
 
           AITextInput({
             text: $aiInputText,
+            placeholder: "询问 AI 以快速添加习惯...",
             onAITriggered: (): Promise<void> => this.onAITriggered()
           })
 

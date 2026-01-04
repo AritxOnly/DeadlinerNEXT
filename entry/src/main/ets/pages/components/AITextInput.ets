@@ -4,6 +4,7 @@ import { promptAction } from '@kit.ArkUI';
 export struct AITextInput {
   @Link text: string;
   @State isAiLoading: boolean = false;
+  @State placeholder: string = '问 AI...';
 
   private settings: RenderingContextSettings = new RenderingContextSettings(true);
   private context: CanvasRenderingContext2D = new CanvasRenderingContext2D(this.settings);
@@ -111,7 +112,7 @@ export struct AITextInput {
             .backgroundColor($r('sys.color.search_container_focus_color'))
 
           // 输入框
-          TextArea({ text: this.text, placeholder: '询问 AI 以快速添加任务/习惯...' })
+          TextArea({ text: this.text, placeholder: this.placeholder })
             .width('100%')
             .height('100%')
             .backgroundColor(Color.Transparent)
