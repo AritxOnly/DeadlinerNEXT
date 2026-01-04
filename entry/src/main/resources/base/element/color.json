@@ -128,6 +128,9 @@
     { "name": "indicator_color_completed_50", "value": "#808FAFA6" },
     { "name": "indicator_color_completed_70", "value": "#B38FAFA6" },
     { "name": "background_color_completed_40", "value": "#66B7C9C3" },
+    { "name": "widget_bg_grad_start", "value": "#FFF5F7FA" },
+    { "name": "widget_bg_grad_end", "value": "#FFF0F2F5" },
+    { "name": "widget_item_bg", "value": "#FFFFFFFF" },
 
     {
       "name": "item_title_font",

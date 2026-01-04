@@ -51,10 +51,10 @@ export class WidgetUpdater {
           timeText = '已逾期';
           isUrgent = true;
         } else if (diffHours < 24) {
-          timeText = Math.ceil(diffHours) + '小时后';
+          timeText = Math.floor(diffHours) + '小时后';
           isUrgent = diffHours < 6;
         } else {
-          timeText = Math.ceil(diffHours / 24) + '天后';
+          timeText = Math.floor(diffHours / 24) + '天后';
         }
 
         // Fix: Explicitly instantiate the class to satisfy ArkTS strict checks

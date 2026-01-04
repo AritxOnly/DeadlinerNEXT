@@ -48,6 +48,9 @@
 
     { "name": "indicator_color_completed_50", "value": "#808FAFA6"},
     { "name": "indicator_color_completed_70", "value": "#B38FAFA6"},
-    { "name": "background_color_completed_40", "value": "#6630423D"}
+    { "name": "background_color_completed_40", "value": "#6630423D"},
+    { "name": "widget_bg_grad_start", "value": "#FF1A1D21" },
+    { "name": "widget_bg_grad_end", "value": "#FF141619" },
+    { "name": "widget_item_bg", "value": "#FF25292E" }
   ]
 }
