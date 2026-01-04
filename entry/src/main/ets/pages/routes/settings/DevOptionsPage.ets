@@ -1,8 +1,8 @@
 import { HdsNavDestination, HdsNavDestinationAttribute } from "@hms.hds.hdsBaseComponent";
 import { notificationManager } from "@kit.NotificationKit";
-import { clearAllReminders, publishDeadlineReminder } from "../../../utils/notification/DeadlinerReminderUtils";
 import { promptAction } from "@kit.ArkUI";
 import { reminderAgentManager } from "@kit.BackgroundTasksKit";
+import { ReminderUtils } from "../../../utils/notification/ReminderUtils";
 
 @Builder
 export function DevOptionsBuilder(name: string, param: Object) {
@@ -17,63 +17,230 @@ export struct DevOptionsPage {
   build() {
     HdsNavDestination() {
       Scroll() {
-        Column() {
+        Column({ space: 8 }) {
+          Button('📅 发布指定时间提醒 (稳定版)')
+            .backgroundColor($r('app.color.chart_green'))
+            .width('80%')
+            .height(60)
+            .onClick(async () => {
+              try {
+                let targetDate = new Date();
+                targetDate.setSeconds(targetDate.getSeconds() + 5); // 5秒后
+
+                let id = await ReminderUtils.publishCalendar(
+                  "倒计时模拟日历",
+                  "稳如老狗",
+                  targetDate
+                );
+                promptAction.showToast({ message: `发布成功 ID:${id}` });
+              } catch (e) {
+                promptAction.showToast({ message: `失败: ${(e as Error).message}` });
+              }
+            })
+
+          Button('🔔 发送普通通知')
+            .backgroundColor('#007DFF')
+            .width('80%')
+            .height(60)
+            .onClick(async () => {
+              try {
+                // 1. 构建通知请求对象
+                // 注意：这里严格对应 notificationManager.publish 要求的结构
+                let notificationRequest: notificationManager.NotificationRequest = {
+                  id: 1001,
+                  content: {
+                    notificationContentType: notificationManager.ContentType.NOTIFICATION_CONTENT_BASIC_TEXT,
+                    normal: {
+                      title: "测试通知",
+                      text: "如果你看到这条消息，说明通知参数修正成功了",
+                      additionalText: "Test"
+                    }
+                  },
+                  notificationSlotType: notificationManager.SlotType.SOCIAL_COMMUNICATION
+                };
+
+                // 2. 发送
+                await notificationManager.publish(notificationRequest);
+                console.info('[Notification] publish success');
+                promptAction.showToast({ message: '通知发送成功' });
+
+              } catch (err) {
+                let error = err as BusinessError;
+                console.error(`[Notification] Failed. Code: ${error.code}, Message: ${error.message}`);
+                promptAction.showToast({ message: `发送失败: ${error.code}` });
+              }
+            })
+
+          Button('⏰ 发布倒计时提醒')
+            .backgroundColor($r('app.color.accent'))
+            .width('80%')
+            .height(60)
+            .onClick(async () => {
+              console.info("Start cancelAllReminders...");
+
+              // 1. 先取消旧的（防止堆积）
+              reminderAgentManager.cancelAllReminders((err: BusinessError) => {
+                if (err) {
+                  console.error("cancelAllReminders failed: " + err.code);
+                  // 即使取消失败也继续尝试，万一是没数据导致的失败
+                } else {
+                  console.info("cancelAllReminders success");
+                }
+
+                // 2. 延时 1 秒，等待系统释放配额（关键！）
+                setTimeout(async () => {
+                  try {
+                    let mySlotType = notificationManager.SlotType.SOCIAL_COMMUNICATION;
+
+                    let targetReminder: reminderAgentManager.ReminderRequestTimer = {
+                      reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,
+                      triggerTimeInSeconds: 10,
+                      title: '倒计时测试',
+                      content: '时间到了',
+                      actionButton: [
+                        {
+                          title: '关闭',
+                          type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE
+                        }
+                      ],
+                      wantAgent: {
+                        pkgName: 'com.aritxonly.deadliner',
+                        abilityName: 'EntryAbility'
+                      },
+                      notificationId: 1002, // 使用不同的 ID
+                      slotType: mySlotType  // 传入断言后的类型
+                    };
+
+                    // 3. 发布
+                    let reminderId = await reminderAgentManager.publishReminder(targetReminder);
+                    console.info('[Reminder] Publish success. ID: ' + reminderId);
+                    promptAction.showToast({ message: '提醒发布成功' });
+
+                    // 4. 查库验证
+                    const reminders = await reminderAgentManager.getValidReminders();
+                    console.info("[Reminder] Valid count in DB: " + reminders.length);
+
+                  } catch (err) {
+                    let error = err as BusinessError;
+                    console.error(`[Reminder] Failed. Code: ${error.code}, Message: ${error.message}`);
+
+                    if (error.code == 1700002) {
+                      promptAction.showToast({ message: '⚠️ 请卸载 App 后重试 (配额死锁)' });
+                    } else {
+                      promptAction.showToast({ message: `提醒失败: ${error.code}` });
+                    }
+                  }
+                }, 1000); // 延时结束
+              });
+            })
+
+          // =========================================================
+          // 2. 深度状态诊断
+          // =========================================================
+          Button('🔍 深度状态诊断')
+            .backgroundColor('#E65100')
+            .width('80%')
+            .height(60)
+            .onClick(async () => {
+              try {
+                console.info("============== DIAGNOSIS START ==============");
+
+                const isEnable = await notificationManager.isNotificationEnabled();
+                console.info(`[Diagnosis] Global Notification Enabled: ${isEnable}`);
+
+                // 【关键修复】加上 as any
+                const slotType = notificationManager.SlotType.SOCIAL_COMMUNICATION;
+                const slot = await notificationManager.getSlot(slotType);
+                console.info(`[Diagnosis] Slot (SOCIAL) enable: ${slot.enabled}`);
+                console.info(`[Diagnosis] Slot (SOCIAL) level: ${slot.level}`);
+
+                try {
+                  const reminders = await reminderAgentManager.getValidReminders();
+                  console.info(`[Diagnosis] Current Valid Reminders Count: ${reminders.length}`);
+                } catch (e) {
+                  console.error(`[Diagnosis] getValidReminders crashed: ${JSON.stringify(e)}`);
+                }
+
+                console.info("============== DIAGNOSIS END ==============");
+                promptAction.showToast({ message: '诊断完成，请看 Log' });
+
+              } catch (err) {
+                console.error(`[Diagnosis] Diagnosis script failed: ${JSON.stringify(err)}`);
+              }
+            })
+
           Button('🛑 极简核心测试')
             .backgroundColor('#B71C1C')
             .width('80%')
             .height(60)
             .onClick(async () => {
-              // 1. 清理 (保持这个好习惯)
-              try { await reminderAgentManager.cancelAllReminders(); } catch (e) {}
+              console.info("Start cancelAllReminders...");
 
-              const target = new Date();
-              target.setSeconds(target.getSeconds() + 10);
+              reminderAgentManager.cancelAllReminders((err: BusinessError) => {
+                if (err) {
+                  console.error("cancelAllReminders failed code:" + err.code + " message:" + err.message);
+                  return;
+                }
 
-              const timer: reminderAgentManager.LocalDateTime = {
-                year: target.getFullYear(),
-                month: target.getMonth() + 1,
-                day: target.getDate(),
-                hour: target.getHours(),
-                minute: target.getMinutes(),
-                second: target.getSeconds()
-              };
+                console.info("cancelAllReminders callback success. Waiting for quota release...");
 
-              // 2. 构造“平民版”请求
-              const request: reminderAgentManager.ReminderRequestCalendar = {
-                reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_CALENDAR,
-                dateTime: timer,
+                setTimeout(() => {
+                  console.info("Delay finished, start publishing...");
 
-                title: "Deadliner降级测试",
-                content: "如果这条能发，说明之前是渠道类型权限不够",
+                  let timer: reminderAgentManager.ReminderRequestTimer = {
+                    reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,
+                    triggerTimeInSeconds: 10
+                  }
 
-                // 【改动1】删除 notificationId，让系统全权接管
-                // notificationId: 10086,
+                  reminderAgentManager.publishReminder(timer, (err: BusinessError, reminderId: number) => {
+                    if (err) {
+                      console.error("publishReminder failed code:" + err.code + " message:" + err.message);
+                    } else {
+                      console.info("publishReminder success, reminderId = " + reminderId);
+                    }
 
-                wantAgent: {
-                  pkgName: MY_BUNDLE_NAME,
-                  abilityName: MY_ABILITY_NAME
+                    reminderAgentManager.getValidReminders().then((reminders) => {
+                      console.info("getValidReminders length = " + reminders.length);
+                    });
+                  });
+                }, 1000);
+              });
+            })
+
+          Button('✅ 测试 - 官方示例')
+            .backgroundColor($r('app.color.accent'))
+            .width('80%')
+            .height(60)
+            .onClick(async () => {
+              let targetReminderAgent: reminderAgentManager.ReminderRequestTimer = {
+                reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,   // 提醒类型为倒计时类型
+                triggerTimeInSeconds: 10,
+                actionButton: [ // 设置弹出的提醒通知信息上显示的按钮类型和标题
+                  {
+                    title: 'close',
+                    type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE
+                  }
+                ],
+                wantAgent: {     // 点击提醒通知后跳转的目标UIAbility信息
+                  pkgName: 'com.aritxonly.deadliner',
+                  abilityName: 'EntryAbility'
                 },
-
-                snoozeTimes: 0,
-                ringDuration: 5,
-                timeInterval: 0,
-
-                // 【改动2】关键！降级为 OTHER (值是3) 或者 CONTENT_INFORMATION (值是1)
-                // 很多非系统App只能用这个
-                slotType: notificationManager.SlotType.CONTENT_INFORMATION
-              };
-
-              try {
-                console.info(`[DEBUG] 正在发布(ContentInfo模式)...`);
-                const id = await reminderAgentManager.publishReminder(request);
-                console.info(`[DEBUG] 🎉 成功! ID: ${id}`);
-                promptAction.showToast({ message: `✅ 成功！ID:${id}\n请锁屏`, duration: 3000 });
-              } catch (err) {
-                console.error(`[DEBUG] ❌ 失败: Code=${err.code}, Msg=${err.message}`);
-                // 打印出完整的 request 以便核对
-                console.error(`[DEBUG] Dump: ${JSON.stringify(request)}`);
-                promptAction.showToast({ message: `失败: ${err.code}` });
+                title: 'this is title', // 指明提醒标题
+                content: 'this is content', // 指明提醒内容
+                expiredContent: 'this reminder has expired', // 指明提醒过期后需要显示的内容
+                notificationId: 100, // 指明提醒使用的通知的ID号，相同ID号的提醒会覆盖
+                ringDuration: -1,
+                slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION // 指明提醒的Slot类型
               }
+
+              reminderAgentManager.publishReminder(targetReminderAgent).then((res: number) => {
+                console.info('[REMINDER]' + 'Succeeded in publishing reminder. ');
+                let reminderId: number = res; // 发布的提醒ID
+
+                console.log('[REMINDER]' + 'REMINDER ID' + reminderId)
+              }).catch((err: BusinessError) => {
+                console.error(`Failed to publish reminder. Code: ${err.code}, message: ${err.message}`);
+              })
             })
         }
       }

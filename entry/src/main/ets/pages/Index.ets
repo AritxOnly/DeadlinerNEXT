@@ -191,7 +191,7 @@ struct Index {
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .barMode(BarMode.Fixed) // 固定布局
       .barOverlap(true) // TabBar 与内容叠加，方便做模糊
-      .barBackgroundBlurStyle(BlurStyle.Regular) // TabBar 背景模糊（原生能力）
+      .barBackgroundBlurStyle(BlurStyle.COMPONENT_REGULAR) // TabBar 背景模糊（原生能力）
       .barBackgroundColor(Color.Transparent)
       .animationDuration(300)
       .scrollable(false) // 两个 Tab 不需要横向滚动

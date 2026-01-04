@@ -8,6 +8,7 @@ import { TaskRepository } from '../common/repository/TaskRepository';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
 import { buffer } from '@kit.ArkTS';
 import auth from '@hw-agconnect/auth'
+import { ReminderDataManager } from '../utils/notification/ReminderDataManager';
 
 const DOMAIN = 0x0000;
 
@@ -27,6 +28,11 @@ export default class EntryAbility extends UIAbility {
     let file = await this.context.resourceManager.getRawFileContent('agconnect-services.json');
     let json: string = buffer.from(file.buffer).toString();
     auth.init(this.context, json);
+
+    console.info('[EntryAbility] Initializing ReminderDataManager...');
+    await ReminderDataManager.getInstance().init(this.context);
+
+    await TaskRepository.getInstance().initialReminderCheck();
 
     this.checkLoginStatus();
   }

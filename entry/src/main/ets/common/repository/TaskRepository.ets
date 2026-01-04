@@ -5,6 +5,7 @@ import { LocalValues } from '../local/LocalValues';
 import { DDLItem, DeadlineType } from '../../model/DDLModels';
 import { common } from '@kit.AbilityKit';
 import { WidgetUpdater } from '../../utils/WidgetUpdater';
+import { ReminderScheduler } from '../../utils/notification/ReminderScheduler';
 
 export class TaskRepository {
   private static instance: TaskRepository;
@@ -148,6 +149,7 @@ export class TaskRepository {
     this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
+    this.scheduleReminderRefresh();
     return id;
   }
 
@@ -157,6 +159,7 @@ export class TaskRepository {
     this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
+    this.scheduleReminderRefresh();
   }
 
   async deleteDDL(id: number): Promise<void> {
@@ -165,6 +168,7 @@ export class TaskRepository {
     this.notifyDataChange();
     this.scheduleSync(); // 触发调度
     this.scheduleWidgetUpdate();
+    this.scheduleReminderRefresh();
   }
 
   async getAllDDLs(): Promise<DDLItem[]> {
@@ -237,6 +241,7 @@ export class TaskRepository {
       if (result.success && result.hasLocalChanges && this.context) {
         this.notifyDataChange();
         this.performWidgetUpdate();
+        this.scheduleReminderRefresh();
       }
       return result.success;
     } finally {
@@ -246,5 +251,44 @@ export class TaskRepository {
         this.performSync();
       }
     }
+  }
+
+  private reminderUpdateTimer: number = -1;
+  private readonly REMINDER_UPDATE_DELAY_MS = 800;
+
+  private scheduleReminderRefresh() {
+    // 1. 如果有挂起的任务，取消重置
+    if (this.reminderUpdateTimer !== -1) {
+      clearTimeout(this.reminderUpdateTimer);
+    }
+
+    // 2. 启动定时器
+    this.reminderUpdateTimer = setTimeout(() => {
+      this.performReminderRefresh();
+    }, this.REMINDER_UPDATE_DELAY_MS);
+  }
+
+  private async performReminderRefresh() {
+    try {
+      await this.ensureDbReady();
+      console.info('[TaskRepo] Triggering Reminder Scheduler...');
+
+      // 1. 获取所有数据 (Scheduler 内部会过滤已完成和已删除的)
+      const allDDLs = await this.db.getAllDDLs();
+
+      // 2. 交给调度器计算
+      await ReminderScheduler.refreshReminders(allDDLs);
+
+    } catch (e) {
+      console.error(`[TaskRepo] Reminder refresh failed: ${e}`);
+    } finally {
+      this.reminderUpdateTimer = -1;
+    }
+  }
+
+  public async initialReminderCheck() {
+    console.info('[TaskRepo] performing initial reminder check...');
+
+    this.scheduleReminderRefresh();
   }
 }
