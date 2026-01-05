@@ -35,7 +35,7 @@ struct TaskWidgetCardSmall {
         // --- 顶部栏 ---
         Row() {
           Image($r('app.media.icon'))
-            .width(16) // [调整] 缩小图标以节省空间
+            .width(16)
             .height(16)
             .borderRadius(4)
             .margin({ right: 6 })
@@ -59,13 +59,13 @@ struct TaskWidgetCardSmall {
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
-        .margin({ bottom: 8 })
+        .margin({ bottom: 8, top: 4, left: 4, right: 4 })
 
         // --- 任务列表 ---
         if (this.data.tasks.length === 0) {
           this.EmptyState()
         } else {
-          List({ space: 3 }) {
+          List({ space: 4 }) {
             ForEach(this.data.tasks.slice(0, 3), (item: WidgetTaskItem) => {
               ListItem() {
                 this.CompactTaskItem(item)
@@ -78,7 +78,7 @@ struct TaskWidgetCardSmall {
       }
       .width('100%')
       .height('100%')
-      .padding(10)
+      .padding(8)
     }
     .width('100%')
     .height('100%')
@@ -121,7 +121,7 @@ struct TaskWidgetCardSmall {
         .flexShrink(0)
     }
     .width('100%')
-    .height(32)
+    .height(30)
     .backgroundColor(this.COLOR_ITEM_BG)
     .borderRadius(8)
     .padding({ left: 6, right: 8 })

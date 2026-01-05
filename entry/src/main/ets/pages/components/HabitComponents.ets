@@ -36,7 +36,7 @@ export struct HabitCircleProgress {
       Progress({ value: this.progress * 100, total: 100, type: ProgressType.Eclipse })
         .width(84)
         .height(84)
-        .color(this.addAlpha(this.indicatorColor, 0.5))
+        .color($r('app.color.brand_50'))
         // .backgroundColor(this.bgColor)
         // .style({ strokeWidth: 8 })
         .animation({ duration: 800, curve: Curve.Smooth })

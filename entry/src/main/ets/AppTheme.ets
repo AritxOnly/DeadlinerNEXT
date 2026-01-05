@@ -1,4 +1,3 @@
-// entry/src/main/ets/AppTheme.ets
 import type { CustomColors, CustomTheme } from '@kit.ArkUI'
 
 export class DeadlinerColors implements CustomColors {
