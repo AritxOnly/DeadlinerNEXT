@@ -1,10 +1,10 @@
-import { SettingsConstants } from "../../../common/local/SettingsConstants";
-import { LocalValues } from "../../../common/local/LocalValues";
+import { SettingsConstants } from "../../../../common/local/SettingsConstants";
+import { LocalValues } from "../../../../common/local/LocalValues";
 import { promptAction } from '@kit.ArkUI'; // 用于显示 Toast
-import { WebUtils } from '../../../common/network/WebUtils'; // 引用我们之前写的网络工具
-import { DatabaseHelper } from '../../../common/data/DatabaseHelper'; // 引用数据库工具
-import { SyncService } from "../../../common/sync/SyncService";
-import { SettingsSection, SubSettingsSwitch } from "../../components/SettingsComponents";
+import { WebUtils } from '../../../../common/network/WebUtils'; // 引用我们之前写的网络工具
+import { DatabaseHelper } from '../../../../common/data/DatabaseHelper'; // 引用数据库工具
+import { SyncService } from "../../../../common/sync/SyncService";
+import { SettingsSection, SubSettingsSwitch } from "../../../components/SettingsComponents";
 
 @Builder
 export function SettingsWebDavBuilder(name: string, param: Object) {
@@ -36,22 +36,12 @@ export struct SettingsWebDavPage {
         // 1. 同步开关
         SettingsSection() {
           SubSettingsSwitch({
-            text: "启用云同步",
+            title: "启用云同步",
             isOn: this.syncEnable,
             onChange: (isOn) => {
               LocalValues.getInstance().setCloudSyncEnable(isOn)
             }
           })
-          // Row() {
-          //   Text("启用云同步").fontSize(16).fontWeight(FontWeight.Medium)
-          //   Blank()
-          //   Toggle({ type: ToggleType.Switch, isOn: this.syncEnable })
-          //     .onChange((isOn) => {
-          //       LocalValues.getInstance().setCloudSyncEnable(isOn);
-          //     })
-          // }
-          // .width('100%')
-          // .padding({ left: 12, right: 12, top: 12, bottom: 12 })
         }
 
         Text("WebDAV 服务为用户提供接入云端托管平台的服务。\n由于我们本身并不提供云服务，需要用户注册任意支持 WebDAV 服务的云盘账户。账号与密码将在本地存储，不会上传到云端。")

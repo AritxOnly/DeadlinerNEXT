@@ -1,4 +1,6 @@
-import { ItemRestriction, LengthMetrics, SegmentButton,
+import { ItemRestriction, LengthMetrics,
+  promptAction,
+  SegmentButton,
   SegmentButtonItemTuple,
   SegmentButtonOptions,
   SegmentButtonTextItem,
@@ -24,6 +26,7 @@ import { AddTaskPage } from '../modify/AddTaskPage'
 import { AddTaskSheet } from '../modify/AddTaskSheet'
 import { AddHabitSheet } from '../modify/AddHabitSheet'
 import { LocalValues } from '../../../common/local/LocalValues'
+import { MainButtonType } from '../../../common/local/LocalModels'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -53,6 +56,11 @@ const EXCITEMENT_MESSAGES: Resource[] = [
   $r('app.string.excitement_do_hard_first'),
   $r('app.string.excitement_next'),
 ]
+
+interface MainHomePageButton {
+  icon: Resource,
+  onClick: () => void
+}
 
 @Component
 export struct MainHomePage {
@@ -115,6 +123,7 @@ export struct MainHomePage {
 
   aboutToAppear(): void {
     this.updateNavSubTitle();
+    this.updateButtons();
   }
 
   updateNavSubTitle() {
@@ -180,22 +189,61 @@ export struct MainHomePage {
     });
   }
 
+  readonly mainHomePageButtons: MainHomePageButton[] = [
+    {
+      icon: $r('sys.symbol.archivebox'),
+      onClick: () => { this.isArchiveSheetShow = true; }
+    },
+    {
+      icon: $r('sys.symbol.magnifyingglass'),
+      onClick: () => { promptAction.showToast({ message: '搜索功能 TODO' }) }
+    },
+    {
+      icon: $r('sys.symbol.wand_and_stars'),
+      onClick: () => { this.isAISheetShow = true }
+    },
+    {
+      icon: $r('sys.symbol.square'),
+      onClick: () => {}
+    }
+  ]
+
+  mapMainHomePageButton(type: MainButtonType): MainHomePageButton {
+    switch (type) {
+      case MainButtonType.ARCHIVE: return this.mainHomePageButtons[0];
+      case MainButtonType.SEARCH: return this.mainHomePageButtons[1];
+      case MainButtonType.AI: return this.mainHomePageButtons[2];
+      default: return this.mainHomePageButtons[3];
+    }
+  }
+
+  @StorageLink(C.KEY_MAIN_LEFT_BUTTON) @Watch('updateButtons') leftBtnType: MainButtonType = MainButtonType.ARCHIVE;
+  @StorageLink(C.KEY_MAIN_RIGHT_BUTTON) @Watch('updateButtons') rightBtnType: MainButtonType = MainButtonType.SEARCH;
+
+  @State leftBtn: MainHomePageButton = this.mainHomePageButtons[0];
+  @State rightBtn: MainHomePageButton = this.mainHomePageButtons[1];
+
+  updateButtons() {
+    this.leftBtn = this.mapMainHomePageButton(this.leftBtnType);
+    this.rightBtn = this.mapMainHomePageButton(this.rightBtnType);
+    console.info('HomePage buttons updated:', this.leftBtnType, this.rightBtnType);
+  }
+
   @Builder topSegment() {
     Stack({ alignContent: Alignment.Center }) {
       Row() {
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          // 使用系统 Symbol 图标，例如 'sys.symbol.square_grid_2x2' 或自定义图标
-          SymbolGlyph($r('sys.symbol.archivebox'))
+          SymbolGlyph(this.leftBtn.icon)
             .fontSize(24)
             .fontColor([$r('sys.color.ohos_id_color_text_primary')])
-            // .fontWeight(FontWeight.Medium)
         }
         .width(40)
         .height(40)
         .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
         .onClick(() => {
-          this.isArchiveSheetShow = true;
+          this.leftBtn.onClick();
         })
+        .enabled(((this.leftBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.leftBtnType !== MainButtonType.AI))
       }
       .width('100%')
       .height('100%')
@@ -389,20 +437,17 @@ export struct MainHomePage {
     }
     .titleBar({
       style: {
-        // --- 核心：滚动动态模糊配置 ---
         scrollEffectOpts: {
           enableScrollEffect: true,
           scrollEffectType: ScrollEffectType.COMMON_BLUR,
           blurEffectiveStartOffset: LengthMetrics.vp(0),
           blurEffectiveEndOffset: LengthMetrics.vp(10)
         },
-        // --- 初始状态样式 (透明) ---
         originalStyle: {
           backgroundStyle: {
             backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
           },
         },
-        // --- 滚动生效后样式 (模糊) ---
         scrollEffectStyle: {
           backgroundStyle: {
             backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
@@ -410,22 +455,19 @@ export struct MainHomePage {
         }
       },
       content: {
-        // --- 标题内容 ---
         title: {
           mainTitle: 'Deadliner',
           subTitle: this.navSubtitle
         },
-        // --- 菜单按钮 ---
         menu: {
           value: [
             {
               content: {
-                label: 'AI',
-                icon: $r('sys.symbol.wand_and_stars'),
+                icon: this.rightBtn.icon,
                 action: () => {
-                  this.isAISheetShow = true
+                  this.rightBtn.onClick();
                 },
-                isEnabled: !this.isBasicMode
+                isEnabled: ((this.rightBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.rightBtnType !== MainButtonType.AI)
               }
             },
           ]

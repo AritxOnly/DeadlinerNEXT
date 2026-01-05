@@ -100,30 +100,25 @@ export class ReminderScheduler {
   private static async publishAndRecord(ddl: DDLItem, deadlineDate: Date) {
     console.info(`[Scheduler] Publishing DDL:${ddl.name}...`);
     try {
-      // 修复问题 2：计算“提前一天”的时间
-      // 逻辑：提醒时间 = 截止时间 - 24小时
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const remindTime = new Date(deadlineDate.getTime() - ONE_DAY_MS);
 
-      // 注意：如果 (截止时间 - 1天) 已经是过去的时间了（比如任务明天早上截止，现在是晚上）
-      // ReminderUtils (稳定版Timer方案) 会自动将其处理为 "1秒后触发" (即立即提醒)
-      // 这符合预期：如果错过了昨天的提醒，现在立刻补发一个。
+      const timeStr = formatDeadline(deadlineDate);
 
-      // 1. 调用工具类发布 (传入计算后的提醒时间)
+      const contentText = ddl.note
+        ? `${ddl.note} · 截止于 ${timeStr}`
+        : `截止于 ${timeStr}`;
+
       const reminderId = await ReminderUtils.publishCalendar(
-        ddl.name,
-        // 文案也可以优化一下，提示是提前一天
-        `${ddl.note || '任务即将到期'}`,
+        `任务临近提醒: ${ddl.name}`,
+        contentText,
         remindTime
       );
 
-      // 2. 记账
       const newRecord: ActiveReminder = {
         targetId: ddl.id.toString(),
         type: 'DDL',
         reminderId: reminderId,
-        // 关键：这里仍然存 "截止时间"，用于 Diff 比较
-        // 如果存提醒时间，下次 diff 会发现时间对不上导致死循环刷新
         triggerTime: deadlineDate.getTime()
       };
       await ReminderDataManager.getInstance().addOrUpdate(newRecord);
@@ -132,4 +127,13 @@ export class ReminderScheduler {
       console.error(`[Scheduler] Publish failed for ${ddl.name}: ${e}`);
     }
   }
+}
+
+function formatDeadline(date: Date): string {
+  const month = date.getMonth() + 1; // 月份从0开始，记得+1
+  const day = date.getDate();
+  const hour = date.getHours().toString().padStart(2, '0');   // 补零，例如 9 -> 09
+  const minute = date.getMinutes().toString().padStart(2, '0');
+
+  return `${month}月${day}日 ${hour}:${minute}`;
 }

@@ -1,6 +1,7 @@
 import { preferences } from '@kit.ArkData';
 import { SettingsConstants as C } from './SettingsConstants';
 import { SecureStorage } from './SecureStorage';
+import { MainButtonType } from './LocalModels';
 
 interface WebDavAuthInterface {
   user: string;
@@ -72,6 +73,12 @@ export class LocalValues {
       // 读取 API Key (敏感数据)
       const dsApiKey = await SecureStorage.get(C.KEY_AI_DEEPSEEK_API_KEY);
       AppStorage.setOrCreate(C.KEY_AI_DEEPSEEK_API_KEY, dsApiKey);
+
+      const leftBtn = await this.pref.get(C.KEY_MAIN_LEFT_BUTTON, MainButtonType.ARCHIVE);
+      AppStorage.setOrCreate(C.KEY_MAIN_LEFT_BUTTON, leftBtn);
+
+      const rightBtn = await this.pref.get(C.KEY_MAIN_RIGHT_BUTTON, MainButtonType.SEARCH);
+      AppStorage.setOrCreate(C.KEY_MAIN_RIGHT_BUTTON, rightBtn);
 
       console.info('SettingsValue initialized successfully');
     } catch (err) {
@@ -297,5 +304,21 @@ export class LocalValues {
     } catch (e) {
       console.error('LocalValues', `Failed to clear advanced settings: ${e.message}`);
     }
+  }
+
+  getMainLeftButton(): MainButtonType {
+    return AppStorage.get<MainButtonType>(C.KEY_MAIN_LEFT_BUTTON) ?? MainButtonType.ARCHIVE;
+  }
+
+  async setMainLeftButton(type: MainButtonType) {
+    await this.setValue(C.KEY_MAIN_LEFT_BUTTON, type);
+  }
+
+  getMainRightButton(): MainButtonType {
+    return AppStorage.get<MainButtonType>(C.KEY_MAIN_RIGHT_BUTTON) ?? MainButtonType.SEARCH;
+  }
+
+  async setMainRightButton(type: MainButtonType) {
+    await this.setValue(C.KEY_MAIN_RIGHT_BUTTON, type);
   }
 }

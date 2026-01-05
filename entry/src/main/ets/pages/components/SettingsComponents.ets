@@ -18,10 +18,10 @@ export struct SettingsSection {
       // Section 标题 (TopLabel)
       if (this.title) {
         Text(this.title)
-          .fontSize(14)
+          .fontSize(13)
           .fontColor($r('sys.color.ohos_id_color_text_secondary'))
           .fontWeight(FontWeight.Medium)
-          .margin({ left: 24, bottom: 8 }) // 对齐卡片内部文字
+          .margin({ left: 24, bottom: 4 }) // 对齐卡片内部文字
           .width('100%')
       }
 
@@ -91,6 +91,54 @@ export struct SettingsItem {
     .margin({ top: 2, bottom: 2, start: LengthMetrics.vp(2), end: LengthMetrics.vp(2) }) // 按钮离容器边缘的间隙
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent) // 点击态
     .animation({ duration: 200 }) // 简单的颜色过渡动画
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        this.isPressed = true;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false;
+      }
+    })
+    .onClick(() => {
+      if (this.onItemClick) this.onItemClick();
+    })
+  }
+}
+
+/**
+ * SettingsGridItem: 宫格类型的设置项按钮 (用于横向排列)
+ * 样式：图标在上，文字在下，居中显示
+ */
+@Component
+export struct SettingsGridItem {
+  title: string | Resource = '';
+  icon?: Resource;
+  iconColor?: ResourceColor = $r('app.color.font_primary');
+  onItemClick?: () => void;
+
+  // 内部状态，用于处理按压效果
+  @State isPressed: boolean = false;
+
+  build() {
+    Column() {
+      if (this.icon) {
+        SymbolGlyph(this.icon)
+          .fontSize(28) // 图标稍微大一点
+          .fontColor([this.iconColor]) // 或者用 brand 颜色高亮：$r('app.color.brand')
+          .margin({ bottom: 8 }) // 图标和文字的间距
+      }
+
+      Text(this.title)
+        .fontSize(13) // 字体稍微小一点，适配紧凑布局
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.font_primary'))
+        .maxLines(1)
+        .textOverflow({ overflow: TextOverflow.Ellipsis })
+    }
+    .layoutWeight(1) // 【关键】让它在 Row 里自动平分宽度
+    .padding({ top: 16, bottom: 16 }) // 增加上下点击区域
+    .borderRadius(16) // 圆角
+    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent) // 点击态
+    .animation({ duration: 200 })
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;
@@ -200,6 +248,23 @@ export struct SettingsDivider {
       .color($r('sys.color.ohos_id_color_list_separator'))
       .strokeWidth(0.5) // 细一点比较精致
       .margin({ left: 56, right: 16, top: 2, bottom: 2 }) // 左侧留出图标位置 (24+16+16)
+  }
+}
+
+/**
+ * SettingsVerticalDivider: 竖向分割线
+ * 用于横向排列的 GridItem 之间，高度不占满，居中显示
+ */
+@Component
+export struct SettingsVerticalDivider {
+  build() {
+    Divider()
+      .vertical(true)
+      .color($r('sys.color.ohos_id_color_list_separator'))
+      .strokeWidth(0.5)
+      .height(32)
+      .alignSelf(ItemAlign.Center)
+      .margin({ left: 4, right: 4 })
   }
 }
 
@@ -373,18 +438,132 @@ export struct SettingsUserProfile {
 
 @Component
 export struct SubSettingsSwitch {
-  @State isOn: boolean = false
-  onChange: (isOn: boolean) => void = () => {}
-  @State text: string = ''
+  title: string | Resource = '';
+  subtitle?: string | Resource = '';
+
+  @Link isOn: boolean;
+  onChange?: (isOn: boolean) => void;
+
+  // 内部状态，用于处理按压效果 (与 SettingsItem 保持一致)
+  @State isPressed: boolean = false;
 
   build() {
     Row() {
-      Text(this.text).fontSize(16).fontWeight(FontWeight.Medium)
-      Blank()
+      // 1. 左侧：标题和副标题 (Column)
+      Column() {
+        Text(this.title)
+          .fontSize(16)
+          // 【统一】字重改为 Bold，与 SettingsItem 一致
+          .fontWeight(FontWeight.Bold)
+          // 【统一】颜色使用 app.color
+          .fontColor($r('app.color.font_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        if (this.subtitle) {
+          Text(this.subtitle)
+            .fontSize(12)
+            // 【统一】颜色使用 app.color
+            .fontColor($r('app.color.font_secondary'))
+            .margin({ top: 4 })
+            .lineHeight(16) // 优化多行阅读体验
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .maxLines(2) // 允许副标题最多显示2行，防止过长
+        }
+      }
+      .layoutWeight(1) // 占满左侧剩余空间
+      .alignItems(HorizontalAlign.Start)
+      .margin({ right: 12 }) // 与右侧开关保持间距
+
+      // 2. 右侧：开关
       Toggle({ type: ToggleType.Switch, isOn: this.isOn })
-        .onChange(this.onChange)
+        .onChange((isOn) => {
+          this.isOn = isOn;
+          if (this.onChange) {
+            this.onChange(isOn);
+          }
+        })
+        .selectedColor($r('app.color.brand')) // 品牌色
+        .hitTestBehavior(HitTestMode.Block) // 确保开关点击优先响应
     }
     .width('100%')
+    .alignItems(VerticalAlign.Center)
     .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
+    .borderRadius(20) // 保持圆角一致
+    .animation({ duration: 200 })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        this.isPressed = true;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false;
+      }
+    })
+    .onClick(() => {
+      this.isOn = !this.isOn;
+      if (this.onChange) {
+        this.onChange(this.isOn);
+      }
+    })
+  }
+}
+
+/**
+ * SettingsCheckItem: 带 Checkbox 的设置项
+ * 样式：图标 + 标题 + 右侧勾选框
+ */
+@Component
+export struct SettingsCheckItem {
+  title: string | Resource = '';
+  icon?: Resource;
+  @Prop isSelected: boolean = false;
+  onItemClick?: () => void;
+
+  @State isPressed: boolean = false;
+
+  build() {
+    Row() {
+      // 1. 左侧图标
+      if (this.icon) {
+        SymbolGlyph(this.icon)
+          .fontSize(24)
+          .fontColor([$r('app.color.font_primary')])
+          .margin({ right: 16 })
+      }
+
+      // 2. 标题
+      Text(this.title)
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.font_primary'))
+        .layoutWeight(1)
+
+      // 3. 右侧 Checkbox
+      // hitTestBehavior(HitTestMode.None) 让点击事件穿透给 Row，体验更好
+      Checkbox({ name: 'checkbox', group: 'group' })
+        .select(this.isSelected)
+        .selectedColor($r('app.color.brand'))
+        .hitTestBehavior(HitTestMode.None)
+        .width(24)
+        .height(24)
+    }
+    .width('100%')
+    .height(56) // 标准列表高度
+    .padding({ left: 12, right: 12 })
+    .borderRadius(20)
+    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
+    .animation({ duration: 200 })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        this.isPressed = true;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false;
+      }
+    })
+    .onClick(() => {
+      if (this.onItemClick) {
+        this.onItemClick();
+      }
+    })
   }
 }

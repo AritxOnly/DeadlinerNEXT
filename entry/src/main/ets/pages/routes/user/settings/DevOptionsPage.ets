@@ -2,7 +2,7 @@ import { HdsNavDestination, HdsNavDestinationAttribute } from "@hms.hds.hdsBaseC
 import { notificationManager } from "@kit.NotificationKit";
 import { promptAction } from "@kit.ArkUI";
 import { reminderAgentManager } from "@kit.BackgroundTasksKit";
-import { ReminderUtils } from "../../../utils/notification/ReminderUtils";
+import { ReminderUtils } from "../../../../utils/notification/ReminderUtils";
 
 @Builder
 export function DevOptionsBuilder(name: string, param: Object) {

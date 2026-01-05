@@ -21,4 +21,7 @@ export class SettingsConstants {
   static readonly KEY_AI_MODEL = 'ai_model';
   static readonly KEY_AI_DEEPSEEK_API_KEY = 'ai_deepseek_api_key';
   static readonly KEY_AI_BASE_URL = 'ai_base_url';
+
+  static readonly KEY_MAIN_LEFT_BUTTON = 'main_left_button';
+  static readonly KEY_MAIN_RIGHT_BUTTON = 'main_right_button';
 }

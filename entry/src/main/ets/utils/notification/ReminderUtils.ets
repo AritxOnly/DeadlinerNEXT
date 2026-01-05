@@ -44,13 +44,21 @@ export class ReminderUtils {
         {
           title: '关闭',
           type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE
+        },
+        {
+          title: '稍后',
+          type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE
         }
       ],
 
       wantAgent: {
-        pkgName: 'com.aritxonly.deadliner', // ⚠️ 再次确认包名正确
+        pkgName: 'com.aritxonly.deadliner',
         abilityName: 'EntryAbility'
       },
+
+      snoozeTimes: 1, // 允许贪睡
+      timeInterval: 60 * 60, // 贪睡间隔 1小时
+      snoozeContent: `将在 5 分钟后再次提醒`,
 
       // 显式指定 ID，方便后续取消
       notificationId: reminderId,
@@ -59,7 +67,7 @@ export class ReminderUtils {
       slotType: mySlotType,
 
       // 设为 1 秒，实现“叮”一声即止的普通通知效果
-      ringDuration: 0
+      ringDuration: 0,
     };
 
     try {

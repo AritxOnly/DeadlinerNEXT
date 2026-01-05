@@ -1,7 +1,7 @@
-import { SettingsConstants } from "../../../common/local/SettingsConstants";
-import { LocalValues } from "../../../common/local/LocalValues";
+import { SettingsConstants } from "../../../../common/local/SettingsConstants";
+import { LocalValues } from "../../../../common/local/LocalValues";
 import { promptAction } from '@kit.ArkUI';
-import { AIService } from "../../../ai/AIServcice";
+import { AIService } from "../../../../ai/AIServcice";
 import { Theme } from '@kit.ArkUI';
 
 @Builder

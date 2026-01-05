@@ -4,19 +4,11 @@
       "name": "start_window_background",
       "value": "#FFFFFF"
     },
-    {
-      "name": "brand",
-      "value": "#FF3A6EA5"
-    },
-    {
-      "name": "brand_50",
-      "value": "#803A6EA5"
-    },
-    {
-      "name": "accent",
-      "value": "#FFF08A7E"
-    },
-
+    { "name": "brand", "value": "#FF3A6EA5" },
+    { "name": "brand_50", "value": "#803A6EA5" },
+    { "name": "accent", "value": "#FFF08A7E" },
+    { "name": "func_ai", "value": "#9D7AD2" },
+    { "name": "func_manual", "value": "#4DB6AC" },
     {
       "name": "font_primary",
       "value": "#1A1A1A"
@@ -99,7 +91,7 @@
     },
     {
       "name": "chart_orange",
-      "value": "#FFDEAD59"
+      "value": "#FFFEC37D"
     },
     {
       "name": "chart_blue",

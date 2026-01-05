@@ -2,7 +2,7 @@
   "routerMap": [
     {
       "name": "settingsWebDav",
-      "pageSourceFile": "src/main/ets/pages/routes/settings/WebDavSettingsPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/WebDavSettingsPage.ets",
       "buildFunction": "SettingsWebDavBuilder",
       "data": {
         "description": "Deadliner WebDAV 设置页"
@@ -10,7 +10,7 @@
     },
     {
       "name": "settingsAI",
-      "pageSourceFile": "src/main/ets/pages/routes/settings/DeadlinerAISettingsPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/DeadlinerAISettingsPage.ets",
       "buildFunction": "SettingsAIBuilder",
       "data": {
         "description": "Deadliner AI 设置页"
@@ -41,11 +41,51 @@
       }
     },
     {
+      "name": "codeText",
+      "pageSourceFile": "src/main/ets/pages/common/CodeTextPage.ets",
+      "buildFunction": "CodeTextPageBuilder",
+      "data": {
+        "description": "等宽"
+      }
+    },
+    {
       "name": "devMode",
-      "pageSourceFile": "src/main/ets/pages/routes/settings/DevOptionsPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/DevOptionsPage.ets",
       "buildFunction": "DevOptionsBuilder",
       "data": {
         "description": "Dev Options"
+      }
+    },
+    {
+      "name": "settingsAppearance",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/AppearanceSettings.ets",
+      "buildFunction": "AppearanceSettingsBuilder",
+      "data": {
+        "description": "显示与个性化"
+      }
+    },
+    {
+      "name": "settingsNotification",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/NotificationSettings.ets",
+      "buildFunction": "NotificationSettingsBuilder",
+      "data": {
+        "description": "通知与提醒"
+      }
+    },
+    {
+      "name": "settingsInteraction",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/InteractionSettings.ets",
+      "buildFunction": "InteractionSettingsBuilder",
+      "data": {
+        "description": "交互与行为"
+      }
+    },
+    {
+      "name": "settingsMainPageButtons",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/MainPageButtonsSettings.ets",
+      "buildFunction": "MainPageButtonsSettingsBuilder",
+      "data": {
+        "description": "主页快捷功能"
       }
     }
   ]

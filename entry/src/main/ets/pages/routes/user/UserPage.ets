@@ -1,7 +1,10 @@
 import { DividerShowType, HdsNavigation, HdsNavigationAttribute, HdsNavigationTitleMode, ScrollEffectType } from "@kit.UIDesignKit";
-import { LengthMetrics } from "@kit.ArkUI";
-import { SettingsDivider, SettingsItem, SettingsSection, SettingsSwitch,
-  SettingsUserProfile } from "../../components/SettingsComponents";
+import { LengthMetrics, promptAction } from "@kit.ArkUI";
+import { SettingsDivider,
+  SettingsGridItem,
+  SettingsItem, SettingsSection, SettingsSwitch,
+  SettingsUserProfile,
+  SettingsVerticalDivider} from "../../components/SettingsComponents";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { common } from "@kit.AbilityKit";
 import { LocalValues } from "../../../common/local/LocalValues";
@@ -9,6 +12,9 @@ import { WebParams } from "../../common/WebBrowserPage";
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants';
 import { HuaweiAccountUtils } from "../../../utils/account/HuaweiAccountUtils";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
+import { CodeTextParams } from "../../common/CodeTextPage";
+import { ArchivePanelView } from "../../common/ArchivePanelView";
+import { AIPanelView } from "../../common/AIPanelView";
 
 @Component
 export struct UserPage {
@@ -23,11 +29,6 @@ export struct UserPage {
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
-  @StorageLink(C.KEY_VIBRATION_ENABLE) vibrationEnable: boolean = true;
-  @StorageLink(C.KEY_PROGRESS_DIRECTION) progressDir: boolean = false;
-  @StorageLink(C.KEY_EXCITEMENT_TEXT) excitementText: boolean = true;
-  @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
-  @StorageLink(C.KEY_FULL_SCREEN_ADD) fullScreenAdd: boolean = false;
 
   private showRevokeDialog() {
     AlertDialog.show({
@@ -99,6 +100,27 @@ export struct UserPage {
     });
   }
 
+  @State isArchiveSheetShow: boolean = false;
+  @Builder
+  archiveSheet() {
+    ArchivePanelView()
+      .width('100%')
+      .height('100%')
+  }
+
+  @State isAISheetShow: boolean = false;
+  @Builder
+  aiSheet() {
+    AIPanelView({
+      onDismissPanel: () => {
+        this.isAISheetShow = false
+      }
+    })
+      .width('100%')
+      .height('100%')
+  }
+
+
   build() {
     HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
@@ -110,74 +132,81 @@ export struct UserPage {
           }
 
           SettingsSection() {
-            SettingsSwitch({
-              title: "振动反馈",
-              subtitle: "开启后，会以振动的形式反馈交互操作",
-              icon: $r('sys.symbol.a_4d_vibration'),
-              isOn: this.vibrationEnable,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setVibration(isOn);
+            Row() {
+              SettingsGridItem({
+                title: "归档管理",
+                icon: $r('sys.symbol.archivebox_fill'),
+                iconColor: $r('app.color.brand'),
+                onItemClick: () => {
+                  this.isArchiveSheetShow = true;
+                }
+              })
+
+              SettingsVerticalDivider()
+
+              SettingsGridItem({
+                title: "AI 助理",
+                icon: $r('sys.symbol.wand_and_stars_fill'),
+                iconColor: $r('app.color.func_ai'),
+                onItemClick: () => {
+                  this.isAISheetShow = true;
+                }
+              })
+
+              SettingsVerticalDivider()
+
+              SettingsGridItem({
+                title: "使用手册",
+                icon: $r('sys.symbol.book_open_fill'),
+                iconColor: $r('app.color.func_manual'),
+                onItemClick: () => {
+                  promptAction.showToast({ message: '使用手册' })
+                }
+              })
+            }
+            .width('100%')
+          }
+
+          SettingsSection({ title: '偏好设置' }) {
+            SettingsItem({
+              title: "显示与个性化",
+              subtitle: "界面布局 · 动画效果 · 小组件样式",
+              icon: $r('sys.symbol.paintpalette'),
+              onItemClick: () => {
+                this.appPathStack.pushPath({ name: 'settingsAppearance' });
               }
             })
 
             SettingsDivider()
 
-            SettingsSwitch({
-              title: "正向进度条",
-              subtitle: "主页的任务剩余进度将被替换为任务进行进度",
-              icon: $r('sys.symbol.clock_arrow_2_circlepath'),
-              isOn: this.progressDir,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setProgressDir(isOn);
+            SettingsItem({
+              title: "交互与行为",
+              subtitle: "触感反馈 · 快捷功能 · 自动归档",
+              icon: $r('sys.symbol.hand_point_up_tap'),
+              onItemClick: () => {
+                this.appPathStack.pushPath({ name: 'settingsInteraction' });
               }
             })
 
             SettingsDivider()
 
-            SettingsSwitch({
-              title: "激励语句",
-              subtitle: "在主页标题栏显示随机的激励文案",
-              icon: $r('sys.symbol.lightbulb_max'),
-              isOn: this.excitementText,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setExcitementText(isOn);
-              }
-            })
-
-            SettingsDivider()
-
-            SettingsSwitch({
-              title: "礼花动画",
-              subtitle: "任务完成时将显示礼花动画效果",
-              icon: $r('sys.symbol.flame'),
-              isOn: this.confetti,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setConfettiAfterFinished(isOn);
-              }
-            })
-
-            SettingsDivider()
-
-            SettingsSwitch({
-              title: "全屏添加页面",
-              subtitle: "添加任务或习惯时展示全屏界面",
-              icon: $r('sys.symbol.full_screen'),
-              isOn: this.fullScreenAdd,
-              onChange: (isOn) => {
-                LocalValues.getInstance().setFullScreenAdd(isOn);
+            SettingsItem({
+              title: "通知与提醒",
+              subtitle: "DDL 预警 · 每日摘要 · 习惯提醒",
+              icon: $r('sys.symbol.bell'),
+              onItemClick: () => {
+                this.appPathStack.pushPath({ name: 'settingsNotification' });
               }
             })
           }
 
           if (!this.isBasicMode) {
-            SettingsSection() {
-              // WebDAV 设置 (还原你的需求)
+            SettingsSection({ title: '数据与服务' }) {
               SettingsItem({
-                title: "WebDAV 设置",
-                subtitle: "配置数据同步与备份",
-                icon: $r('sys.symbol.cloud'), // 替换为你想要的图标
+                title: "数据同步与备份",
+                subtitle: "WebDAV 云同步 · 本地导入导出",
+                icon: $r('sys.symbol.cloud'),
                 onItemClick: () => {
-                  // 路由跳转
                   this.appPathStack.pushPath({ name: 'settingsWebDav' });
                 }
               })
@@ -185,8 +214,8 @@ export struct UserPage {
               SettingsDivider()
 
               SettingsItem({
-                title: "Deadliner AI",
-                subtitle: "配置 API Key 与模型参数",
+                title: "AI 智能服务",
+                subtitle: "模型配置 · API Key",
                 icon: $r('sys.symbol.AI'),
                 onItemClick: () => {
                   this.appPathStack.pushPath({ name: 'settingsAI' });
@@ -195,25 +224,44 @@ export struct UserPage {
             }
           }
 
-          SettingsSection() {
+          SettingsSection({
+            title: "隐私协议与许可"
+          }) {
             SettingsSwitch({
               title: "基础模式",
-              subtitle: "仅保留核心任务管理功能，清除所有高级配置",
+              subtitle: "仅保留核心任务管理功能",
               icon: $r('sys.symbol.leaf'),
               isOn: this.isBasicMode,
               onChange: (isOn) => {
                 if (isOn) {
-                  // 用户试图开启基础模式 -> 弹出警告
                   this.showTurnOnBasicDialog();
                 } else {
-                  // 用户关闭基础模式 -> 直接执行
                   LocalValues.getInstance().setBasicMode(false);
                 }
               }
             })
-          }
 
-          SettingsSection() {
+            SettingsDivider()
+
+            SettingsItem({
+              title: "开源许可证",
+              subtitle: "了解 Deadliner 使用的 MIT 开源协议",
+              icon: $r('sys.symbol.doc_text'),
+              onItemClick: () => {
+                const params: CodeTextParams = {
+                  fileName: 'LICENSE.txt',
+                  title: '开源许可证'
+                };
+
+                this.appPathStack.pushPath({
+                  name: 'codeText',
+                  param: params
+                });
+              }
+            })
+
+            SettingsDivider()
+
             SettingsItem({
               title: "查看隐私协议",
               subtitle: "浏览隐私协议的详细内容",
@@ -253,6 +301,19 @@ export struct UserPage {
         .padding({ left: 12, right: 12 })
         .justifyContent(FlexAlign.Start)
         .constraintSize({ minHeight: '100%' })
+        .bindSheet($$this.isArchiveSheetShow, this.archiveSheet(), {
+          height: SheetSize.FIT_CONTENT,
+          dragBar: true,
+          onDisappear: () => {
+            this.isArchiveSheetShow = false;
+          },
+          blurStyle: BlurStyle.Regular,
+          backgroundColor: Color.Transparent,
+          title: {
+            title: '归档',
+            subtitle: '可以在此处管理你已完成的任务'
+          },
+        })
       }
     }
     .titleBar({
@@ -286,5 +347,17 @@ export struct UserPage {
     })
     .titleMode(HdsNavigationTitleMode.MINI)
     .hideBackButton(true)
+    .bindSheet($$this.isAISheetShow, this.aiSheet(), {
+      height: SheetSize.LARGE,
+      dragBar: true,
+      onDisappear: () => {
+        this.isAISheetShow = false;
+      },
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      title: {
+        title: 'Deadliner AI',
+      }
+    })
   }
 }

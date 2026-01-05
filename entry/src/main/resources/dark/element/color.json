@@ -3,6 +3,8 @@
     { "name": "start_window_background", "value": "#000000"},
     { "name": "brand", "value": "#6BA4D6"},
     { "name": "brand_50", "value": "#806BA4D6"},
+    { "name": "func_ai", "value": "#B39DDB" },
+    { "name": "func_manual", "value": "#80CBC4" },
     { "name": "font_primary", "value": "#FFFFFF"},
     { "name": "font_secondary", "value": "#B3B3B3"},
     { "name": "font_emphasize", "value": "#FFFFFF"},
