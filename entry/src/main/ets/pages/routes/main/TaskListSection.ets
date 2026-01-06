@@ -14,7 +14,7 @@ import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
 import { TaskEditSheet } from "./modify/TaskEditSheet";
 
-interface TaskUIModel {
+export interface TaskUIModel {
   title: string;
   remainingTimeAlt: string;
   note: string;

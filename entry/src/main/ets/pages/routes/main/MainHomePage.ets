@@ -196,7 +196,7 @@ export struct MainHomePage {
     },
     {
       icon: $r('sys.symbol.magnifyingglass'),
-      onClick: () => { promptAction.showToast({ message: '搜索功能 TODO' }) }
+      onClick: () => { this.appPathStack.pushPath({ name: "search" }) }
     },
     {
       icon: $r('sys.symbol.wand_and_stars'),
