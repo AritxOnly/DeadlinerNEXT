@@ -1,0 +1,87 @@
+import { HdsNavDestination, ScrollEffectType, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
+import { TopSafeContainer } from '../../../components/TopSafeContainer';
+import { ManualDataManager, ManualItem } from '../../../../common/manual/ManualModel';
+import { LengthMetrics } from '@kit.ArkUI';
+import { MarkdownView } from '../../../components/MarkdownView';
+import { common } from '@kit.AbilityKit';
+import { BrandPageHeader } from '../../../components/BrandPageHeader';
+import { SettingsSection } from '../../../components/SettingsComponents';
+
+@Component
+export struct HelpDetailPage {
+  // 接收上一个页面传来的数据
+  @State item: ManualItem | null = null;
+  @State markdownContent: string = '';
+  @State title: string = '详情';
+
+  @StorageProp('statusBarHeight') statusBarHeight: number = 38;
+  readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
+
+  async loadMarkdown() {
+    if (this.item && this.item.fileName) {
+      const context = getContext(this) as common.UIAbilityContext;
+      this.markdownContent = await ManualDataManager.getInstance().loadContent(context, this.item.fileName);
+    }
+  }
+
+  build() {
+    HdsNavDestination() {
+      TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
+          Column({ space: 16 }) {
+            if (this.item) {
+              BrandPageHeader({
+                title: this.item.title,
+                icon: this.item.icon ?? $r('sys.symbol.doc_text'),
+                baseColor: this.item.themeColor,
+              })
+            }
+
+            SettingsSection() {
+              // 内容区域
+              Column() {
+                if (this.markdownContent) {
+                  MarkdownView({ content: this.markdownContent, baseColor: this.item?.themeColor })
+                } else {
+                  // 加载中占位
+                  Row() {
+                    LoadingProgress().width(32).height(32).color($r('app.color.brand'))
+                  }
+                  .width('100%')
+                  .justifyContent(FlexAlign.Center)
+                  .padding(32)
+                }
+              }
+              .margin(8)
+            }
+
+            Blank().height(50)
+          }
+          .padding(16)
+          .constraintSize({ minHeight: '100%' })
+          .align(Alignment.TopStart)
+          .width('100%')
+      }
+    }
+    .titleBar({
+      content: { title: { mainTitle: this.title } },
+      style: {
+        scrollEffectOpts: {
+          enableScrollEffect: true,
+          scrollEffectType: ScrollEffectType.COMMON_BLUR,
+          blurEffectiveStartOffset: LengthMetrics.vp(0),
+          blurEffectiveEndOffset: LengthMetrics.vp(10)
+        }
+      }
+    })
+    .onReady((ctx) => {
+      this.item = ctx.pathInfo.param as ManualItem;
+      if (this.item) this.title = this.item.title;
+      this.loadMarkdown();
+    })
+  }
+}
+
+@Builder
+export function HelpDetailPageBuilder() {
+  HelpDetailPage()
+}

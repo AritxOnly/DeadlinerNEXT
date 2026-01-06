@@ -1,13 +1,13 @@
 import { ChipSize, promptAction } from '@kit.ArkUI';
 import { ChipGroup, ChipGroupItemOptions } from '@ohos.arkui.advanced.ChipGroup';
 import { HdsNavigation, HdsNavigationAttribute, HdsNavigationTitleMode } from '@kit.UIDesignKit';
-import { HabitRepository } from '../../../common/repository/HabitRepository';
-import { DatabaseHelper } from '../../../common/data/DatabaseHelper';
-import { DeadlineType, HabitGoalType, HabitPeriod } from '../../../model/DDLModels';
-import { AITextInput } from '../../components/AITextInput';
-import { AIService } from '../../../ai/AIServcice';
+import { HabitRepository } from '../../../../common/repository/HabitRepository';
+import { DatabaseHelper } from '../../../../common/data/DatabaseHelper';
+import { DeadlineType, HabitGoalType, HabitPeriod } from '../../../../model/DDLModels';
+import { AITextInput } from '../../../components/AITextInput';
+import { AIService } from '../../../../ai/AIServcice';
 import { i18n } from '@kit.LocalizationKit';
-import { LoadingMask } from '../../components/LoadingMask';
+import { LoadingMask } from '../../../components/LoadingMask';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24;

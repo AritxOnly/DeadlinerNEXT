@@ -18,7 +18,7 @@
     },
     {
       "name": "addTask",
-      "pageSourceFile": "src/main/ets/pages/routes/modify/AddTaskPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/main/modify/AddTaskPage.ets",
       "buildFunction": "AddTaskBuilder",
       "data": {
         "description": "添加任务页"
@@ -26,7 +26,7 @@
     },
     {
       "name": "addHabit",
-      "pageSourceFile": "src/main/ets/pages/routes/modify/AddHabitPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/main/modify/AddHabitPage.ets",
       "buildFunction": "AddHabitBuilder",
       "data": {
         "description": "添加习惯页"
@@ -86,6 +86,22 @@
       "buildFunction": "MainPageButtonsSettingsBuilder",
       "data": {
         "description": "主页快捷功能"
+      }
+    },
+    {
+      "name": "settingsHelpCenter",
+      "pageSourceFile": "src/main/ets/pages/routes/user/manual/HelpCenterPage.ets",
+      "buildFunction": "HelpCenterPageBuilder",
+      "data": {
+        "description": "帮助中心"
+      }
+    },
+    {
+      "name": "helpDetail",
+      "pageSourceFile": "src/main/ets/pages/routes/user/manual/HelpDetailPage.ets",
+      "buildFunction": "HelpDetailPageBuilder",
+      "data": {
+        "description": "帮助详情"
       }
     }
   ]

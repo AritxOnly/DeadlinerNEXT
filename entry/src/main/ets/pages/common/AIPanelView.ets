@@ -2,7 +2,7 @@ import { LengthMetrics } from '@kit.ArkUI'
 import { i18n } from '@kit.LocalizationKit'
 import { AIService } from '../../ai/AIServcice'
 import { AITask } from '../../ai/model/AIModels'
-import { AddTaskParams } from '../routes/modify/AddTaskPage'
+import { AddTaskParams } from '../routes/main/modify/AddTaskPage'
 import { LoginPanelView } from './LoginPanelView'
 
 // 定义简单的消息模型

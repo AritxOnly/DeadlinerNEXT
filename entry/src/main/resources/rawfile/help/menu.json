@@ -1,0 +1,92 @@
+[
+  {
+    "title": "快速入门",
+    "items": [
+      {
+        "id": "core_concept",
+        "title": "核心概念",
+        "iconName": "lightbulb",
+        "fileName": "core_concept.md",
+        "themeColor": "#4DB6AC"
+      },
+      {
+        "id": "add_task",
+        "title": "如何添加任务",
+        "iconName": "plus_circle",
+        "fileName": "add_task.md",
+        "themeColor": "#F08A7E"
+      },
+      {
+        "id": "gestures",
+        "title": "了解手势操作",
+        "iconName": "hand_draw",
+        "fileName": "gestures.md",
+        "themeColor": "#7986CB"
+      }
+    ]
+  },
+  {
+    "title": "功能介绍",
+    "items": [
+      {
+        "id": "archive_mgmt",
+        "title": "什么是归档管理",
+        "iconName": "archivebox",
+        "fileName": "archive_mgmt.md",
+        "themeColor": "#FFE5AB55"
+      },
+      {
+        "id": "statistics",
+        "title": "概览统计",
+        "iconName": "chart_bar",
+        "fileName": "statistics.md",
+        "themeColor": "#42A5F5"
+      },
+      {
+        "id": "notification",
+        "title": "通知推送",
+        "iconName": "bell",
+        "fileName": "notification.md",
+        "themeColor": "#FFD67171"
+      },
+      {
+        "id": "ai_feature",
+        "title": "AI 任务拆解",
+        "iconName": "wand_and_stars",
+        "fileName": "ai_feature.md",
+        "themeColor": "#9D7AD2"
+      }
+    ]
+  },
+  {
+    "title": "进阶配置",
+    "items": [
+      {
+        "id": "webdav_config",
+        "title": "WebDAV 同步配置",
+        "iconName": "cloud",
+        "fileName": "webdav_config.md",
+        "themeColor": "#59C3C3"
+      },
+      {
+        "id": "ai_config",
+        "title": "AI 助手模型配置",
+        "iconName": "gear_shape",
+        "fileName": "ai_config.md",
+        "themeColor": "#9D7AD2"
+      }
+    ]
+  },
+  {
+    "title": "更多",
+    "items": [
+      {
+        "id": "faq",
+        "title": "常见问题 FAQ",
+        "iconName": "questionmark_circle",
+        "fileName": "faq.md",
+        "themeColor": "#90A4AE"
+      }
+    ]
+  }
+]

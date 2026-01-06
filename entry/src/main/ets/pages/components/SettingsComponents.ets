@@ -81,9 +81,14 @@ export struct SettingsItem {
             .textOverflow({ overflow: TextOverflow.MARQUEE }) // 跑马灯效果
         }
       }
-      .layoutWeight(1) // 占满剩余空间
+      .layoutWeight(1)
       .alignItems(HorizontalAlign.Start)
 
+      SymbolGlyph($r('sys.symbol.chevron_right'))
+        .fontSize(24)
+        .fontColor([$r('app.color.font_secondary')])
+        .margin({ left: 16 })
+        .opacity(0.5)
     }
     .width('100%')
     .padding({ left: 12, right: 12, top: 12, bottom: 12 }) // 内部 Padding
@@ -134,10 +139,10 @@ export struct SettingsGridItem {
         .maxLines(1)
         .textOverflow({ overflow: TextOverflow.Ellipsis })
     }
-    .layoutWeight(1) // 【关键】让它在 Row 里自动平分宽度
-    .padding({ top: 16, bottom: 16 }) // 增加上下点击区域
-    .borderRadius(16) // 圆角
-    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent) // 点击态
+    .layoutWeight(1)
+    .padding({ top: 16, bottom: 16 })
+    .borderRadius(20)
+    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
     .animation({ duration: 200 })
     .onTouch((event) => {
       if (event.type === TouchType.Down) {

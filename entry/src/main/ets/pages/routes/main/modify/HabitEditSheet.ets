@@ -1,5 +1,5 @@
 import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.ArkUI';
-import { Habit, HabitGoalType, HabitPeriod, HabitStatus } from '../../../model/DDLModels';
+import { Habit, HabitGoalType, HabitPeriod, HabitStatus } from '../../../../model/DDLModels';
 
 // 常量定义
 const COMMON_RADIUS = 24;

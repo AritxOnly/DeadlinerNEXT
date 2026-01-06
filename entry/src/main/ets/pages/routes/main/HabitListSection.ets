@@ -7,7 +7,7 @@ import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.Ar
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
-import { HabitEditSheet } from "../modify/HabitEditSheet";
+import { HabitEditSheet } from "./modify/HabitEditSheet";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;

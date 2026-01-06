@@ -12,7 +12,7 @@ import { SettingsConstants as C } from "../../../common/local/SettingsConstants"
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
-import { TaskEditSheet } from "../modify/TaskEditSheet";
+import { TaskEditSheet } from "./modify/TaskEditSheet";
 
 interface TaskUIModel {
   title: string;

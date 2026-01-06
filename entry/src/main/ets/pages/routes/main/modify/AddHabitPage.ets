@@ -1,13 +1,13 @@
 import { ChipSize, promptAction } from '@kit.ArkUI';
 import { ChipGroup, ChipGroupItemOptions } from '@ohos.arkui.advanced.ChipGroup';
-import { HabitRepository } from '../../../common/repository/HabitRepository';
-import { DatabaseHelper } from '../../../common/data/DatabaseHelper';
-import { DeadlineType, HabitGoalType, HabitPeriod, HabitStatus } from '../../../model/DDLModels';
-import { TimeInputButton } from '../../components/TimeInputButton';
-import { LocalValues } from '../../../common/local/LocalValues';
-import { AITextInput } from '../../components/AITextInput';
-import { LoadingMask } from '../../components/LoadingMask';
-import { AIService } from '../../../ai/AIServcice';
+import { HabitRepository } from '../../../../common/repository/HabitRepository';
+import { DatabaseHelper } from '../../../../common/data/DatabaseHelper';
+import { DeadlineType, HabitGoalType, HabitPeriod, HabitStatus } from '../../../../model/DDLModels';
+import { TimeInputButton } from '../../../components/TimeInputButton';
+import { LocalValues } from '../../../../common/local/LocalValues';
+import { AITextInput } from '../../../components/AITextInput';
+import { LoadingMask } from '../../../components/LoadingMask';
+import { AIService } from '../../../../ai/AIServcice';
 import { i18n } from '@kit.LocalizationKit';
 
 const COMMON_RADIUS = 24;

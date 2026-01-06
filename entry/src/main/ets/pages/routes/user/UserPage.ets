@@ -160,7 +160,7 @@ export struct UserPage {
                 icon: $r('sys.symbol.book_open_fill'),
                 iconColor: $r('app.color.func_manual'),
                 onItemClick: () => {
-                  promptAction.showToast({ message: '使用手册' })
+                  this.appPathStack.pushPath({ name: "settingsHelpCenter" })
                 }
               })
             }
