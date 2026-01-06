@@ -111,6 +111,11 @@
       "data": {
         "description": "帮助详情"
       }
+    },
+    {
+      "name": "settingsWidgetBackground",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/WidgetBackgroundSettings.ets",
+      "buildFunction": "WidgetBackgroundSettingsBuilder"
     }
   ]
 }

@@ -152,7 +152,7 @@ export struct AIPanelView {
         left: 16,
         right: 16,
         top: 12,
-        bottom: 12
+        bottom: 36
       })
       .border({ width: { top: 0.5 }, color: $r('sys.color.comp_divider') })
     }

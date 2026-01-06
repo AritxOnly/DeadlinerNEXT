@@ -1,3 +1,4 @@
+import { LocalValues } from "../common/local/LocalValues";
 import { HabitRepository } from "../common/repository/HabitRepository";
 import { TaskRepository } from "../common/repository/TaskRepository";
 import { DDLItem, DeadlineType, Habit, HabitGoalType, HabitRecordStatus, HabitStatus } from "../model/DDLModels";
@@ -126,6 +127,10 @@ export class SearchUtils {
         timeText = days > 0 ? `${days}天 ${hours}小时` : `${hours}小时`;
       }
     }
+
+    const progressDir = LocalValues.getInstance().getProgressDir();
+
+    const displayProgress = progressDir ? progress : 1.0 - progress;
 
     return {
       title: item.name,

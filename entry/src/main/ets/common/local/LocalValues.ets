@@ -53,6 +53,12 @@ export class LocalValues {
       const fullScreenAdd = await this.pref.get(C.KEY_FULL_SCREEN_ADD, false);
       AppStorage.setOrCreate(C.KEY_FULL_SCREEN_ADD, fullScreenAdd);
 
+      const widgetBg = await this.pref.get(C.KEY_WIDGET_BG_IMAGE, '');
+      AppStorage.setOrCreate(C.KEY_WIDGET_BG_IMAGE, widgetBg);
+
+      const widgetTextWhite = await this.pref.get(C.KEY_WIDGET_TEXT_WHITE, true);
+      AppStorage.setOrCreate(C.KEY_WIDGET_TEXT_WHITE, widgetTextWhite);
+
       // --- 2. 敏感数据 (Asset Store Kit) ---
       // 从安全存储中读取密码，加载到内存 AppStorage 供业务逻辑使用
       const password = await SecureStorage.get(C.KEY_WEBDAV_PASSWORD);
@@ -320,5 +326,31 @@ export class LocalValues {
 
   async setMainRightButton(type: MainButtonType) {
     await this.setValue(C.KEY_MAIN_RIGHT_BUTTON, type);
+  }
+
+  /**
+   * 获取小组件背景图片的沙箱路径
+   * 如果返回空字符串，则表示使用默认样式
+   */
+  getWidgetBackgroundImage(): string {
+    if (!this.pref) return '';
+
+    return AppStorage.get<string>(C.KEY_WIDGET_BG_IMAGE) ?? '';
+  }
+
+  /**
+   * 设置小组件背景图片路径
+   */
+  async setWidgetBackgroundImage(path: string) {
+    await this.setValue(C.KEY_WIDGET_BG_IMAGE, path);
+  }
+
+  getWidgetIsWhiteText(): boolean {
+    return AppStorage.get<boolean>(C.KEY_WIDGET_TEXT_WHITE) ?? false;
+  }
+
+  // 设置
+  async setWidgetIsWhiteText(isWhite: boolean) {
+    await this.setValue(C.KEY_WIDGET_TEXT_WHITE, isWhite);
   }
 }

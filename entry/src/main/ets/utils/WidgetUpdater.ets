@@ -3,6 +3,8 @@ import { preferences } from '@kit.ArkData';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { common } from '@kit.AbilityKit';
 import { WidgetData, WidgetTaskItem } from '../widget/model/WidgetData'; // 路径根据实际情况调整
+import { LocalValues } from '../common/local/LocalValues';
+import { fileIo as fs } from '@kit.CoreFileKit';
 
 export class WidgetUpdater {
 
@@ -39,8 +41,36 @@ export class WidgetUpdater {
       widgetData.totalCount = validTasks.length;
       widgetData.updateTime = new Date().toLocaleTimeString();
 
-      // 取前 3 个展示
-      widgetData.tasks = validTasks.slice(0, 3).map(item => {
+      const localValues = LocalValues.getInstance();
+      await localValues.init(context);
+
+      widgetData.isWhiteText = localValues.getWidgetIsWhiteText();
+
+      const rawBgPath = localValues.getWidgetBackgroundImage();
+      let file: fs.File | null = null;
+      let formImageKey = 'bgImage';
+
+      // 处理 file:// 前缀 (FormKit 加载沙箱图片必须要有 file://)
+      if (rawBgPath && rawBgPath.length > 0) {
+        const fsPath = rawBgPath.startsWith('file://') ? rawBgPath.substring(7) : rawBgPath;
+        try {
+          // 这里检查一下文件大小，确认压缩生效了
+          const stat = fs.statSync(fsPath);
+          console.info(`[WidgetUpdater] Sending BG image. Path: ${fsPath}, Size: ${stat.size} bytes`);
+
+          if (stat.size > 1024 * 1024) {
+            console.error('[WidgetUpdater] ⚠️ WARNING: Image size > 1MB, Widget might fail to render!');
+          }
+
+          file = fs.openSync(fsPath, fs.OpenMode.READ_ONLY);
+          widgetData.backgroundImage = 'memory://' + formImageKey;
+        } catch (err) {
+          console.error(`[WidgetUpdater] Failed to open image: ${err}`);
+          widgetData.backgroundImage = null;
+        }
+      }
+
+      widgetData.tasks = validTasks.slice(0, 5).map(item => {
         const end = new Date(item.endTime).getTime();
         const diffHours = (end - now) / (1000 * 60 * 60);
 
@@ -66,9 +96,22 @@ export class WidgetUpdater {
       });
 
       // 4. 封装数据
-      const bindingData = formBindingData.createFormBindingData({
-        widgetData: widgetData // 对应 @LocalStorageProp('widgetData')
-      });
+      let formData: Record<string, Object> = {
+        'widgetData': widgetData
+      };
+
+      // 2. 如果有文件，将 formImages 加到这个普通对象里
+      if (file) {
+        let images: Record<string, number> = {};
+        images[formImageKey] = file.fd;
+
+        // 直接在这个普通对象上设置 formImages
+        formData['formImages'] = images;
+      }
+
+      // 3. 使用构造好的对象创建 FormBindingData
+      // createFormBindingData 接受 Object 类型，所以这里传入 formData 是合法的
+      const bindingData = formBindingData.createFormBindingData(formData);
 
       // 5. 循环推送更新
       for (const id of formIds) {

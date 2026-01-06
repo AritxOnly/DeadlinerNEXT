@@ -12,6 +12,8 @@ export function AppearanceSettingsBuilder() {
 
 @Component
 struct AppearanceSettings {
+  @Consume('appPathStack') appPathStack: NavPathStack;
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
@@ -42,7 +44,7 @@ struct AppearanceSettings {
               title: "小组件样式",
               subtitle: "自定义桌面服务卡片的背景与风格",
               onItemClick: () => {
-                // TODO: 跳转到小组件设置页
+                this.appPathStack.pushPath({ name: "settingsWidgetBackground" })
               }
             })
           }

@@ -7,6 +7,12 @@ export class WidgetData {
 
   /** 总未完成数 (用于标题栏显示 "5个待办") */
   totalCount: number = 0;
+
+  /** 卡片背景 */
+  backgroundImage: string | null = null;
+
+  /** 是否使用浅色字体 */
+  isWhiteText: boolean = false;
 }
 
 export class WidgetTaskItem {

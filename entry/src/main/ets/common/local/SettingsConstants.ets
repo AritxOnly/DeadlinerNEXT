@@ -24,4 +24,7 @@ export class SettingsConstants {
 
   static readonly KEY_MAIN_LEFT_BUTTON = 'main_left_button';
   static readonly KEY_MAIN_RIGHT_BUTTON = 'main_right_button';
+
+  static readonly KEY_WIDGET_BG_IMAGE = 'widget_bg_image';
+  static readonly KEY_WIDGET_TEXT_WHITE = 'widget_text_white';
 }

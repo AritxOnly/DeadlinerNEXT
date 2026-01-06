@@ -478,7 +478,6 @@ export struct MainHomePage {
     })
     .bindSheet($$this.isAISheetShow, this.aiSheet(), {
       height: SheetSize.LARGE,
-      detents: [SheetSize.MEDIUM, SheetSize.LARGE],
       dragBar: true,
       onDisappear: () => {
         this.isAISheetShow = false;
