@@ -1,11 +1,13 @@
 export enum MdType {
   HEADER1,
   HEADER2,
+  HEADER3,
   LIST_ITEM,
   PARAGRAPH,
   SPACE,
   IMAGE,
-  QUOTE
+  QUOTE,
+  DIVIDER
 }
 
 // 解析后的结构单元
@@ -13,6 +15,7 @@ export interface MdNode {
   type: MdType;
   content: string;
   alt?: string;
+  level?: number;
 }
 
 export class MarkdownParser {
@@ -43,25 +46,36 @@ export class MarkdownParser {
         continue; // 识别成功跳过后续判断
       }
 
-      if (trimLine.startsWith('> ')) {
+      if (trimLine === '---' || trimLine.startsWith('---')) {
+        nodes.push({ type: MdType.DIVIDER, content: '' });
+      } else if (trimLine.startsWith('> ')) {
         const content = trimLine.substring(2);
 
-        // 获取上一个节点
         const lastNode = nodes.length > 0 ? nodes[nodes.length - 1] : null;
 
         if (lastNode && lastNode.type === MdType.QUOTE) {
-          // 合并：追加换行符和新内容
           lastNode.content += '\n' + content;
         } else {
-          // 新建节点
           nodes.push({ type: MdType.QUOTE, content: content });
         }
-      } else if (trimLine.startsWith('# ')) {
-        nodes.push({ type: MdType.HEADER1, content: trimLine.substring(2) });
+      } else if (trimLine.startsWith('### ')) {
+        nodes.push({ type: MdType.HEADER3, content: trimLine.substring(4) });
       } else if (trimLine.startsWith('## ')) {
         nodes.push({ type: MdType.HEADER2, content: trimLine.substring(3) });
+      } else if (trimLine.startsWith('# ')) {
+        nodes.push({ type: MdType.HEADER1, content: trimLine.substring(2) });
       } else if (trimLine.startsWith('- ')) {
-        nodes.push({ type: MdType.LIST_ITEM, content: trimLine.substring(2) });
+        nodes.push({
+          type: MdType.LIST_ITEM,
+          content: trimLine.substring(2),
+          level: 0
+        });
+      } else if (trimLine.startsWith('^ ')) {
+        nodes.push({
+          type: MdType.LIST_ITEM, // 类型还是 LIST_ITEM
+          content: trimLine.substring(2),
+          level: 1 // 标记为二级，缩进更多
+        });
       } else {
         nodes.push({ type: MdType.PARAGRAPH, content: trimLine });
       }

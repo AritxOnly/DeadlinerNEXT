@@ -2,7 +2,8 @@ import { formBindingData, formProvider } from '@kit.FormKit';
 import { preferences } from '@kit.ArkData';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { common } from '@kit.AbilityKit';
-import { WidgetData, WidgetTaskItem } from '../widget/model/WidgetData'; // 路径根据实际情况调整
+import { WidgetData, WidgetTaskItem } from '../widget/model/WidgetData';
+import { CapsuleWidgetData } from '../widget/model/CapsuleWidgetData';
 import { LocalValues } from '../common/local/LocalValues';
 import { fileIo as fs } from '@kit.CoreFileKit';
 
@@ -14,7 +15,7 @@ export class WidgetUpdater {
    */
   public static async updateAllWidgets(context: common.Context) {
     try {
-      // 1. 获取 Form IDs
+      // 1. 获取 Form IDs 和 Preferences 实例
       const pref = await preferences.getPreferences(context, 'widget_store');
       const formIds = (await pref.get('formIds', [])) as Array<string>;
 
@@ -23,9 +24,8 @@ export class WidgetUpdater {
         return;
       }
 
-      // 2. 准备数据
+      // 2. 准备通用业务数据 (Repo)
       const repo = TaskRepository.getInstance();
-      // 确保 Repo 初始化（如果是在 FormAbility 中调用，可能没 init）
       repo.setContext(context);
 
       const allTasks = await repo.getAllDDLs();
@@ -36,7 +36,34 @@ export class WidgetUpdater {
         .filter(t => !t.isCompleted && !t.isArchived && !t.deleted && t.type !== 'habit')
         .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime());
 
-      // 3. 构造 WidgetData
+      // ==========================================
+      // 3. 预先构建两套 FormBindingData
+      // ==========================================
+
+      // --- A. 构建胶囊组件数据 (CapsuleWidgetData) ---
+      const capsuleData = new CapsuleWidgetData();
+      capsuleData.remainingCount = validTasks.length;
+      // 简单的文案逻辑
+      if (validTasks.length === 0) {
+        capsuleData.summary = "今日无待办";
+      } else {
+        const firstTask = validTasks[0];
+        const end = new Date(firstTask.endTime).getTime();
+        const diffHours = (end - now) / (1000 * 60 * 60);
+
+        if (diffHours < 0) capsuleData.summary = "有任务已逾期";
+        else if (diffHours < 24) capsuleData.summary = "近期有Deadline";
+        else capsuleData.summary = `有任务待完成`;
+      }
+
+      console.log('[WidgetUpdater] validTask.length ', validTasks.length, ' | capsuleData ', capsuleData.remainingCount, capsuleData.summary)
+
+      const bindingCapsule = formBindingData.createFormBindingData({
+        'widgetData': capsuleData
+      });
+
+      // --- B. 构建列表组件数据 (WidgetData) ---
+      // 只有当存在列表组件时，才真正需要去处理图片（为了性能，其实可以先判断一下是否有 'widget' 类型的卡片，但这里为了逻辑清晰先直接构建）
       const widgetData = new WidgetData();
       widgetData.totalCount = validTasks.length;
       widgetData.updateTime = new Date().toLocaleTimeString();
@@ -46,22 +73,18 @@ export class WidgetUpdater {
 
       widgetData.isWhiteText = localValues.getWidgetIsWhiteText();
 
+      // 图片处理逻辑 (保持原有逻辑)
       const rawBgPath = localValues.getWidgetBackgroundImage();
       let file: fs.File | null = null;
       let formImageKey = 'bgImage';
 
-      // 处理 file:// 前缀 (FormKit 加载沙箱图片必须要有 file://)
       if (rawBgPath && rawBgPath.length > 0) {
         const fsPath = rawBgPath.startsWith('file://') ? rawBgPath.substring(7) : rawBgPath;
         try {
-          // 这里检查一下文件大小，确认压缩生效了
           const stat = fs.statSync(fsPath);
-          console.info(`[WidgetUpdater] Sending BG image. Path: ${fsPath}, Size: ${stat.size} bytes`);
-
           if (stat.size > 1024 * 1024) {
-            console.error('[WidgetUpdater] ⚠️ WARNING: Image size > 1MB, Widget might fail to render!');
+            console.error('[WidgetUpdater] ⚠️ WARNING: Image size > 1MB');
           }
-
           file = fs.openSync(fsPath, fs.OpenMode.READ_ONLY);
           widgetData.backgroundImage = 'memory://' + formImageKey;
         } catch (err) {
@@ -70,6 +93,7 @@ export class WidgetUpdater {
         }
       }
 
+      // 构建任务列表项
       widgetData.tasks = validTasks.slice(0, 5).map(item => {
         const end = new Date(item.endTime).getTime();
         const diffHours = (end - now) / (1000 * 60 * 60);
@@ -87,7 +111,6 @@ export class WidgetUpdater {
           timeText = Math.floor(diffHours / 24) + '天后';
         }
 
-        // Fix: Explicitly instantiate the class to satisfy ArkTS strict checks
         const widgetItem = new WidgetTaskItem();
         widgetItem.title = item.name;
         widgetItem.timeDesc = timeText;
@@ -95,29 +118,45 @@ export class WidgetUpdater {
         return widgetItem;
       });
 
-      // 4. 封装数据
-      let formData: Record<string, Object> = {
+      // 封装 List 数据
+      let formDataList: Record<string, Object> = {
         'widgetData': widgetData
       };
 
-      // 2. 如果有文件，将 formImages 加到这个普通对象里
       if (file) {
         let images: Record<string, number> = {};
         images[formImageKey] = file.fd;
-
-        // 直接在这个普通对象上设置 formImages
-        formData['formImages'] = images;
+        formDataList['formImages'] = images;
       }
 
-      // 3. 使用构造好的对象创建 FormBindingData
-      // createFormBindingData 接受 Object 类型，所以这里传入 formData 是合法的
-      const bindingData = formBindingData.createFormBindingData(formData);
+      const bindingList = formBindingData.createFormBindingData(formDataList);
 
-      // 5. 循环推送更新
+      // ==========================================
+      // 4. 循环推送更新
+      // ==========================================
+
       for (const id of formIds) {
-        // console.debug(`[WidgetUpdater] Updating form ${id}`);
-        await formProvider.updateForm(id, bindingData);
+        const type = await pref.get(id, 'widget') as string;
+
+        console.info(`[WidgetUpdater] Dispatching to ID: ${id} | Type: ${type}`);
+
+        try {
+          if (type === 'widget_capsule') {
+            console.debug(`[WidgetUpdater] Updating CAPSULE form ${id}`);
+            await formProvider.updateForm(id, bindingCapsule);
+          } else {
+            console.debug(`[WidgetUpdater] Updating LIST form ${id}`);
+            await formProvider.updateForm(id, bindingList);
+          }
+        } catch (updateErr) {
+          // 单个卡片更新失败不应阻断其他卡片
+          console.error(`[WidgetUpdater] Failed to update form ${id} (${type}): ${updateErr}`);
+
+          // 可选：如果更新报 16501001 (ID不存在)，可以在这里顺手清理 pref
+          // await WidgetUpdater.cleanInvalidId(context, id);
+        }
       }
+
       console.info(`[WidgetUpdater] Updated ${formIds.length} widgets.`);
 
     } catch (e) {

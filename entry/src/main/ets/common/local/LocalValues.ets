@@ -41,7 +41,7 @@ export class LocalValues {
       const vibration = await this.pref.get(C.KEY_VIBRATION_ENABLE, true);
       AppStorage.setOrCreate(C.KEY_VIBRATION_ENABLE, vibration);
 
-      const progressDir = await this.pref.get(C.KEY_PROGRESS_DIRECTION, true);
+      const progressDir = await this.pref.get(C.KEY_PROGRESS_DIRECTION, false);
       AppStorage.setOrCreate(C.KEY_PROGRESS_DIRECTION, progressDir);
 
       const excitementText = await this.pref.get(C.KEY_EXCITEMENT_TEXT, true);

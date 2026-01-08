@@ -19,6 +19,26 @@
       "supportDimensions": [
         "2*2"
       ]
+    },
+    {
+      "name": "widget_capsule",
+      "displayName": "$string:widget_display_name",
+      "description": "$string:widget_desc",
+      "src": "./ets/widget/pages/TaskWidgetCardCapsule.ets",
+      "uiSyntax": "arkts",
+      "window": {
+        "designWidth": 720,
+        "autoDesignWidth": true
+      },
+      "colorMode": "auto",
+      "isDynamic": true,
+      "isDefault": false,
+      "updateEnabled": true,
+      "updateDuration": 1,
+      "defaultDimension": "1*2",
+      "supportDimensions": [
+        "1*2"
+      ]
     }
   ]
 }

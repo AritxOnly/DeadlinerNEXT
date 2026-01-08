@@ -7,11 +7,11 @@
         "title": "核心概念",
         "iconName": "lightbulb",
         "fileName": "core_concept.md",
-        "themeColor": "#4DB6AC"
+        "themeColor": "#3A6EA5"
       },
       {
         "id": "add_task",
-        "title": "如何添加任务",
+        "title": "添加任务与习惯",
         "iconName": "plus_circle",
         "fileName": "add_task.md",
         "themeColor": "#F08A7E"
@@ -30,7 +30,8 @@
     "items": [
       {
         "id": "archive_mgmt",
-        "title": "什么是归档管理",
+        "title": "归档管理",
+        "subtitle": "查看折叠的已完成任务",
         "iconName": "archivebox",
         "fileName": "archive_mgmt.md",
         "themeColor": "#FFE5AB55"
@@ -38,6 +39,7 @@
       {
         "id": "statistics",
         "title": "概览统计",
+        "subtitle": "了解您的任务情况与趋势",
         "iconName": "chart_bar",
         "fileName": "statistics.md",
         "themeColor": "#42A5F5"
@@ -45,16 +47,26 @@
       {
         "id": "notification",
         "title": "通知推送",
+        "subtitle": "通过通知提醒任务临近、习惯打卡与摘要",
         "iconName": "bell",
         "fileName": "notification.md",
         "themeColor": "#FFD67171"
       },
       {
         "id": "ai_feature",
-        "title": "AI 任务拆解",
+        "title": "AI 任务助手",
+        "subtitle": "接入 AI 能力一键提取 Deadline",
         "iconName": "wand_and_stars",
         "fileName": "ai_feature.md",
         "themeColor": "#9D7AD2"
+      },
+      {
+        "id": "crossplatform",
+        "title": "跨平台",
+        "subtitle": "随时随地在不同设备上管理任务",
+        "iconName": "crossplatform",
+        "fileName": "crossplatform.md",
+        "themeColor": "#4DB6AC"
       }
     ]
   },

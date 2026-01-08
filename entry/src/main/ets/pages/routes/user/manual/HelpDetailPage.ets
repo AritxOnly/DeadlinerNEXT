@@ -31,6 +31,7 @@ export struct HelpDetailPage {
             if (this.item) {
               BrandPageHeader({
                 title: this.item.title,
+                subtitle: this.item.subtitle,
                 icon: this.item.icon ?? $r('sys.symbol.doc_text'),
                 baseColor: this.item.themeColor,
               })

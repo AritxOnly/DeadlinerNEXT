@@ -136,7 +136,7 @@ export class SearchUtils {
       title: item.name,
       remainingTimeAlt: timeText,
       note: item.note || "",
-      progress: progress,
+      progress: displayProgress,
       isStarred: item.isStared,
       status: status,
       dbId: item.id,

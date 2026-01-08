@@ -30,17 +30,12 @@ struct TaskWidgetCardSmall {
    * 判断是否使用白色文字（根据图片分析结果）
    */
   isWhiteText(): boolean {
-    // 如果没有背景图，默认逻辑由原先代码决定（比如默认渐变色背景比较亮，可能用黑色字）
     if (!this.data.backgroundImage) return false;
     return this.data.isWhiteText;
   }
 
   /**
    * 获取 Item 背景颜色
-   * 逻辑：
-   * 1. 默认无图：用原先的实色背景
-   * 2. 深色图(白字)：用半透明黑底
-   * 3. 浅色图(黑字)：用半透明白底，增加对比度
    */
   getItemBgColor(): ResourceColor {
     if (this.data.backgroundImage && this.data.backgroundImage.length > 0) {
@@ -58,7 +53,7 @@ struct TaskWidgetCardSmall {
    */
   getPrimaryFontColor(): ResourceColor {
     if (this.data.backgroundImage) {
-      return this.isWhiteText() ? Color.White : '#E6000000'; // 白 或 深黑
+      return this.isWhiteText() ? Color.White : '#E6000000';
     }
     return this.FONT_PRIMARY;
   }
@@ -73,78 +68,85 @@ struct TaskWidgetCardSmall {
     return this.FONT_SECONDARY;
   }
 
-  /**
-   * 调试日志
-   */
   aboutToAppear() {
     console.info(`[TaskWidgetCardSmall] Initialized.`);
-    console.info(`[TaskWidgetCardSmall] Tasks count: ${this.data.tasks.length}`);
-    console.info(`[TaskWidgetCardSmall] BG Image Path: ${this.data.backgroundImage}`);
-
-    if (this.data.backgroundImage) {
-      console.info(`[TaskWidgetCardSmall] BG Image Length: ${this.data.backgroundImage.length}`);
-    } else {
-      console.info(`[TaskWidgetCardSmall] No Background Image set.`);
-    }
   }
 
   build() {
     Stack() {
       // --- 1. 背景层 ---
       if (this.data.backgroundImage && this.data.backgroundImage.length > 0) {
+        // A. 自定义背景图片 (保持不变)
         Image(this.data.backgroundImage)
           .width('100%')
           .height('100%')
           .objectFit(ImageFit.Cover)
       } else {
-        Rect()
-          .width('100%')
-          .height('100%')
-          .fill(this.COLOR_WIDGET_BG_START)
-          .linearGradient({
-            angle: 135,
-            colors: [
-              [this.COLOR_WIDGET_BG_START, 0.0],
-              [this.COLOR_WIDGET_BG_END, 1.0]
-            ]
-          })
+        // B. 默认渐变背景 + 水波纹效果 (修改处)
+        Stack() {
+          // 1.1 基础渐变底色
+          Rect()
+            .width('100%')
+            .height('100%')
+            .fill(this.COLOR_WIDGET_BG_START)
+            .linearGradient({
+              angle: 135,
+              colors: [
+                [this.COLOR_WIDGET_BG_START, 0.0],
+                [this.COLOR_WIDGET_BG_END, 1.0]
+              ]
+            })
+
+          // 1.2 波纹 - 外圈 (大，极淡)
+          Circle()
+            .width(200) // 2x2 尺寸较大，圆圈可以画大一点
+            .height(200)
+            .fill(this.COLOR_BRAND)
+            .opacity(0.03) // 非常淡，作为背景氛围
+            .position({ x: '30%', y: '-20%' }) // 从右上角晕开
+
+          // 1.3 波纹 - 中圈 (稍小，稍显)
+          Circle()
+            .width(140)
+            .height(140)
+            .fill(this.COLOR_BRAND)
+            .opacity(0.06)
+            .position({ x: '55%', y: '-5%' })
+        }
+        .width('100%')
+        .height('100%')
       }
 
-      // --- 2. 内容层 ---
+      // --- 2. 内容层 (保持不变) ---
       Column() {
         // --- 顶部栏 ---
         Row() {
-          // Logo
           Image($r('app.media.icon'))
-            .width(18) // 稍微大一点点，更清晰
+            .width(18)
             .height(18)
             .borderRadius(4)
             .margin({ right: 6 })
 
-          // App Name
           Text("Deadliner")
             .fontSize(13)
             .fontWeight(FontWeight.Bold)
             .fontColor(this.getPrimaryFontColor())
             .layoutWeight(1)
             .maxLines(1)
-            // 自定义背景下加阴影
             .textShadow(this.data.backgroundImage ? { radius: 2, color: '#40000000' } : undefined)
 
-          // Count Badge
           if (this.data.totalCount > 0) {
             Text(`${this.data.totalCount}`)
               .fontSize(10)
               .fontWeight(FontWeight.Bold)
               .fontColor(this.data.totalCount > 3 ? this.COLOR_ACCENT : this.COLOR_BRAND)
               .backgroundColor(this.getItemBgColor())
-              .padding({ left: 5, right: 5, top: 1, bottom: 1 }) // 稍微减小内边距，防止撑太高
+              .padding({ left: 5, right: 5, top: 1, bottom: 1 })
               .borderRadius(6)
           }
         }
         .width('100%')
         .alignItems(VerticalAlign.Center)
-        // 去掉了 margin，依靠父容器 padding
 
         // --- 任务列表 ---
         if (this.data.tasks.length === 0) {
@@ -212,7 +214,6 @@ struct TaskWidgetCardSmall {
     .borderRadius(8)
     .padding({ left: 6, right: 8 })
     .alignItems(VerticalAlign.Center)
-    // 只有紧急且非自定义背景时显示边框
     .border({
       width: (item.isUrgent && !this.data.backgroundImage) ? 1 : 0,
       color: this.COLOR_ACCENT
@@ -242,6 +243,8 @@ struct TaskWidgetCardSmall {
 @Builder
 export function TaskWidgetCardSmallPreviewBuilder() {
   TaskWidgetCardSmall()
-    .borderRadius(24)
+    .borderRadius(20)
     .clip(true)
+    .width(150)
+    .height(150)
 }

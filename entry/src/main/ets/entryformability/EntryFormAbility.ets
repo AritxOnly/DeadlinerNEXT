@@ -2,67 +2,89 @@ import { FormExtensionAbility, formInfo, formBindingData } from '@kit.FormKit';
 import { Want } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
-import { WidgetData } from '../widget/model/WidgetData'; // 引入数据模型
+import { WidgetData } from '../widget/model/WidgetData';
+import { CapsuleWidgetData } from '../widget/model/CapsuleWidgetData';
 
 export default class EntryFormAbility extends FormExtensionAbility {
 
-  // 1. 卡片添加
   onAddForm(want: Want): formBindingData.FormBindingData {
     const formId = want.parameters![formInfo.FormParam.IDENTITY_KEY] as string;
-    console.info(`[EntryFormAbility] onAddForm: ${formId}`);
+    const formName = want.parameters![formInfo.FormParam.NAME_KEY] as string;
 
-    // 保存 ID
-    this.saveFormId(formId);
+    console.info(`[EntryFormAbility] onAddForm: id=${formId}, name=${formName}`);
 
-    // 异步触发一次真实数据更新
-    // (因为这里必须同步返回，所以先返回空数据，稍后 WidgetUpdater 会把 DB 数据推上来)
+    this.saveFormInfo(formId, formName);
+
     setTimeout(() => {
       WidgetUpdater.updateAllWidgets(this.context);
     }, 50);
 
-    // 修复：必须返回 FormBindingData，而不是 FormState
-    const initialData = new WidgetData();
-    initialData.totalCount = 0;
-    initialData.tasks = [];
-    return formBindingData.createFormBindingData(initialData);
+    if (formName === 'widget_capsule') {
+      const capsuleData = new CapsuleWidgetData();
+      capsuleData.remainingCount = 0;
+      capsuleData.summary = "加载中...";
+      return formBindingData.createFormBindingData({
+        'widgetData': capsuleData
+      });;
+
+    } else {
+      const listData = new WidgetData();
+      listData.totalCount = 0;
+      listData.tasks = [];
+      return formBindingData.createFormBindingData(listData);
+    }
   }
 
-  // 2. 卡片移除
   onRemoveForm(formId: string) {
     console.info(`[EntryFormAbility] onRemoveForm: ${formId}`);
-    this.deleteFormId(formId);
+    this.deleteFormInfo(formId);
   }
 
-  // 3. 卡片刷新事件
   onUpdateForm(formId: string) {
     console.info(`[EntryFormAbility] onUpdateForm: ${formId}`);
     WidgetUpdater.updateAllWidgets(this.context);
   }
 
-  // === Preferences 辅助方法 ===
-  private async saveFormId(formId: string) {
+  // === Preferences 辅助方法 (已升级支持存储类型) ===
+
+  private async saveFormInfo(formId: string, formName: string) {
     try {
       const pref = await preferences.getPreferences(this.context, 'widget_store');
+
+      // 1. 维护 ID 列表 (为了遍历)
       const ids = (await pref.get('formIds', [])) as Array<string>;
       if (!ids.includes(formId)) {
         ids.push(formId);
         await pref.put('formIds', ids);
-        await pref.flush();
       }
+
+      // 2. 【关键】存储 "ID -> 卡片类型" 的映射
+      // 这样 WidgetUpdater 在 updateAllWidgets 时，可以先 get(formId) 知道它是谁
+      await pref.put(formId, formName);
+
+      await pref.flush();
     } catch (e) {
-      console.error(`[EntryFormAbility] Save ID failed: ${e}`);
+      console.error(`[EntryFormAbility] Save Form Info failed: ${e}`);
     }
   }
 
-  private async deleteFormId(formId: string) {
+  private async deleteFormInfo(formId: string) {
     try {
       const pref = await preferences.getPreferences(this.context, 'widget_store');
+
+      // 1. 移除 ID
       let ids = (await pref.get('formIds', [])) as Array<string>;
       ids = ids.filter(id => id !== formId);
       await pref.put('formIds', ids);
+
+      // 2. 移除类型映射
+      if (await pref.has(formId)) {
+        await pref.delete(formId);
+      }
+
       await pref.flush();
     } catch (e) {
-      console.error(`[EntryFormAbility] Delete ID failed: ${e}`);
+      console.error(`[EntryFormAbility] Delete Form Info failed: ${e}`);
     }
   }
 };

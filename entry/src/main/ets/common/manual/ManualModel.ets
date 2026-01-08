@@ -4,6 +4,7 @@ import { common } from '@kit.AbilityKit';
 export interface ManualItem {
   id: string;
   title: string;
+  subtitle?: string;
   iconName?: string;  // JSON 里存的名字
   icon?: Resource;    // 运行时转换后的资源对象
   fileName: string;   // MD 文件名
@@ -29,7 +30,8 @@ const ICON_MAP: Record<string, Resource> = {
   'cloud': $r('sys.symbol.cloud'),                     // WebDAV
   'gear_shape': $r('sys.symbol.gearshape'),           // 配置
   'questionmark_circle': $r('sys.symbol.questionmark_circle'), // FAQ
-  'bell': $r('sys.symbol.bell')
+  'bell': $r('sys.symbol.bell'),
+  'crossplatform': $r('sys.symbol.matebook_and_phone_fill')
 };
 
 export class ManualDataManager {
@@ -37,6 +39,7 @@ export class ManualDataManager {
 
   // 缓存目录结构，避免每次进页面都读 IO
   private cachedSections: ManualSection[] | null = null;
+  private itemMap: Map<string, ManualItem> = new Map();
 
   private constructor() {}
 
@@ -76,12 +79,31 @@ export class ManualDataManager {
       });
 
       this.cachedSections = rawSections;
+
+      this.buildItemMap();
+
       return rawSections;
 
     } catch (error) {
       console.error('[ManualDataManager] Load menu failed:', error);
       return [];
     }
+  }
+
+  private buildItemMap() {
+    if (!this.cachedSections) return;
+    this.itemMap.clear();
+    for (const section of this.cachedSections) {
+      for (const item of section.items) {
+        if (item.id) {
+          this.itemMap.set(item.id, item);
+        }
+      }
+    }
+  }
+
+  public getItemById(id: string): ManualItem | undefined {
+    return this.itemMap.get(id);
   }
 
   /**

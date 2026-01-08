@@ -65,8 +65,9 @@ export struct BrandPageHeader {
         // 主图标 (使用 Symbol)
         if (this.icon) {
           SymbolGlyph(this.icon)
-            .fontSize(64)
+            .fontSize(56)
             .fontColor([Color.White])
+            .fontWeight(600)
         }
 
         Column({ space: 4 }) {
