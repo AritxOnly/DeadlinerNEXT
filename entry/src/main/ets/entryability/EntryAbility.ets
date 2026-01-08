@@ -35,6 +35,12 @@ export default class EntryAbility extends UIAbility {
     await TaskRepository.getInstance().initialReminderCheck();
 
     this.checkLoginStatus();
+
+    this.handleWidgetRoute(want);
+  }
+
+  onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
+    this.handleWidgetRoute(want)
   }
 
   onDestroy(): void {
@@ -92,5 +98,16 @@ export default class EntryAbility extends UIAbility {
         hilog.error(0x0000, 'EntryAbility', 'Check user failed: %{public}s', err.message);
         AppStorage.setOrCreate('isLoggedIn', false);
       });
+  }
+
+  /**
+   * 统一处理小组件跳转逻辑
+   */
+  private handleWidgetRoute(want: Want) {
+    if (want.parameters && want.parameters['target'] === 'addTask') {
+      // 设置全局状态 'QuickAddTaskTrigger' 为 true
+      // UI 监听到这个变为 true 后，就会打开弹窗
+      AppStorage.setOrCreate('QuickAddTaskTrigger', true);
+    }
   }
 }

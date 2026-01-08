@@ -21,6 +21,14 @@ struct Index {
   // 全局路由栈
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
 
+  @StorageLink('QuickAddTaskTrigger') @Watch('onQuickAddTrigger') quickAddTrigger: boolean = false;
+
+  onQuickAddTrigger() {
+    if (this.quickAddTrigger === true) {
+      this.currentIndex = 0;
+    }
+  }
+
   private context = getContext(this) as common.UIAbilityContext;
   private privacyUrl: string = 'resource://rawfile/privacy_agreement.html';
 

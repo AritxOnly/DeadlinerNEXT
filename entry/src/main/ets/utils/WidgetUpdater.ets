@@ -32,17 +32,29 @@ export class WidgetUpdater {
       const now = new Date().getTime();
 
       // 过滤：未完成、未归档、未删除、非习惯
-      const validTasks = allTasks
-        .filter(t => !t.isCompleted && !t.isArchived && !t.deleted && t.type !== 'habit')
+      const activeTasks = allTasks
+        .filter(t => !t.isArchived && !t.deleted && t.type !== 'habit')
         .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime());
 
-      // ==========================================
-      // 3. 预先构建两套 FormBindingData
-      // ==========================================
+      const validTasks = activeTasks
+        .filter(t => !t.isCompleted)
+        .sort((a, b) => new Date(a.endTime).getTime() - new Date(b.endTime).getTime());
 
-      // --- A. 构建胶囊组件数据 (CapsuleWidgetData) ---
       const capsuleData = new CapsuleWidgetData();
+
+      // 1. activeCount: 所有活跃任务数 (即 validTasks 的总数)
+      capsuleData.activeCount = activeTasks.length;
       capsuleData.remainingCount = validTasks.length;
+
+      // 2. nearbyCount: 计算24小时内到期的任务数
+      // 逻辑：endTime > now (未过期) 且 (endTime - now) <= 24小时
+      const oneDayMillis = 24 * 60 * 60 * 1000;
+      const nearbyTasks = validTasks.filter(t => {
+        const tTime = new Date(t.endTime).getTime();
+        return tTime > now && (tTime - now) <= oneDayMillis;
+      });
+      capsuleData.nearbyCount = nearbyTasks.length;
+
       // 简单的文案逻辑
       if (validTasks.length === 0) {
         capsuleData.summary = "今日无待办";
@@ -141,7 +153,7 @@ export class WidgetUpdater {
         console.info(`[WidgetUpdater] Dispatching to ID: ${id} | Type: ${type}`);
 
         try {
-          if (type === 'widget_capsule') {
+          if (type === 'widget_capsule'|| type === 'widget_lock_capsule') {
             console.debug(`[WidgetUpdater] Updating CAPSULE form ${id}`);
             await formProvider.updateForm(id, bindingCapsule);
           } else {

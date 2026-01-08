@@ -19,7 +19,7 @@ export default class EntryFormAbility extends FormExtensionAbility {
       WidgetUpdater.updateAllWidgets(this.context);
     }, 50);
 
-    if (formName === 'widget_capsule') {
+    if (formName === 'widget_capsule'|| formName === 'widget_lock_capsule') {
       const capsuleData = new CapsuleWidgetData();
       capsuleData.remainingCount = 0;
       capsuleData.summary = "加载中...";

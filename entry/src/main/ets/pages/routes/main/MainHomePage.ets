@@ -80,6 +80,26 @@ export struct MainHomePage {
 
   @State confettiController: ConfettiController = new ConfettiController();
 
+  @StorageLink('QuickAddTaskTrigger') @Watch('onQuickAddTaskChange') quickAddTrigger: boolean = false;
+
+  /**
+   * 监听回调函数
+   */
+  onQuickAddTaskChange() {
+    // 只有当值为 true 时才执行，防止重置为 false 时再次触发
+    if (this.quickAddTrigger === true) {
+      console.info('[MainHomePage] Widget trigger received, opening AddTask...');
+
+      // A. 执行你原本的添加逻辑
+      if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddShow = true;
+      else this.appPathStack.pushPathByName('addTask', null);
+
+      // B. 【重要】执行完后立马重置为 false
+      // 这样下次点击小组件时，状态才能再次从 false 变为 true，触发 @Watch
+      this.quickAddTrigger = false;
+    }
+  }
+
   @Prop @Watch('onTabSwitch') currentTabIndex: number = 0;
 
   readonly TARGET_INDEX: number = 0;
