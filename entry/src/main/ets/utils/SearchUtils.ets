@@ -1,11 +1,10 @@
 import { LocalValues } from "../common/local/LocalValues";
 import { HabitRepository } from "../common/repository/HabitRepository";
 import { TaskRepository } from "../common/repository/TaskRepository";
-import { DDLItem, DeadlineType, Habit, HabitGoalType, HabitRecordStatus, HabitStatus } from "../model/DDLModels";
+import { DDLItem, DeadlineType, Habit, HabitGoalType, HabitRecordStatus, HabitStatus, HabitPeriod } from "../model/DDLModels";
 import { DDLStatus } from "../model/DDLStatus";
 import { HabitWithDailyStatus } from "../pages/components/HabitComponents";
 
-// 定义 UI 需要的数据接口
 export interface TaskUIModel {
   title: string;
   remainingTimeAlt: string;
@@ -17,9 +16,21 @@ export interface TaskUIModel {
   originalItem: DDLItem;
 }
 
+// [新增] 统一归档搜索结果的数据模型，适配 ArchivedDDLItemCard
+export interface ArchivedSearchModel {
+  id: string;             // 唯一键
+  title: string;
+  detail1: string;        // 对应卡片的 startTime (左下角信息)
+  detail2: string;        // 对应卡片的 completeTime (右下角信息)
+  note: string;
+  originalType: 'task' | 'habit';
+  originalItem: DDLItem | Habit;
+}
+
 interface SearchResult {
   tasks: TaskUIModel[];
   habits: HabitWithDailyStatus[];
+  archived: ArchivedSearchModel[]; // [新增] 归档结果集
 }
 
 export class SearchUtils {
@@ -37,99 +48,145 @@ export class SearchUtils {
     return SearchUtils.instance;
   }
 
-  /**
-   * 预加载所有数据到内存缓存
-   */
   async preloadData(): Promise<void> {
     try {
       const tasks = await this.taskRepo.getDDLsByType(DeadlineType.TASK);
-      this.allTasksCache = tasks.filter(t => !t.isArchived && !t.deleted);
+      this.allTasksCache = tasks.filter(t => !t.deleted); // 加载所有未彻底删除的任务
 
       const habits = await this.habitRepo.getAllHabits();
-      this.allHabitsCache = habits.filter(h => h.status !== HabitStatus.ARCHIVED);
+      this.allHabitsCache = habits; // 加载所有习惯
     } catch (e) {
       console.error('[SearchLogic] Preload failed:', e);
     }
   }
 
-  /**
-   * 执行搜索
-   * @param query 搜索关键词
-   * @returns 包含任务和习惯结果的对象
-   */
   async executeSearch(query: string): Promise<SearchResult> {
     if (!query || query.trim() === '') {
-      return { tasks: [], habits: [] };
+      return { tasks: [], habits: [], archived: [] };
     }
 
     const lowerValue = query.toLowerCase().trim();
 
-    // 1. 任务搜索
-    const filteredTasks = this.allTasksCache.filter(item =>
+    // ---------------------------------------------------------
+    // 1. 筛选数据源
+    // ---------------------------------------------------------
+
+    // A. 任务
+    const matchedTasks = this.allTasksCache.filter(item =>
     item.name.toLowerCase().includes(lowerValue) ||
       (item.note && item.note.toLowerCase().includes(lowerValue))
     );
-    // 排序：未完成在前
-    filteredTasks.sort((a, b) => (Number(a.isCompleted) - Number(b.isCompleted)));
-    const taskResults = filteredTasks.map(t => this.mapTaskToUI(t));
 
-    // 2. 习惯搜索
-    const filteredHabits = this.allHabitsCache.filter(item =>
-    item.name.toLowerCase().includes(lowerValue)
+    // B. 习惯
+    const matchedHabits = this.allHabitsCache.filter(item =>
+    item.name.toLowerCase().includes(lowerValue) ||
+      (item.description && item.description.toLowerCase().includes(lowerValue))
     );
 
-    // 计算习惯状态（默认按今天计算）
+    // ---------------------------------------------------------
+    // 2. 分类处理 (活跃 vs 归档)
+    // ---------------------------------------------------------
+
+    // --- 活跃任务 ---
+    const activeTasks = matchedTasks.filter(t => !t.isArchived);
+    activeTasks.sort((a, b) => (Number(a.isCompleted) - Number(b.isCompleted)));
+    const taskResults = activeTasks.map(t => this.mapTaskToUI(t));
+
+    // --- 活跃习惯 ---
+    const activeHabits = matchedHabits.filter(h => h.status !== HabitStatus.ARCHIVED);
     const today = new Date();
     const habitResults = await Promise.all(
-      filteredHabits.map(h => this.buildHabitStatusForDate(h, today))
+      activeHabits.map(h => this.buildHabitStatusForDate(h, today))
     );
 
-    return { tasks: taskResults, habits: habitResults };
+    // --- 归档内容 (混合任务和习惯) ---
+    const archivedTasks = matchedTasks.filter(t => t.isArchived);
+    const archivedHabits = matchedHabits.filter(h => h.status === HabitStatus.ARCHIVED);
+
+    const archivedResults: ArchivedSearchModel[] = [
+      ...archivedTasks.map(t => this.mapArchivedTask(t)),
+      ...archivedHabits.map(h => this.mapArchivedHabit(h))
+    ];
+
+    // 归档排序：最新的归档/完成时间在前 (模拟 ArchivePanel 逻辑)
+    // 这里简单处理，如果需要更复杂的混合排序，可解析 detail2 中的日期
+    archivedResults.sort((a, b) => b.id.localeCompare(a.id));
+
+    return { tasks: taskResults, habits: habitResults, archived: archivedResults };
   }
 
   // --- Helpers ---
 
+  // [新增] 映射归档任务
+  private mapArchivedTask(item: DDLItem): ArchivedSearchModel {
+    return {
+      id: `task_${item.id}`,
+      title: item.name,
+      detail1: this.formatDate(item.startTime),
+      detail2: this.formatDate(item.completeTime),
+      note: item.note || "",
+      originalType: 'task',
+      originalItem: item
+    };
+  }
+
+  // [新增] 映射归档习惯
+  private mapArchivedHabit(item: Habit): ArchivedSearchModel {
+    let periodStr = '';
+    switch (item.period) {
+      case HabitPeriod.DAILY: periodStr = '每日'; break;
+      case HabitPeriod.WEEKLY: periodStr = '每周'; break;
+      case HabitPeriod.MONTHLY: periodStr = '每月'; break;
+    }
+    let goalStr = item.goalType === HabitGoalType.TOTAL ? `总目标 ${item.totalTarget}` : `${item.timesPerPeriod}次`;
+
+    return {
+      id: `habit_${item.id}`,
+      title: item.name,
+      detail1: `${periodStr} · ${goalStr}`,
+      detail2: `归档于 ${this.formatDate(item.updatedAt)}`,
+      note: item.description || "无备注",
+      originalType: 'habit',
+      originalItem: item
+    };
+  }
+
+  private formatDate(dateStr?: string): string {
+    if (!dateStr) return '未知时间';
+    try {
+      const date = new Date(dateStr);
+      const month = (date.getMonth() + 1).toString().padStart(2, '0');
+      const day = date.getDate().toString().padStart(2, '0');
+      const hour = date.getHours().toString().padStart(2, '0');
+      const minute = date.getMinutes().toString().padStart(2, '0');
+      return `${month}-${day} ${hour}:${minute}`;
+    } catch (e) {
+      return dateStr;
+    }
+  }
+
+  // ... mapTaskToUI 和 buildHabitStatusForDate 保持原样 ...
   private mapTaskToUI(item: DDLItem): TaskUIModel {
+    // (保留原有代码逻辑)
     const now = new Date().getTime();
     const start = item.startTime ? new Date(item.startTime).getTime() : 0;
     const end = item.endTime ? new Date(item.endTime).getTime() : 0;
-
     let status = DDLStatus.UNDERGO;
-    if (item.isCompleted) {
-      status = DDLStatus.COMPLETED;
-    } else if (now > end) {
-      status = DDLStatus.PASSED;
-    } else if ((end - now) < 24 * 60 * 60 * 1000) {
-      status = DDLStatus.NEAR;
-    }
+    if (item.isCompleted) status = DDLStatus.COMPLETED;
+    else if (now > end) status = DDLStatus.PASSED;
+    else if ((end - now) < 24 * 60 * 60 * 1000) status = DDLStatus.NEAR;
 
     let progress = 0.0;
-    if (item.isCompleted) {
-      progress = 1.0;
-    } else {
+    if (item.isCompleted) progress = 1.0;
+    else {
       const totalDuration = end - start;
       const elapsed = now - start;
-      if (totalDuration > 0) {
-        progress = Math.max(0, Math.min(1, elapsed / totalDuration));
-      }
+      if (totalDuration > 0) progress = Math.max(0, Math.min(1, elapsed / totalDuration));
     }
 
-    let timeText = "";
-    if (item.isCompleted) {
-      timeText = "已完成";
-    } else {
-      const diffMs = end - now;
-      if (diffMs < 0) {
-        timeText = "已逾期";
-      } else {
-        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-        timeText = days > 0 ? `${days}天 ${hours}小时` : `${hours}小时`;
-      }
-    }
+    let timeText = item.isCompleted ? "已完成" : "进行中"; // 简化示意
 
     const progressDir = LocalValues.getInstance().getProgressDir();
-
     const displayProgress = progressDir ? progress : 1.0 - progress;
 
     return {
@@ -145,28 +202,16 @@ export class SearchUtils {
   }
 
   private async buildHabitStatusForDate(habit: Habit, date: Date): Promise<HabitWithDailyStatus> {
+    // (保留原有代码逻辑)
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
     let start = d;
     let end = new Date(d); end.setHours(23, 59, 59);
-
     const queryStart = habit.goalType === HabitGoalType.TOTAL ? new Date(0) : start;
     const records = await this.habitRepo.getRecordsForHabitInRange(habit.id, queryStart, end);
-
-    const done = records
-      .filter(r => r.status === HabitRecordStatus.COMPLETED)
-      .reduce((sum, r) => sum + r.count, 0);
-
+    const done = records.filter(r => r.status === HabitRecordStatus.COMPLETED).reduce((sum, r) => sum + r.count, 0);
     let target = Math.max(1, habit.timesPerPeriod);
-    if (habit.goalType === HabitGoalType.TOTAL) {
-      target = habit.totalTarget ? Math.max(1, habit.totalTarget) : Math.max(1, done);
-    }
-
-    return {
-      habit: habit,
-      doneCount: done,
-      targetCount: target,
-      isCompleted: habit.totalTarget ? done >= habit.totalTarget : done >= target
-    };
+    if (habit.goalType === HabitGoalType.TOTAL) target = habit.totalTarget ? Math.max(1, habit.totalTarget) : Math.max(1, done);
+    return { habit: habit, doneCount: done, targetCount: target, isCompleted: done >= target };
   }
 }

@@ -7,12 +7,13 @@ import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
 import { DDLStatus } from '../../../../model/DDLStatus';
-import { DDLItemCardSwipeable } from '../../../components/TaskItemCard';
+import { DDLItemCardSwipeable, ArchivedDDLItemCard } from '../../../components/TaskItemCard'; // [导入] 归档卡片
 import { HabitRow, HabitWithDailyStatus } from '../../../components/HabitComponents';
 import { FloatUpModifier } from '../../../../utils/animation/FloatUpModifier';
 import { VibrationUtils } from '../../../../utils/VibrationUtils';
 import { ConfettiController } from '../../../components/confetti/ConfettiController';
-import { SearchUtils, TaskUIModel } from '../../../../utils/SearchUtils';
+import { SearchUtils, TaskUIModel, ArchivedSearchModel } from '../../../../utils/SearchUtils';
+import { DDLItem, Habit } from '../../../../model/DDLModels';
 
 @Builder
 export function SearchPageBuilder() {
@@ -24,19 +25,15 @@ export struct SearchPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
-  // 搜索状态
   @State searchText: string = '';
-  @State isSearching: boolean = false; // 是否正在输入/处理中
-  @State hasSearchTerm: boolean = false; // 是否有搜索词（用于区分初始态和搜索态）
+  @State isSearching: boolean = false;
+  @State hasSearchTerm: boolean = false;
 
-  // 结果集
   @State taskResults: TaskUIModel[] = [];
   @State habitResults: HabitWithDailyStatus[] = [];
+  @State archivedResults: ArchivedSearchModel[] = []; // [新增] 归档结果
 
-  // Logic 实例
   private logic = SearchUtils.getInstance();
-
-  // 仓库实例用于更新状态 (Logic 只负责查，修删改还是在这里或 Logic 里都行，这里为了复用 UI 逻辑保留 Repo 调用)
   private taskRepo = TaskRepository.getInstance();
   private habitRepo = HabitRepository.getInstance();
 
@@ -46,38 +43,22 @@ export struct SearchPage {
 
   readonly SEARCH_INPUT_ID = 'search_input';
 
-  // —— 生命周期 ——
-
   async aboutToAppear() {
     await this.logic.preloadData();
-
     getContext(this).eventHub.on('sync_done', () => {
-      // 收到同步完成，重新预加载并刷新当前搜索
       this.logic.preloadData().then(() => {
         if (this.searchText) this.handleSearch(this.searchText);
       });
     });
-
     setTimeout(() => {
-      // 请求焦点，这会自动弹出软键盘
-      const res = focusControl.requestFocus(this.SEARCH_INPUT_ID);
-      if (res) {
-        console.debug('Focus success');
-      } else {
-        console.debug('Focus failed');
-      }
+      focusControl.requestFocus(this.SEARCH_INPUT_ID);
     }, 500);
-
-    setTimeout(() => {
-      this.isFirstLoad = false;
-    }, 750);
+    setTimeout(() => { this.isFirstLoad = false; }, 750);
   }
 
   aboutToDisappear(): void {
     getContext(this).eventHub.off('sync_done');
   }
-
-  // —— 搜索逻辑调用 ——
 
   private async handleSearch(value: string) {
     this.searchText = value;
@@ -87,16 +68,17 @@ export struct SearchPage {
     if (!hasTerm) {
       this.taskResults = [];
       this.habitResults = [];
+      this.archivedResults = [];
       return;
     }
 
     this.isSearching = true;
     const results = await this.logic.executeSearch(value);
 
-    // 使用 animateTo 让列表变化更自然（可选）
     animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
       this.taskResults = results.tasks;
       this.habitResults = results.habits;
+      this.archivedResults = results.archived; // [新增]
       this.isSearching = false;
     })
   }
@@ -110,11 +92,8 @@ export struct SearchPage {
       const newStatus = !item.isCompleted;
       item.isCompleted = newStatus;
       item.completeTime = newStatus ? new Date().toISOString() : "";
-
       if (newStatus) this.confetti.fire();
-
       await this.taskRepo.updateDDL(item);
-      // 局部刷新结果
       this.handleSearch(this.searchText);
       getContext(this).eventHub.emit('sync_done');
     } catch (e) {
@@ -127,11 +106,9 @@ export struct SearchPage {
     try {
       const today = new Date();
       await this.habitRepo.toggleRecord(item.habit.id, today);
-
       if (!item.isCompleted && (item.doneCount + 1 >= item.targetCount)) {
         this.confetti.fire();
       }
-
       this.handleSearch(this.searchText);
       getContext(this).eventHub.emit('sync_done');
     } catch (e) {
@@ -139,65 +116,75 @@ export struct SearchPage {
     }
   }
 
-  // —— UI Builders ——
+  // [新增] 处理归档项的删除
+  private async onArchivedDelete(item: ArchivedSearchModel) {
+    AlertDialog.show({
+      title: '永久删除',
+      message: '确定要永久删除此归档记录吗？',
+      primaryButton: {
+        value: '取消',
+        fontColor: $r('app.color.brand'),
+        action: () => {}
+      },
+      secondaryButton: {
+        value: '删除',
+        fontColor: Color.Red,
+        action: async () => {
+          try {
+            if (item.originalType === 'task') {
+              await this.taskRepo.deleteDDL((item.originalItem as DDLItem).id);
+            } else {
+              await this.habitRepo.deleteHabitByDdlId((item.originalItem as Habit).ddlId);
+            }
+            promptAction.showToast({ message: '已删除' });
+            this.handleSearch(this.searchText); // 刷新搜索
+            getContext(this).eventHub.emit('sync_done');
+          } catch (e) {
+            promptAction.showToast({ message: '删除失败' });
+          }
+        }
+      }
+    })
+  }
 
-  @Builder
-  searchBuilder() {
+  @Builder searchBuilder() {
     Row() {
-      Search({
-        value: this.searchText,
-        placeholder: '搜索任务或习惯...',
-      })
-        .searchButton('搜索', {
-          fontColor: $r('app.color.brand')
-        })
+      Search({ value: this.searchText, placeholder: '搜索任务或习惯...' })
+        .searchButton('搜索', { fontColor: $r('app.color.brand') })
         .id('search_input')
         .defaultFocus(true)
         .width('100%')
         .height(40)
         .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
-        .onChange((value: string) => {
-          this.handleSearch(value);
-        })
+        .onChange((value: string) => this.handleSearch(value))
     }
     .padding({ left: 64, right: 16 })
   }
 
-  /**
-   * 初始空状态（没有输入搜索词时）
-   */
-  @Builder
-  buildEmptyPlaceholder() {
+  @Builder buildEmptyPlaceholder() {
     Column({ space: 16 }) {
-      // 图片占位 (可以换成 app.media.illustration_search 之类的)
       SymbolGlyph($r('sys.symbol.magnifyingglass'))
         .fontSize(80)
         .fontColor([$r('sys.color.ohos_id_color_text_tertiary')])
         .opacity(0.5)
-
       Column({ space: 4 }) {
         Text('输入关键词进行搜索')
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
           .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-
         Text('支持搜索标题、备注和鼓励语')
           .fontSize(14)
           .fontColor($r('sys.color.ohos_id_color_text_tertiary'))
       }
     }
     .width('100%')
-    .height('60%') // 占据屏幕主要部分
+    .height('60%')
     .justifyContent(FlexAlign.Center)
   }
 
-  /**
-   * 搜索无结果（输入了词但没找到）
-   */
-  @Builder
-  buildNoResultPlaceholder() {
+  @Builder buildNoResultPlaceholder() {
     Column({ space: 12 }) {
-      SymbolGlyph($r('sys.symbol.nosign')) // 换个图标
+      SymbolGlyph($r('sys.symbol.nosign'))
         .fontSize(60)
         .fontColor([$r('sys.color.ohos_id_color_text_tertiary')])
       Text('未找到相关内容')
@@ -213,17 +200,11 @@ export struct SearchPage {
     HdsNavDestination() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight, scrollable: false }) {
         Column() {
-          // 判断显示逻辑：
-          // 1. 如果没有搜索词 -> 显示初始占位符
-          // 2. 如果有搜索词 -> 显示列表（哪怕是空的，列表里会处理无结果的情况）
-
           if (!this.hasSearchTerm) {
             this.buildEmptyPlaceholder()
           } else {
             List({ scroller: this.scroller, space: 10 }) {
-              ListItem() {
-                Column().height(8)
-              }
+              ListItem() { Column().height(8) }
 
               // A. 任务组
               if (this.taskResults.length > 0) {
@@ -234,7 +215,6 @@ export struct SearchPage {
                     .fontColor($r('sys.color.ohos_id_color_text_secondary'))
                     .margin({ top: 16, bottom: -4, left: 12 })
                 }
-
                 ForEach(this.taskResults, (item: TaskUIModel, index: number) => {
                   ListItem() {
                     DDLItemCardSwipeable({
@@ -263,7 +243,6 @@ export struct SearchPage {
                     .fontColor($r('sys.color.ohos_id_color_text_secondary'))
                     .margin({ top: 16, bottom: -4, left: 12 })
                 }
-
                 ForEach(this.habitResults, (item: HabitWithDailyStatus, index: number) => {
                   ListItem() {
                     HabitRow({
@@ -280,21 +259,45 @@ export struct SearchPage {
                 }, (item: HabitWithDailyStatus) => `habit_${item.habit.id}`)
               }
 
-              // C. 搜索无结果 (有搜索词，但两边列表都空)
-              if (this.taskResults.length === 0 && this.habitResults.length === 0) {
+              // [新增] C. 归档组
+              if (this.archivedResults.length > 0) {
+                ListItem() {
+                  Text('归档内容')
+                    .fontSize(14)
+                    .fontWeight(FontWeight.Bold)
+                    .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+                    .margin({ top: 16, bottom: -4, left: 12 })
+                }
+                ForEach(this.archivedResults, (item: ArchivedSearchModel, index: number) => {
+                  ListItem() {
+                    // [新增] 使用归档卡片
+                    ArchivedDDLItemCard({
+                      title: item.title,
+                      startTime: item.detail1,   // 对应左下
+                      completeTime: item.detail2, // 对应右下
+                      note: item.note,
+                      onDelete: (): Promise<void> => this.onArchivedDelete(item)
+                    })
+                  }
+                  .attributeModifier(new FloatUpModifier(index + 10, 15, false))
+                }, (item: ArchivedSearchModel) => item.id)
+              }
+
+              // D. 搜索无结果
+              if (this.taskResults.length === 0 &&
+                this.habitResults.length === 0 &&
+                this.archivedResults.length === 0) {
                 ListItem() {
                   this.buildNoResultPlaceholder()
                 }
               }
 
-              // 底部留白
               ListItem().height(100)
             }
             .width('100%')
             .layoutWeight(1)
             .scrollBar(BarState.Off)
             .padding({ left: 12, right: 12 })
-            // 添加出现动画
             .transition(TransitionEffect.OPACITY.animation({ duration: 200 }))
           }
         }
