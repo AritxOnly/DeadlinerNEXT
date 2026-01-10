@@ -70,7 +70,7 @@ struct LockScreenCapsule {
           .width('36vp')
           .height('36vp')
           .fill(Color.White)
-          .opacity(0.8)
+          .opacity(0.95)
 
         // 2. 顶层：加号图标 (作为遮罩擦除底层)
         SymbolGlyph($r('sys.symbol.plus'))

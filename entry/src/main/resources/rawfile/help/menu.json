@@ -53,6 +53,14 @@
         "themeColor": "#FFD67171"
       },
       {
+        "id": "widgets",
+        "title": "小组件",
+        "subtitle": "在桌面和锁屏快速查看任务信息",
+        "iconName": "widgets",
+        "fileName": "widgets.md",
+        "themeColor": "#FFEA8D6E"
+      },
+      {
         "id": "ai_feature",
         "title": "AI 任务助手",
         "subtitle": "接入 AI 能力一键提取 Deadline",

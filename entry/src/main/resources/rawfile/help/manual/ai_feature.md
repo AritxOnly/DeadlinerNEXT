@@ -34,7 +34,7 @@ AI 能够精准识别以下要素：
 
 ### 模型配置
 Deadliner AI 需要连接大模型服务才能工作。
-在使用前，请先前往 <AI 配置>(settingsAI) 页面，根据 <配置指引>(ai_config)，填入您的 API Key 并选择服务商（如 DeepSeek）。
+在使用前，请先前往 <AI 配置>(settingsAI) 页面，根据 <配置指引>[ai_config]，填入您的 API Key 并选择服务商（如 DeepSeek）。
 
 ### 隐私安全
 - **数据流向**：您的对话数据仅用于当前的任务提取请求，直接发送至您配置的模型服务商。

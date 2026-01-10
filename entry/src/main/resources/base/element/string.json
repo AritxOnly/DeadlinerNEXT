@@ -131,6 +131,22 @@
     {
       "name": "publish_reminder_reason",
       "value": "Deadliner 使用该权限为用户推送任务通知"
+    },
+    {
+      "name": "lock_capsule_display_name",
+      "value": "锁屏任务卡片"
+    },
+    {
+      "name": "lock_capsule_desc",
+      "value": "在锁屏展示任务进程"
+    },
+    {
+      "name": "widget_capsule_display_name",
+      "value": "任务进程卡片"
+    },
+    {
+      "name": "widget_capsule_desc",
+      "value": "展示剩余任务与状态"
     }
   ]
 }

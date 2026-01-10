@@ -83,12 +83,12 @@ struct TaskWidgetCardCapsule {
           if (this.widgetData.remainingCount > 0) {
             // 显示大数字
             Text(this.widgetData.remainingCount.toString())
-              .fontSize('40vp') // 使用 vp，并加大到 40，填补视觉空间
+              .fontSize('40vp')
               .fontWeight(FontWeight.Bold)
               .fontColor($r('app.color.brand'))
-              // 【关键】lineHeight 也必须用 vp，否则系统调整字体时行高会变，导致数字被切
               .lineHeight('40vp')
               .textAlign(TextAlign.End)
+              .height('35vp')
           } else {
             // 显示完成图标
             SymbolGlyph($r('sys.symbol.checkmark_circle'))
@@ -99,6 +99,7 @@ struct TaskWidgetCardCapsule {
         .justifyContent(FlexAlign.Center)
         .alignItems(HorizontalAlign.End)
         .padding({ left: 4 })
+        .height('100%')
       }
       .width('100%')
       .height('100%')

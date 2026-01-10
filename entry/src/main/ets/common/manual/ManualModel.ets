@@ -31,7 +31,8 @@ const ICON_MAP: Record<string, Resource> = {
   'gear_shape': $r('sys.symbol.gearshape'),           // 配置
   'questionmark_circle': $r('sys.symbol.questionmark_circle'), // FAQ
   'bell': $r('sys.symbol.bell'),
-  'crossplatform': $r('sys.symbol.matebook_and_phone_fill')
+  'crossplatform': $r('sys.symbol.matebook_and_phone_fill'),
+  'widgets': $r('sys.symbol.rectangle_stack'),
 };
 
 export class ManualDataManager {

@@ -22,8 +22,8 @@
     },
     {
       "name": "widget_capsule",
-      "displayName": "$string:widget_display_name",
-      "description": "$string:widget_desc",
+      "displayName": "$string:widget_capsule_display_name",
+      "description": "$string:widget_capsule_desc",
       "src": "./ets/widget/pages/TaskWidgetCardCapsule.ets",
       "uiSyntax": "arkts",
       "window": {
@@ -42,8 +42,8 @@
     },
     {
       "name": "widget_lock_capsule",
-      "displayName": "Deadliner锁屏版",
-      "description": "锁屏快速查看待办",
+      "displayName": "$string:lock_capsule_display_name",
+      "description": "$string:lock_capsule_desc",
       "src": "./ets/widget/pages/LockScreenCapsule.ets",
       "uiSyntax": "arkts",
       "window": {

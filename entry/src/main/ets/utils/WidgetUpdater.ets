@@ -64,7 +64,7 @@ export class WidgetUpdater {
         const diffHours = (end - now) / (1000 * 60 * 60);
 
         if (diffHours < 0) capsuleData.summary = "有任务已逾期";
-        else if (diffHours < 24) capsuleData.summary = "近期有Deadline";
+        else if (diffHours < 24) capsuleData.summary = "近期有DDL";
         else capsuleData.summary = `有任务待完成`;
       }
 
