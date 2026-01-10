@@ -8,17 +8,29 @@ export struct HomeFloatingToolbar {
   @Require handleBatchArchive: () => void
   @Require handleBatchDelete: () => void
   @Require handleBatchEdit: () => void
+  @Require handleSetAlarm: () => void
 
   @Prop isSelectionMode: boolean = false
+  @Prop selectedTask: boolean = true;
+
+  getLeftButton() {
+    if (this.selectedTask) {
+      return new ActionBarButton({
+        baseIcon: $r('sys.symbol.checkmark_circle'),
+        onClick: () => this.handleBatchComplete()
+      })
+    } else {
+      return new ActionBarButton({
+        baseIcon: $r('sys.symbol.alarm'),
+        onClick: () => this.handleSetAlarm()
+      })
+    }
+  }
 
   build() {
     HdsActionBar({
       startButtons: [
-        // 1. 标记完成
-        new ActionBarButton({
-          baseIcon: $r('sys.symbol.checkmark_circle'),
-          onClick: () => this.handleBatchComplete()
-        }),
+        this.getLeftButton(),
         // 2. 归档
         new ActionBarButton({
           baseIcon: $r('sys.symbol.archivebox'),

@@ -389,6 +389,7 @@ export struct MainHomePage {
           if (this.currentIndex === MainTabIndex.TASKS) {
             HomeFloatingToolbar({
               isSelectionMode: this.isTaskSelectionMode,
+              selectedTask: true,
 
               // 主按钮逻辑：多选时为关闭，平时为添加
               onClickAdd: () => {
@@ -404,7 +405,8 @@ export struct MainHomePage {
               handleBatchComplete: () => this.taskController.requestBatchComplete(),
               handleBatchArchive: () => this.taskController.requestBatchArchive(),
               handleBatchDelete: () => this.taskController.requestBatchDelete(),
-              handleBatchEdit: () => this.taskController.requestBatchEdit()
+              handleBatchEdit: () => this.taskController.requestBatchEdit(),
+              handleSetAlarm: () => this.taskController.requestSetAlarm()
             })
               .id('fab')
               .alignRules({
@@ -416,6 +418,7 @@ export struct MainHomePage {
           } else {
             HomeFloatingToolbar({
               isSelectionMode: this.isHabitSelectionMode,
+              selectedTask: false,
               onClickAdd: () => {
                 if (this.isHabitSelectionMode) {
                   this.habitController.requestExitSelection();
@@ -427,7 +430,8 @@ export struct MainHomePage {
               handleBatchComplete: () => this.habitController.requestBatchComplete(),
               handleBatchArchive: () => this.habitController.requestBatchArchive(),
               handleBatchDelete: () => this.habitController.requestBatchDelete(),
-              handleBatchEdit: () => this.habitController.requestBatchEdit()
+              handleBatchEdit: () => this.habitController.requestBatchEdit(),
+              handleSetAlarm: () => this.habitController.requestSetAlarm()
             })
               .id('fab_habit')
               .alignRules({

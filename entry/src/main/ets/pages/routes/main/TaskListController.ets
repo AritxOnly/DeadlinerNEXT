@@ -6,5 +6,6 @@ export class TaskListController implements DDLListController {
   requestBatchDelete: () => void = () => {};
   requestBatchEdit: () => void = () => {};
   requestExitSelection: () => void = () => {};
+  requestSetAlarm: () => void = () => {};
   loadData: () => void = () => {};
 }
