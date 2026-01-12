@@ -213,12 +213,32 @@ export class WebUtils {
   async dirExists(dir: string): Promise<boolean> {
     const d = dir.endsWith('/') ? dir : dir + '/';
     try {
-      const head = await this.head(d);
-      const code = head.code;
-      // 207 是 WebDAV Multi-Status，也代表存在
-      return [200, 204, 207].includes(code);
+      const code = await this.propfind(d, "0");
+      return [200, 207, 301, 302].includes(code);
     } catch (e) {
       return false;
+    }
+  }
+
+  async propfind(path: string, depth: string = "0"): Promise<number> {
+    this.ensureSyncEnabled();
+    const httpRequest = http.createHttp();
+    const url = this.joinUrl(path);
+
+    try {
+      const resp = await httpRequest.request(url, {
+        method: "PROPFIND" as http.RequestMethod,
+
+        header: this.getHeaders({
+          'Depth': depth, // 0Check existence, 1=List children
+          'Content-Type': 'application/xml' // WebDAV 规范建议
+        }),
+        expectDataType: http.HttpDataType.STRING
+      });
+
+      return resp.responseCode;
+    } finally {
+      httpRequest.destroy();
     }
   }
 

@@ -8,6 +8,8 @@ import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { HabitEditSheet } from "./modify/HabitEditSheet";
+import { HabitReminderDialog } from "../../components/HabitReminderDialog";
+import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -35,6 +37,27 @@ export struct HabitListSection {
 
   private repo = HabitRepository.getInstance();
 
+  @State tempHabitName: string = "";
+  @State tempIsEnabled: boolean = false;
+  @State tempSelectedTime: Date = new Date();
+  @State currentAlarmDdlId: number = -1;
+
+  // 定义 CustomDialogController
+  alarmDialogController: CustomDialogController = new CustomDialogController({
+    builder: HabitReminderDialog({
+      habitName: this.tempHabitName,
+      isEnabled: this.tempIsEnabled,
+      selectedTime: this.tempSelectedTime,
+      onConfirm: (enabled, timeStr): Promise<void> => this.saveAlarmSetting(enabled, timeStr)
+    }),
+    // 修改点：设置为居中
+    alignment: DialogAlignment.Center,
+    // 居中时通常不需要 offset，除非你想微调
+    offset: { dx: 0, dy: 0 },
+    autoCancel: true,
+    customStyle: true
+  });
+
   // —— 2. 生命周期 ——
   aboutToAppear() {
     this.refreshAll(this.selectedDate);
@@ -61,7 +84,91 @@ export struct HabitListSection {
     this.controller.requestBatchDelete = (): Promise<void> => this.handleBatchDelete();
     this.controller.requestBatchEdit = (): void => this.handleBatchEdit();
     this.controller.requestExitSelection = (): void => this.exitSelectionMode();
+    this.controller.requestSetAlarm = (): Promise<void> => this.handleRequestSetAlarm();
     this.controller.loadData = (): Promise<void> => this.refreshAll(this.selectedDate);
+  }
+
+  /**
+   * 处理设置提醒的请求
+   * 逻辑：检查当前是否选中了【唯一】的一个习惯，如果是，则弹出设置框
+   */
+  async handleRequestSetAlarm() {
+    // 1. 校验选中数量
+    if (this.selectedDdlIds.size !== 1) {
+      promptAction.showToast({ message: '请选择一个习惯来设置提醒' });
+      return;
+    }
+
+    const ddlId = Array.from(this.selectedDdlIds)[0];
+    this.currentAlarmDdlId = ddlId;
+
+    // 2. 获取习惯数据
+    const item = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
+    if (!item) return;
+    const habit = item.habit;
+
+    // 3. 准备弹窗数据 (对应 Android 中的 try-catch 解析逻辑)
+    this.tempHabitName = habit.name;
+
+    if (habit.alarmTime && habit.alarmTime.length > 0) {
+      this.tempIsEnabled = true;
+      // 解析 "HH:mm"
+      const parts = habit.alarmTime.split(':');
+      const d = new Date();
+      d.setHours(parseInt(parts[0]), parseInt(parts[1]));
+      this.tempSelectedTime = d;
+    } else {
+      this.tempIsEnabled = false;
+      // 默认时间 20:00
+      const d = new Date();
+      d.setHours(20, 0);
+      this.tempSelectedTime = d;
+    }
+
+    // 4. 打开弹窗
+    this.alarmDialogController.open();
+
+    // 5. 可选：退出选择模式 (根据交互设计决定，Android 代码未退出，这里建议保留选择状态或退出均可)
+    // this.exitSelectionMode();
+  }
+
+  /**
+   * 保存提醒设置 (对应 Android 的 onPositiveButton)
+   */
+  async saveAlarmSetting(enabled: boolean, timeStr: string) {
+    if (this.currentAlarmDdlId === -1) return;
+
+    try {
+      // 1. 从库中重新获取最新对象 (防止并发修改)
+      const habitRaw = await this.repo.getHabitByDdlId(this.currentAlarmDdlId);
+      if (!habitRaw) return;
+
+      // 2. 更新对象
+      // 如果 enabled 为 true，保存 timeStr (例如 "20:00")，否则为 null
+      const updatedHabit = habitRaw; // 注意：直接修改引用或 clone
+      updatedHabit.alarmTime = enabled ? timeStr : null; // ArkTS 中如果类型定义是 string | null
+
+      await this.repo.updateHabit(updatedHabit);
+
+      // 3. 触发调度器刷新
+      // Android: DeadlineAlarmScheduler.schedule...
+      // HarmonyOS: 我们设计的 ReminderScheduler 是基于全量数据刷新的
+      const allHabits = await this.repo.getAllHabits();
+      await ReminderScheduler.refreshHabits(allHabits);
+
+      // 4. 界面反馈
+      promptAction.showToast({ message: enabled ? `已设置提醒: ${timeStr}` : '提醒已关闭' });
+
+      // 刷新列表显示（虽然 alarmTime 可能不显示在列表上，但保持数据一致性）
+      await this.refreshAll(this.selectedDate);
+
+      // 退出选择模式
+      this.exitSelectionMode();
+
+    } catch (e) {
+      console.error('Set alarm failed:', e);
+      promptAction.showToast({ message: '设置失败' });
+    }
   }
 
   @State isFirstLoad: boolean = true;
