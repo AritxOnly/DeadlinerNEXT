@@ -151,8 +151,6 @@ export struct HabitListSection {
       await this.repo.updateHabit(updatedHabit);
 
       // 3. 触发调度器刷新
-      // Android: DeadlineAlarmScheduler.schedule...
-      // HarmonyOS: 我们设计的 ReminderScheduler 是基于全量数据刷新的
       const allHabits = await this.repo.getAllHabits();
       await ReminderScheduler.refreshHabits(allHabits);
 

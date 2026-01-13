@@ -1,9 +1,8 @@
-import { http } from '@kit.NetworkKit';
+import { rcp } from '@kit.RemoteCommunicationKit';
 import { util } from '@kit.ArkTS';
-import { BusinessError } from '@kit.BasicServicesKit';
 import { LocalValues } from '../local/LocalValues';
 
-// 简单的自定义异常，用于模拟 PreconditionFailed
+// 简单的自定义异常
 export class PreconditionFailedError extends Error {
   constructor(message: string = "Precondition Failed") {
     super(message);
@@ -30,23 +29,35 @@ interface GetRangeReturnValues {
 
 export class WebUtils {
   private baseUrl: string;
-  private authHeader: string | null = null;
-  // 模拟 GlobalUtils.cloudSyncEnable，实际请替换为你的配置读取逻辑
+  private session: rcp.Session;
+
   public static cloudSyncEnable: boolean = true;
 
   constructor(baseUrl: string, username?: string, password?: string) {
     this.baseUrl = baseUrl.endsWith('/') ? baseUrl : baseUrl + '/';
+
+    const headers: rcp.RequestHeaders = {};
+
     if (username && password) {
       const textEncoder = new util.TextEncoder();
       const origin = `${username}:${password}`;
       const uint8Array = textEncoder.encodeInto(origin);
       const base64Helper = new util.Base64Helper();
-      this.authHeader = `Basic ${base64Helper.encodeToStringSync(uint8Array)}`;
+      const authHeader = `Basic ${base64Helper.encodeToStringSync(uint8Array)}`;
+
+      headers['Authorization'] = authHeader;
     }
+
+    this.session = rcp.createSession({
+      headers: headers
+    });
+  }
+
+  close() {
+    this.session.close();
   }
 
   private ensureSyncEnabled() {
-    // 从 SettingsValue 获取真实配置
     const isEnabled = LocalValues.getInstance().getCloudSyncEnable();
     if (!isEnabled) {
       throw new Error("Cloud sync is disabled by user.");
@@ -58,101 +69,85 @@ export class WebUtils {
     return `${this.baseUrl}${p}`;
   }
 
-  private getHeaders(extra: Record<string, string> = {}): Record<string, string> {
-    const headers: Record<string, string> = {};
-    if (this.authHeader) {
-      headers['Authorization'] = this.authHeader;
-    }
-    Object.keys(extra).forEach((key) => {
-      headers[key] = extra[key];
-    });
-    return headers;
-  }
-
   // ============== 核心方法 ==============
 
   async head(path: string): Promise<HeadReturnValues> {
     this.ensureSyncEnabled();
-    const httpRequest = http.createHttp();
     const url = this.joinUrl(path);
+    const req = new rcp.Request(url, "HEAD");
 
     try {
-      const resp = await httpRequest.request(url, {
-        method: http.RequestMethod.HEAD,
-        header: this.getHeaders(),
-        expectDataType: http.HttpDataType.STRING
-      });
+      const resp = await this.session.fetch(req);
 
-      // Header key 可能是小写，需注意
-      const etag = this.getHeader(resp.header, 'ETag');
-      const lenStr = this.getHeader(resp.header, 'Content-Length');
+      const etag = this.getHeader(resp.headers, 'ETag');
+      const lenStr = this.getHeader(resp.headers, 'Content-Length');
       const len = lenStr ? parseInt(lenStr) : null;
 
-      return { code: resp.responseCode, etag, len };
-    } finally {
-      httpRequest.destroy();
+      return { code: resp.statusCode, etag, len };
+    } catch (e) {
+      // 修复 1: 必须抛出 Error 对象
+      throw new Error(`HEAD Request Failed: ${JSON.stringify(e)}`);
     }
   }
 
   async getBytes(path: string): Promise<GetBytesReturnValues> {
     this.ensureSyncEnabled();
-    const httpRequest = http.createHttp();
     const url = this.joinUrl(path);
+    const req = new rcp.Request(url, "GET");
 
     try {
-      const resp = await httpRequest.request(url, {
-        method: http.RequestMethod.GET,
-        header: this.getHeaders(),
-        expectDataType: http.HttpDataType.ARRAY_BUFFER // 👈 必须显式声明接收 ArrayBuffer
-      });
+      const resp = await this.session.fetch(req);
 
-      if (resp.responseCode !== 200) {
-        throw new Error(`GET ${path} -> ${resp.responseCode}`);
+      if (resp.statusCode !== 200) {
+        throw new Error(`GET ${path} -> ${resp.statusCode}`);
       }
 
-      const etag = this.getHeader(resp.header, 'ETag');
+      const etag = this.getHeader(resp.headers, 'ETag');
 
-      // 🔥 修复：确保结果是 ArrayBuffer，并转为 Uint8Array
-      let resultBuffer: ArrayBuffer;
-      if (resp.result instanceof ArrayBuffer) {
-        resultBuffer = resp.result;
+      let bytes: Uint8Array;
+      if (resp.body) {
+        bytes = new Uint8Array(resp.body);
       } else {
-        //以此防范某些情况下返回非 ArrayBuffer
-        throw new Error("Response is not ArrayBuffer");
+        bytes = new Uint8Array(0);
       }
 
-      const bytes = new Uint8Array(resultBuffer);
       return { bytes, etag };
-    } finally {
-      httpRequest.destroy();
+    } catch (e) {
+      // 修复 1
+      throw new Error(`GET Bytes Failed: ${JSON.stringify(e)}`);
     }
   }
 
-  // 注意：ArkTS http 模块对 Range 支持取决于服务端响应，这里做基础实现
-  // 原 Kotlin 代码返回了 newOffset，这里简化返回值结构
   async getRange(path: string, from: number): Promise<GetRangeReturnValues> {
     this.ensureSyncEnabled();
-    const httpRequest = http.createHttp();
     const url = this.joinUrl(path);
-    const headers = this.getHeaders({ 'Range': `bytes=${from}-` });
+
+    const req = new rcp.Request(url, "GET");
+    req.headers = {
+      'Range': `bytes=${from}-`
+    };
 
     try {
-      const resp = await httpRequest.request(url, {
-        method: http.RequestMethod.GET,
-        header: headers,
-        expectDataType: http.HttpDataType.ARRAY_BUFFER
-      });
+      const resp = await this.session.fetch(req);
 
-      if (resp.responseCode !== 200 && resp.responseCode !== 206) {
-        throw new Error(`GET Range ${path} -> ${resp.responseCode}`);
+      if (resp.statusCode !== 200 && resp.statusCode !== 206) {
+        throw new Error(`GET Range ${path} -> ${resp.statusCode}`);
       }
 
-      const etag = this.getHeader(resp.header, 'ETag');
-      const bytes = new Uint8Array(resp.result as ArrayBuffer);
+      const etag = this.getHeader(resp.headers, 'ETag');
+
+      let bytes: Uint8Array;
+      if (resp.body) {
+        bytes = new Uint8Array(resp.body);
+      } else {
+        bytes = new Uint8Array(0);
+      }
+
       const newOffset = from + bytes.length;
       return { bytes, etag, newOffset };
-    } finally {
-      httpRequest.destroy();
+    } catch (e) {
+      // 修复 1
+      throw new Error(`GET Range Failed: ${JSON.stringify(e)}`);
     }
   }
 
@@ -164,47 +159,44 @@ export class WebUtils {
   ): Promise<string | null> {
     this.ensureSyncEnabled();
 
-    // 关键：先把父目录建好
     const parentOk = await this.ensureParents(path);
     if (!parentOk) throw new Error(`MKCOL parents failed for ${path}`);
 
-    const httpRequest = http.createHttp();
     const url = this.joinUrl(path);
 
-    const headers = this.getHeaders({
-      'Content-Type': 'application/json; charset=utf-8' // 建议明确指定 JSON
-    });
+    const req = new rcp.Request(url, "PUT");
+
+    const headers: rcp.RequestHeaders = {
+      'Content-Type': 'application/json; charset=utf-8'
+    };
     if (ifMatch) headers['If-Match'] = ifMatch;
     if (ifNoneMatchStar) headers['If-None-Match'] = '*';
+    req.headers = headers;
 
-    // 🔥 关键修复：将 Uint8Array 转回 ArrayBuffer 传给 extraData
-    // ArkTS 的 http 模块对 ArrayBuffer 的支持最稳定
-    let payload: ArrayBuffer | string;
     if (typeof bytes === 'string') {
-      payload = bytes;
+      req.content = bytes;
     } else {
-      // 这里的 slice 是为了防止 buffer 包含多余的 offset
-      payload = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
+      req.content = bytes.buffer.slice(bytes.byteOffset, bytes.byteOffset + bytes.byteLength);
     }
 
     try {
-      const resp = await httpRequest.request(url, {
-        method: http.RequestMethod.PUT,
-        header: headers,
-        extraData: payload // 👈 传入 ArrayBuffer
-      });
+      const resp = await this.session.fetch(req);
 
-      if (resp.responseCode === 412) {
+      if (resp.statusCode === 412) {
         throw new PreconditionFailedError();
       }
 
-      if (resp.responseCode < 200 || resp.responseCode >= 300) {
-        throw new Error(`PUT ${path} -> ${resp.responseCode}`);
+      if (resp.statusCode < 200 || resp.statusCode >= 300) {
+        throw new Error(`PUT ${path} -> ${resp.statusCode}`);
       }
 
-      return this.getHeader(resp.header, 'ETag');
-    } finally {
-      httpRequest.destroy();
+      return this.getHeader(resp.headers, 'ETag');
+    } catch (e) {
+      if (e instanceof PreconditionFailedError) {
+        throw e; // 如果是已知 Error 类型，可以直接抛
+      }
+      // 修复 1
+      throw new Error(`PUT Failed: ${JSON.stringify(e)}`);
     }
   }
 
@@ -222,44 +214,36 @@ export class WebUtils {
 
   async propfind(path: string, depth: string = "0"): Promise<number> {
     this.ensureSyncEnabled();
-    const httpRequest = http.createHttp();
     const url = this.joinUrl(path);
 
+    const req = new rcp.Request(url, "PROPFIND");
+
+    req.headers = {
+      'Depth': depth,
+      'Content-Type': 'application/xml'
+    };
+
     try {
-      const resp = await httpRequest.request(url, {
-        method: "PROPFIND" as http.RequestMethod,
-
-        header: this.getHeaders({
-          'Depth': depth, // 0Check existence, 1=List children
-          'Content-Type': 'application/xml' // WebDAV 规范建议
-        }),
-        expectDataType: http.HttpDataType.STRING
-      });
-
-      return resp.responseCode;
-    } finally {
-      httpRequest.destroy();
+      const resp = await this.session.fetch(req);
+      return resp.statusCode;
+    } catch (e) {
+      console.error(`PROPFIND failed: ${JSON.stringify(e)}`);
+      return 0;
     }
   }
 
   async mkcol(dir: string): Promise<boolean> {
-    const httpRequest = http.createHttp();
     const d = dir.endsWith('/') ? dir : dir + '/';
     const url = this.joinUrl(d);
 
+    const req = new rcp.Request(url, "MKCOL");
+
     try {
-      const resp = await httpRequest.request(url, {
-        method: 'MKCOL' as http.RequestMethod, // WebDAV 方法
-        header: this.getHeaders(),
-        extraData: '' // 必须有 body 否则某些 server 报错
-      });
-      // 201 Created, 405 Method Not Allowed (可能已存在), 409 Conflict (可能已存在)
-      return [201, 405, 409].includes(resp.responseCode);
+      const resp = await this.session.fetch(req);
+      return [201, 405, 409].includes(resp.statusCode);
     } catch (e) {
-      console.error(`MKCOL failed: ${e}`);
+      console.error(`MKCOL failed: ${JSON.stringify(e)}`);
       return false;
-    } finally {
-      httpRequest.destroy();
     }
   }
 
@@ -270,7 +254,6 @@ export class WebUtils {
     const parts = cleanPath.split('/');
     if (parts.length === 0) return true;
 
-    // 如果最后一段包含点（认为是文件），则去掉最后一段
     if (parts[parts.length - 1].includes('.')) {
       parts.pop();
     }
@@ -292,26 +275,27 @@ export class WebUtils {
 
   async ensureDir(dirname: string): Promise<boolean> {
     if (!WebUtils.cloudSyncEnable) return false;
-    // 1. HEAD
-    const head = await this.head(dirname.endsWith('/') ? dirname : dirname + '/');
-    const code = head.code;
-    if ([200, 204, 301, 302, 207].includes(code)) return true;
-    if (code === 401 || code === 403) return false;
-
-    // 2. MKCOL
+    const exists = await this.dirExists(dirname);
+    if (exists) return true;
     return await this.mkcol(dirname);
   }
 
-  // 辅助：不区分大小写获取 Header
-  private getHeader(headers: Object, key: string): string | null {
+  // 修复 2: 严格处理类型
+  private getHeader(headers: rcp.ResponseHeaders, key: string): string | null {
     if (!headers) return null;
-    const headerMap = headers as Record<string, string | string[]>;
     const lowerKey = key.toLowerCase();
 
-    // Object.keys 在 ArkTS 中是允许的
-    for (const k of Object.keys(headerMap)) {
+    const keys = Object.keys(headers);
+    for (const k of keys) {
       if (k.toLowerCase() === lowerKey) {
-        const val = headerMap[k];
+        const val = headers[k];
+
+        // 显式处理 undefined
+        if (val === undefined || val === null) {
+          return null;
+        }
+
+        // ArkTS 不允许 undefined 分配给 string | null，所以上面必须拦截
         return Array.isArray(val) ? val[0] : val;
       }
     }

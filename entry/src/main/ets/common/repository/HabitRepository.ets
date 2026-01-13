@@ -2,10 +2,13 @@ import { DatabaseHelper } from '../data/DatabaseHelper';
 import {
   Habit, HabitPeriod, HabitGoalType, HabitRecord, HabitRecordStatus, HabitStatus
 } from '../../model/DDLModels'; // 假设你的路径
+import { ReminderScheduler } from '../../utils/notification/ReminderScheduler';
 
 export class HabitRepository {
   private static instance: HabitRepository;
   private db: DatabaseHelper;
+
+  private reminderUpdateTimer: number = -1;
 
   private constructor() {
     this.db = DatabaseHelper.getInstance();
@@ -63,7 +66,9 @@ export class HabitRepository {
       sortOrder: sortOrder,
       alarmTime: alarmTime
     };
-    return await this.db.insertHabit(habit);
+    const id = await this.db.insertHabit(habit);
+    this.scheduleReminderRefresh();
+    return id;
   }
 
   async getHabitByDdlId(ddlId: number): Promise<Habit | null> {
@@ -100,10 +105,12 @@ export class HabitRepository {
     };
 
     await this.db.updateHabit(updated);
+    this.scheduleReminderRefresh();
   }
 
   async deleteHabitByDdlId(ddlId: number): Promise<void> {
     await this.db.deleteHabitByDdlId(ddlId);
+    this.scheduleReminderRefresh();
   }
 
   // ================= Habit 打卡记录 =================
@@ -240,6 +247,42 @@ export class HabitRepository {
         // 周期未满，且今天没打 -> 打卡
         await this.insertRecord(habitId, date, 1, HabitRecordStatus.COMPLETED);
       }
+    }
+  }
+
+  public async initialReminderCheck() {
+    console.info('[HabitRepo] Performing initial habit reminder check...');
+    this.scheduleReminderRefresh();
+  }
+
+  private scheduleReminderRefresh() {
+    if (this.reminderUpdateTimer !== -1) {
+      clearTimeout(this.reminderUpdateTimer);
+    }
+    // 延迟 1 秒执行，合并短时间内的多次变更
+    this.reminderUpdateTimer = setTimeout(() => {
+      this.performReminderRefresh();
+    }, 1000);
+  }
+
+  /**
+   * 执行提醒刷新
+   */
+  private async performReminderRefresh() {
+    try {
+      console.info('[HabitRepo] Triggering Habit Reminder Scheduler...');
+
+      // 1. 获取所有习惯
+      // Scheduler 内部会负责过滤 active 状态和是否有 alarmTime
+      const allHabits = await this.getAllHabits();
+
+      // 2. 交给调度器刷新
+      await ReminderScheduler.refreshHabits(allHabits);
+
+    } catch (e) {
+      console.error(`[HabitRepo] Habit reminder refresh failed: ${e}`);
+    } finally {
+      this.reminderUpdateTimer = -1;
     }
   }
 }

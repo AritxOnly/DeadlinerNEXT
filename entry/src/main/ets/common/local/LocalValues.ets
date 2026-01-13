@@ -8,6 +8,11 @@ interface WebDavAuthInterface {
   pass: string;
 }
 
+export interface DailySummaryConfig {
+  enable: boolean;
+  time: string; // 格式 "HH:mm"
+}
+
 export class LocalValues {
   private static instance: LocalValues;
   private pref: preferences.Preferences | null = null;
@@ -85,6 +90,19 @@ export class LocalValues {
 
       const rightBtn = await this.pref.get(C.KEY_MAIN_RIGHT_BUTTON, MainButtonType.SEARCH);
       AppStorage.setOrCreate(C.KEY_MAIN_RIGHT_BUTTON, rightBtn);
+
+      // --- 新增：通知设置 ---
+      const ddlWarning = await this.pref.get(C.KEY_NOTIFY_DDL_WARNING, true);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_DDL_WARNING, ddlWarning);
+
+      const habitReminder = await this.pref.get(C.KEY_NOTIFY_HABIT_REMINDER, true);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_HABIT_REMINDER, habitReminder);
+
+      const summaryEnable = await this.pref.get(C.KEY_NOTIFY_SUMMARY_ENABLE, false);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_SUMMARY_ENABLE, summaryEnable);
+
+      const summaryTime = await this.pref.get(C.KEY_NOTIFY_SUMMARY_TIME, '21:00');
+      AppStorage.setOrCreate(C.KEY_NOTIFY_SUMMARY_TIME, summaryTime);
 
       console.info('SettingsValue initialized successfully');
     } catch (err) {
@@ -306,6 +324,11 @@ export class LocalValues {
       AppStorage.setOrCreate(C.KEY_WEBDAV_PASSWORD, '');
       AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, false);
 
+      AppStorage.setOrCreate(C.KEY_NOTIFY_DDL_WARNING, true);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_HABIT_REMINDER, true);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_SUMMARY_ENABLE, false);
+      AppStorage.setOrCreate(C.KEY_NOTIFY_SUMMARY_TIME, '21:00');
+
       console.info('LocalValues', 'All advanced settings cleared successfully.');
     } catch (e) {
       console.error('LocalValues', `Failed to clear advanced settings: ${e.message}`);
@@ -352,5 +375,54 @@ export class LocalValues {
   // 设置
   async setWidgetIsWhiteText(isWhite: boolean) {
     await this.setValue(C.KEY_WIDGET_TEXT_WHITE, isWhite);
+  }
+
+  /**
+   * 获取 DDL 临近预警开关状态
+   */
+  getDDLWarning(): boolean {
+    return AppStorage.get<boolean>(C.KEY_NOTIFY_DDL_WARNING) ?? true;
+  }
+
+  /**
+   * 设置 DDL 临近预警
+   */
+  async setDDLWarning(enable: boolean) {
+    await this.setValue(C.KEY_NOTIFY_DDL_WARNING, enable);
+  }
+
+  /**
+   * 获取习惯打卡提醒开关状态
+   */
+  getHabitReminder(): boolean {
+    return AppStorage.get<boolean>(C.KEY_NOTIFY_HABIT_REMINDER) ?? true;
+  }
+
+  /**
+   * 设置习惯打卡提醒
+   */
+  async setHabitReminder(enable: boolean) {
+    await this.setValue(C.KEY_NOTIFY_HABIT_REMINDER, enable);
+  }
+
+  /**
+   * 获取每日摘要配置
+   */
+  getDailySummaryConfig(): DailySummaryConfig {
+    const enable = AppStorage.get<boolean>(C.KEY_NOTIFY_SUMMARY_ENABLE) ?? false;
+    const time = AppStorage.get<string>(C.KEY_NOTIFY_SUMMARY_TIME) ?? '21:00';
+    return { enable, time };
+  }
+
+  /**
+   * 设置每日摘要配置
+   * @param enable 开关
+   * @param time 时间 (格式 "HH:mm")，如果 enable 为 false，此参数可不传或传空
+   */
+  async setDailySummaryConfig(enable: boolean, time: string | null) {
+    await this.setValue(C.KEY_NOTIFY_SUMMARY_ENABLE, enable);
+    if (time) {
+      await this.setValue(C.KEY_NOTIFY_SUMMARY_TIME, time);
+    }
   }
 }

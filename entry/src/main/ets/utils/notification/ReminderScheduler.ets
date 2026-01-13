@@ -1,24 +1,82 @@
 import { ReminderDataManager } from './ReminderDataManager';
 import { ActiveReminder } from '../../model/ActiveReminder';
-import { DateTimeUtils } from '../../utils/DateTimeUtils'; // 假设你的工具类在这里
+import { DateTimeUtils } from '../../utils/DateTimeUtils';
 import { DDLItem, Habit, HabitStatus } from '../../model/DDLModels';
 import { ReminderUtils } from './ReminderUtils';
+import { reminderAgentManager } from '@kit.BackgroundTasksKit';
+import { LocalValues } from '../../common/local/LocalValues';
 
 // 常量配置
 const MAX_DDL_SLOTS = 20;
 
 export class ReminderScheduler {
 
+  /**
+   * 核心方法：清洗“僵尸”数据
+   * * 场景：用户卸载重装（保留数据）或系统清理了过期任务，导致 DB 有记录但系统无任务。
+   * 作用：强制对账。如果 DB 里有，但系统里没有，则删除 DB 记录，迫使后续逻辑重新发布。
+   */
+  private static async syncWithSystem(activeReminders: ActiveReminder[]) {
+    if (activeReminders.length === 0) return [];
+
+    try {
+      // 1. 获取系统当前所有有效的提醒
+      const systemReminders = await reminderAgentManager.getValidReminders();
+      // 2. 提取系统中的 ID 集合 (Set 查询效率 O(1))
+      const systemIds = new Set(systemReminders.map(r => r.notificationId));
+
+      const manager = ReminderDataManager.getInstance();
+      const removedIds: string[] = [];
+
+      // 3. 遍历本地记录进行核对
+      for (const record of activeReminders) {
+        // 如果本地有 ID，但系统里没有
+        if (!systemIds.has(record.reminderId)) {
+          console.warn(`[Scheduler] Zombie reminder found! Target:${record.targetId} (ID:${record.reminderId}) is missing in system.`);
+
+          // 从 DB 移除
+          await manager.remove(record.targetId);
+          removedIds.push(record.targetId);
+        }
+      }
+
+      return removedIds;
+    } catch (e) {
+      console.error(`[Scheduler] Sync failed: ${e}. Assuming all local data is valid (safe fallback).`);
+      return [];
+    }
+  }
+
+  // =========================================================
+  // 1. DDL 提醒 (单次 - 使用 Timer 伪装)
+  // =========================================================
   static async refreshReminders(allDDLs: DDLItem[]) {
-    console.info('[Scheduler] Start refreshing reminders...');
+    console.info('[Scheduler] Start refreshing DDLs...');
+
+    const isEnabled = LocalValues.getInstance().getDDLWarning();
     const manager = ReminderDataManager.getInstance();
 
-    // 1. 获取当前已生效的提醒列表 (账本)
-    const activeReminders = manager.getAll().filter(r => r.type === 'DDL');
+    let activeReminders = manager.getAll().filter(r => r.type === 'DDL');
+
+    await ReminderScheduler.syncWithSystem(activeReminders);
+
+    activeReminders = manager.getAll().filter(r => r.type === 'DDL');
+
+    if (!isEnabled) {
+      if (activeReminders.length > 0) {
+        console.info('[Scheduler] DDL Warning is DISABLED. Clearing existing reminders...');
+        for (const record of activeReminders) {
+          await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Feature disabled");
+        }
+      } else {
+        console.info('[Scheduler] DDL Warning is DISABLED. No actions needed.');
+      }
+      return; // ⛔️ 结束流程
+    }
+
     const activeMap = new Map<string, ActiveReminder>();
     activeReminders.forEach(r => activeMap.set(r.targetId, r));
 
-    // 2. 数据预处理
     const now = Date.now();
 
     interface Candidate {
@@ -37,202 +95,209 @@ export class ReminderScheduler {
           timestamp: date ? date.getTime() : 0
         };
       })
-      // 排除解析失败(null) 或 截止时间已经是过去时间的任务
-      // 注意：这里仍然判断截止时间是否在未来，而不是提醒时间
+      // 过滤掉已过期的任务 (注意：DDL 截止时间必须在未来)
       .filter(c => c.date !== null && c.timestamp > now)
       .sort((a, b) => a.timestamp - b.timestamp)
       .slice(0, MAX_DDL_SLOTS);
 
     const candidateIds = new Set(candidates.map(c => c.item.id.toString()));
 
-    // =========================================================
-    // 阶段 A: 清理 (Cancel)
-    // =========================================================
+    // --- 阶段 A: 清理 (不在 Top N 或时间变更) ---
     for (const record of activeReminders) {
-      // 1. 不在 Top N 名单里
       if (!candidateIds.has(record.targetId)) {
         await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Out of range / Completed");
         continue;
       }
-
-      // 2. 时间变了 (对比的是 DDL 截止时间)
       const candidate = candidates.find(c => c.item.id.toString() === record.targetId);
-      // 这里的 record.triggerTime 存的是截止时间，所以直接对比即可
+      // 如果截止时间变了，需要重新发布
       if (candidate && Math.abs(candidate.timestamp - record.triggerTime) > 1000) {
         await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Time changed");
         activeMap.delete(record.targetId);
       }
     }
 
-    // =========================================================
-    // 阶段 B: 补录 (Publish)
-    // =========================================================
+    // --- 阶段 B: 补录 ---
     for (const c of candidates) {
       const idStr = c.item.id.toString();
+      // 如果 activeMap 里还有，说明不需要重新发布
+      if (activeMap.has(idStr)) continue;
 
-      if (activeMap.has(idStr)) {
-        continue;
-      }
-
-      // 修复问题 1：使用 ! 非空断言，因为 filter 已经保证了 date 不为 null
+      // 这里直接传截止日期，publishAndRecord 内部会减去1天
       await ReminderScheduler.publishAndRecord(c.item, c.date!);
     }
-
-    console.info(`[Scheduler] Refresh finished. Active count: ${candidates.length}`);
   }
 
-  /**
-   * 刷新习惯打卡提醒
-   * @param allHabits 所有习惯列表
-   */
+  // =========================================================
+  // 2. 习惯打卡 (循环 - 使用 Alarm)
+  // =========================================================
   static async refreshHabits(allHabits: Habit[]) {
     console.info('[Scheduler] Start refreshing HABIT reminders...');
+
+    // 1. 【开关检查】读取配置
+    const isEnabled = LocalValues.getInstance().getHabitReminder();
     const manager = ReminderDataManager.getInstance();
 
-    // 1. 获取当前已生效的 Habit 提醒
-    const activeReminders = manager.getAll().filter(r => r.type === 'HABIT');
+    // 2. 获取并清洗数据
+    let activeReminders = manager.getAll().filter(r => r.type === 'HABIT');
+    await ReminderScheduler.syncWithSystem(activeReminders);
+    activeReminders = manager.getAll().filter(r => r.type === 'HABIT');
+
     const activeMap = new Map<string, ActiveReminder>();
     activeReminders.forEach(r => activeMap.set(r.targetId, r));
 
-    // 2. 筛选出需要提醒的习惯 (未归档且设置了提醒时间)
+    // 3. 【熔断逻辑】如果用户关闭了习惯提醒
+    if (!isEnabled) {
+      if (activeReminders.length > 0) {
+        console.info('[Scheduler] Habit Reminder is DISABLED. Clearing existing reminders...');
+        for (const record of activeReminders) {
+          await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Feature disabled");
+        }
+      }
+      return; // ⛔️ 结束流程
+    }
+
+    // 4. 【正常发布逻辑】
+    // 筛选有效习惯 (Active 且 设置了 alarmTime)
     const candidates = allHabits.filter(h =>
     h.status === HabitStatus.ACTIVE &&
-    h.alarmTime &&
-      h.alarmTime.length > 0
+    h.alarmTime && h.alarmTime.length > 0
     );
 
     const candidateIds = new Set(candidates.map(c => c.id.toString()));
 
-    // =========================================================
-    // 阶段 A: 清理无效或变更的提醒
-    // =========================================================
+    // --- 阶段 A: 清理 ---
     for (const record of activeReminders) {
-      // 1. 习惯已被删除或不再处于 Active 状态或取消了提醒
+      // 习惯已删除 或 已归档 或 删除了提醒时间
       if (!candidateIds.has(record.targetId)) {
         await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Habit deleted/archived/alarm removed");
         continue;
       }
 
-      // 2. 检查时间是否发生变化
-      // 注意：这里我们需要重新计算下一次触发时间来对比
+      // 检查时间 (HH:mm) 是否变化
       const habit = candidates.find(c => c.id.toString() === record.targetId);
       if (habit && habit.alarmTime) {
-        const nextTime = getNextTriggerTime(habit.alarmTime).getTime();
-        // 如果存储的触发时间和计算出的下一次时间差距过大（说明用户修改了时间，或者由于跨天导致需要刷新）
-        // 注意：简单的跨天一般不需要取消重建，系统代理会自动处理周期，
-        // 但如果 ReminderUtils.publishCalendar 是单次提醒，则每次应用启动都需要检查是否过期并重新发布下一轮。
-        // 这里假设我们需要确保 triggerTime 是最新的。
+        const parts = habit.alarmTime.split(':');
+        const targetHour = parseInt(parts[0]);
+        const targetMinute = parseInt(parts[1]);
 
-        // 简单策略：如果记录的 triggerTime 已经是过去的时间，或者与新的设置不符(考虑到 HH:mm 变了)，则重建
-        const isTimeChanged = Math.abs(record.triggerTime - nextTime) > 1000 && (record.triggerTime % (24*3600*1000) !== nextTime % (24*3600*1000));
-        const isExpired = record.triggerTime < Date.now();
+        // 获取记录中的时间
+        const recordDate = new Date(record.triggerTime);
 
-        if (isTimeChanged || isExpired) {
-          await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Time changed or expired");
-          activeMap.delete(record.targetId); // 允许重新发布
+        // 【关键】只比较 时:分，不比较日期
+        if (recordDate.getHours() !== targetHour || recordDate.getMinutes() !== targetMinute) {
+          await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Time(HH:mm) changed");
+          activeMap.delete(record.targetId);
         }
       }
     }
 
-    // =========================================================
-    // 阶段 B: 发布新提醒
-    // =========================================================
+    // --- 阶段 B: 发布 ---
     for (const habit of candidates) {
-      const idStr = habit.id.toString();
-      if (activeMap.has(idStr)) {
-        continue;
-      }
-
-      if (habit.alarmTime) {
-        await ReminderScheduler.publishHabit(habit);
-      }
+      if (activeMap.has(habit.id.toString())) continue;
+      await ReminderScheduler.publishHabit(habit);
     }
   }
 
-  /**
-   * 刷新每日摘要提醒
-   * @param summaryTimeStr 设置的时间字符串 "21:00"，如果为空则视为关闭
-   */
+  // =========================================================
+  // 3. 每日摘要 (循环 - 使用 Alarm)
+  // =========================================================
   static async refreshDailySummary(summaryTimeStr: string | null) {
-    console.info(`[Scheduler] Refreshing Daily Summary: ${summaryTimeStr}`);
     const TARGET_ID = 'DAILY_SUMMARY';
     const manager = ReminderDataManager.getInstance();
+    let existingRecord = manager.getByTargetId(TARGET_ID);
 
-    // 查找现有的摘要提醒
-    const existingRecord = manager.getByTargetId(TARGET_ID);
+    // 1. 【僵尸数据检测】
+    // 在决定是否发布前，先确认现有的 ID 是否真的有效
+    if (existingRecord) {
+      try {
+        const systemReminders = await reminderAgentManager.getValidReminders();
+        const existsInSystem = systemReminders.some(r => r.notificationId === existingRecord!.reminderId);
 
-    // 情况 1: 用户关闭了摘要提醒 (summaryTimeStr 为 null)
+        if (!existsInSystem) {
+          console.warn('[Scheduler] Daily Summary zombie record found. Cleaning up...');
+          await manager.remove(TARGET_ID); // 只删 DB
+          existingRecord = undefined; // 标记为不存在
+        }
+      } catch (e) {
+        console.error('[Scheduler] System check failed for summary.');
+      }
+    }
+
+    // 2. 【开关检查】
+    // 如果 summaryTimeStr 为 null，或者 LocalValues 里关闭了 (双重保障)
+    // Settings 页面传参时已经处理了逻辑，传 null 即表示关闭
     if (!summaryTimeStr) {
       if (existingRecord) {
-        await ReminderScheduler.cancelAndRemove(TARGET_ID, existingRecord.reminderId, "Feature disabled");
+        await ReminderScheduler.cancelAndRemove(TARGET_ID, existingRecord.reminderId, "Feature disabled / turned off");
       }
       return;
     }
 
-    // 计算下一次触发时间
-    const nextTriggerDate = getNextTriggerTime(summaryTimeStr);
-    const nextTimestamp = nextTriggerDate.getTime();
+    // 3. 【正常发布逻辑】
+    const parts = summaryTimeStr.split(':');
+    const hour = parseInt(parts[0]);
+    const minute = parseInt(parts[1]);
 
-    // 情况 2: 已存在，判断是否需要更新
+    // 检查是否需要更新
     if (existingRecord) {
-      // 如果时间没变且未过期，直接返回
-      // 允许 1秒内的误差
-      if (Math.abs(existingRecord.triggerTime - nextTimestamp) < 1000 && existingRecord.triggerTime > Date.now()) {
+      const recordDate = new Date(existingRecord.triggerTime);
+      // 【关键】只比较 时:分
+      if (recordDate.getHours() === hour && recordDate.getMinutes() === minute) {
+        console.info('[Scheduler] Daily Summary time unchanged. Skip.');
         return;
       }
-      // 否则先取消旧的
-      await ReminderScheduler.cancelAndRemove(TARGET_ID, existingRecord.reminderId, "Time update or renew");
+      await ReminderScheduler.cancelAndRemove(TARGET_ID, existingRecord.reminderId, "Time update");
     }
 
-    // 情况 3: 发布新的摘要提醒
+    // 发布新提醒
     try {
-      console.info(`[Scheduler] Publishing Daily Summary at ${nextTriggerDate}`);
-      const reminderId = await ReminderUtils.publishCalendar(
+      const daysOfWeek = [1, 2, 3, 4, 5, 6, 7]; // 每天
+
+      console.info(`[Scheduler] Publishing Daily Summary at ${hour}:${minute}`);
+
+      const reminderId = await ReminderUtils.publishAlarm(
         "每日摘要",
         "回顾今天，规划明天。点击查看今日概览。",
-        nextTriggerDate
+        hour,
+        minute,
+        daysOfWeek
       );
+
+      const recordTime = new Date();
+      recordTime.setHours(hour, minute, 0, 0);
 
       const newRecord: ActiveReminder = {
         targetId: TARGET_ID,
-        type: 'SUMMARY', // 确保 ActiveReminder 支持此类型或使用 String
+        type: 'SUMMARY',
         reminderId: reminderId,
-        triggerTime: nextTimestamp
+        triggerTime: recordTime.getTime()
       };
       await manager.addOrUpdate(newRecord);
     } catch (e) {
-      console.error(`[Scheduler] Failed to publish daily summary: ${e}`);
+      console.error(`[Scheduler] Failed to publish summary: ${e}`);
     }
   }
 
   // ==========================================
-  // 内部辅助方法
+  // 内部辅助
   // ==========================================
 
   private static async cancelAndRemove(targetId: string, reminderId: number, reason: string) {
-    console.info(`[Scheduler] Canceling DDL:${targetId} (ID:${reminderId}). Reason: ${reason}`);
-    // 1. 调用 ReminderUtils 取消
+    console.info(`[Scheduler] Canceling ${targetId} (ID:${reminderId}). Reason: ${reason}`);
     await ReminderUtils.cancel(reminderId);
-    // 2. 从本地账本移除
     await ReminderDataManager.getInstance().remove(targetId);
   }
 
-  /**
-   * 发布提醒并记录
-   * 修改点：此处实现“提前一天提醒”的逻辑
-   */
   private static async publishAndRecord(ddl: DDLItem, deadlineDate: Date) {
-    console.info(`[Scheduler] Publishing DDL:${ddl.name}...`);
     try {
+      // 提前一天提醒
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const remindTime = new Date(deadlineDate.getTime() - ONE_DAY_MS);
-
       const timeStr = formatDeadline(deadlineDate);
 
-      const contentText = ddl.note
-        ? `${ddl.note} · 截止于 ${timeStr}`
-        : `截止于 ${timeStr}`;
+      const contentText = ddl.note ? `${ddl.note} · 截止于 ${timeStr}` : `截止于 ${timeStr}`;
 
+      // 【调用 Timer 伪装的 Calendar 接口】
       const reminderId = await ReminderUtils.publishCalendar(
         `任务临近提醒: ${ddl.name}`,
         contentText,
@@ -248,28 +313,37 @@ export class ReminderScheduler {
       await ReminderDataManager.getInstance().addOrUpdate(newRecord);
 
     } catch (e) {
-      console.error(`[Scheduler] Publish failed for ${ddl.name}: ${e}`);
+      console.error(`[Scheduler] Publish DDL failed: ${e}`);
     }
   }
 
   private static async publishHabit(habit: Habit) {
     if (!habit.alarmTime) return;
-
-    const triggerDate = getNextTriggerTime(habit.alarmTime);
-    console.info(`[Scheduler] Publishing Habit:${habit.name} at ${triggerDate}`);
-
     try {
-      const reminderId = await ReminderUtils.publishCalendar(
+      const parts = habit.alarmTime.split(':');
+      const hour = parseInt(parts[0]);
+      const minute = parseInt(parts[1]);
+      const daysOfWeek = [1, 2, 3, 4, 5, 6, 7];
+
+      console.info(`[Scheduler] Publishing Habit:${habit.name} at ${hour}:${minute}`);
+
+      // 【调用 Alarm 接口】
+      const reminderId = await ReminderUtils.publishAlarm(
         `打卡提醒: ${habit.name}`,
         `坚持就是胜利！该完成"${habit.name}"了。`,
-        triggerDate
+        hour,
+        minute,
+        daysOfWeek
       );
+
+      const recordTime = new Date();
+      recordTime.setHours(hour, minute, 0, 0);
 
       const newRecord: ActiveReminder = {
         targetId: habit.id.toString(),
         type: 'HABIT',
         reminderId: reminderId,
-        triggerTime: triggerDate.getTime()
+        triggerTime: recordTime.getTime()
       };
       await ReminderDataManager.getInstance().addOrUpdate(newRecord);
 
@@ -280,34 +354,9 @@ export class ReminderScheduler {
 }
 
 function formatDeadline(date: Date): string {
-  const month = date.getMonth() + 1; // 月份从0开始，记得+1
+  const month = date.getMonth() + 1;
   const day = date.getDate();
-  const hour = date.getHours().toString().padStart(2, '0');   // 补零，例如 9 -> 09
+  const hour = date.getHours().toString().padStart(2, '0');
   const minute = date.getMinutes().toString().padStart(2, '0');
-
   return `${month}月${day}日 ${hour}:${minute}`;
-}
-
-/**
- * 根据 HH:mm 格式获取下一次触发的时间戳
- * @param timeStr "08:30"
- * @returns Date 对象
- */
-function getNextTriggerTime(timeStr: string): Date {
-  const now = new Date();
-  const timeArray = timeStr.split(':');
-  const hourStr = timeArray[0];
-  const minuteStr = timeArray[1];
-  const hour = parseInt(hourStr);
-  const minute = parseInt(minuteStr);
-
-  const target = new Date(now);
-  target.setHours(hour, minute, 0, 0);
-
-  // 如果目标时间小于当前时间（即今天的时间点已过），则推迟到明天
-  if (target.getTime() <= now.getTime()) {
-    target.setDate(target.getDate() + 1);
-  }
-
-  return target;
 }

@@ -9,6 +9,7 @@ import { WidgetUpdater } from '../utils/WidgetUpdater';
 import { buffer } from '@kit.ArkTS';
 import auth from '@hw-agconnect/auth'
 import { ReminderDataManager } from '../utils/notification/ReminderDataManager';
+import { HabitRepository } from '../common/repository/HabitRepository';
 
 const DOMAIN = 0x0000;
 
@@ -33,6 +34,7 @@ export default class EntryAbility extends UIAbility {
     await ReminderDataManager.getInstance().init(this.context);
 
     await TaskRepository.getInstance().initialReminderCheck();
+    await HabitRepository.getInstance().initialReminderCheck();
 
     this.checkLoginStatus();
 

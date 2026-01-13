@@ -27,4 +27,9 @@ export class SettingsConstants {
 
   static readonly KEY_WIDGET_BG_IMAGE = 'widget_bg_image';
   static readonly KEY_WIDGET_TEXT_WHITE = 'widget_text_white';
+
+  static readonly KEY_NOTIFY_DDL_WARNING = 'notify_ddl_warning';
+  static readonly KEY_NOTIFY_HABIT_REMINDER = 'notify_habit_reminder';
+  static readonly KEY_NOTIFY_SUMMARY_ENABLE = 'notify_summary_enable';
+  static readonly KEY_NOTIFY_SUMMARY_TIME = 'notify_summary_time';
 }

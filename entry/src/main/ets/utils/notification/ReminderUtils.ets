@@ -5,102 +5,116 @@ import { BusinessError } from '@kit.BasicServicesKit';
 export class ReminderUtils {
 
   /**
-   * 发布指定时间的提醒 (底层自动转换为 Timer 倒计时)
-   * @param title 标题
-   * @param content 内容
-   * @param targetTime 目标触发时间
+   * 发布单次提醒 (用于 DDL)
+   * 【核心修改】由于 Calendar 是 System API，这里内部自动转换为 Timer (倒计时) 实现。
+   * 只要发布成功，系统就会接管倒计时，App 杀死后依然有效。
    */
   static async publishCalendar(title: string, content: string, targetTime: Date): Promise<number> {
-    // 1. 生成唯一的 notificationId
-    // 使用 毫秒级时间戳 + 随机数 确保高频点击不冲突
-    const reminderId = Math.floor((Date.now() % 1000000) * 100 + Math.random() * 100);
+    const reminderId = ReminderUtils.generateId();
 
-    // 2. 计算时间差 (单位：秒)
-    const now = new Date().getTime();
+    // 1. 计算时间差 (单位：秒)
+    const now = Date.now();
     const target = targetTime.getTime();
+
+    // 计算剩余秒数
     let diffInSeconds = Math.floor((target - now) / 1000);
 
-    // 防御性处理：如果时间是过去的，或者太近（小于1秒），强制设为 1 秒后触发
+    // 防御性处理：如果时间是过去的，或者太近（小于1秒），强制设为 1 秒后触发，避免报错
     if (diffInSeconds < 1) {
       console.warn(`[ReminderUtils] Target time is too close or past. Adjusting to 1s.`);
       diffInSeconds = 1;
     }
 
-    // 3. 使用你那边测试通过的 SOCIAL_COMMUNICATION 类型
-    // 既然之前的 Timer 测试证明这个 Slot 是能用的，我们就继续用它
-    const mySlotType = notificationManager.SlotType.SOCIAL_COMMUNICATION;
-
-    // 4. 构建 Timer 对象 (伪装成 Calendar)
-    // 既然 Timer 类型稳定，我们就用 Timer
+    // 2. 使用 Timer 模拟 Calendar
     let targetReminder: reminderAgentManager.ReminderRequestTimer = {
       reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_TIMER,
       triggerTimeInSeconds: diffInSeconds, // 核心：把日期转换为秒数
 
       title: title,
       content: content,
-      // expiredContent: '时间已到', // Timer 也支持这个字段
-
       actionButton: [
-        {
-          title: '关闭',
-          type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE
-        },
-        {
-          title: '稍后',
-          type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE
-        }
+        { title: '关闭', type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE },
+        { title: '稍后', type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE }
       ],
-
       wantAgent: {
         pkgName: 'com.aritxonly.deadliner',
         abilityName: 'EntryAbility'
       },
-
-      snoozeTimes: 1, // 允许贪睡
-      timeInterval: 60 * 60, // 贪睡间隔 1小时
-      snoozeContent: `将在 5 分钟后再次提醒`,
-
-      // 显式指定 ID，方便后续取消
+      snoozeTimes: 1,
+      timeInterval: 5 * 60, // 5分钟后再次提醒
       notificationId: reminderId,
-
-      // 显式指定 Slot，确保通道正确
-      slotType: mySlotType,
-
-      // 设为 1 秒，实现“叮”一声即止的普通通知效果
+      slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION,
       ringDuration: 0,
     };
 
+    console.info(`[ReminderUtils] Converting Calendar to Timer. Target: ${targetTime.toLocaleTimeString()} (in ${diffInSeconds}s)`);
+    return await ReminderUtils.publish(targetReminder);
+  }
+
+  /**
+   * 发布循环闹钟提醒 (用于 每日摘要 / 习惯)
+   * 【核心修改】使用 Alarm 类型，支持原生重复，无需计算日期，只关心 HH:mm
+   * @param daysOfWeek 1=周一, 7=周日. 传入 [1,2,3,4,5,6,7] 代表每天
+   */
+  static async publishAlarm(title: string, content: string, hour: number, minute: number, daysOfWeek: number[]): Promise<number> {
+    const reminderId = ReminderUtils.generateId();
+
+    let targetReminder: reminderAgentManager.ReminderRequestAlarm = {
+      reminderType: reminderAgentManager.ReminderType.REMINDER_TYPE_ALARM,
+      hour: hour,
+      minute: minute,
+      daysOfWeek: daysOfWeek, // Alarm 独有的重复属性
+
+      title: title,
+      content: content,
+      actionButton: [
+        { title: '关闭', type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_CLOSE },
+        { title: '稍后', type: reminderAgentManager.ActionButtonType.ACTION_BUTTON_TYPE_SNOOZE }
+      ],
+      wantAgent: {
+        pkgName: 'com.aritxonly.deadliner',
+        abilityName: 'EntryAbility'
+      },
+      snoozeTimes: 1,
+      timeInterval: 5 * 60,
+      notificationId: reminderId,
+      slotType: notificationManager.SlotType.SOCIAL_COMMUNICATION,
+      ringDuration: 0,
+    };
+
+    return await ReminderUtils.publish(targetReminder);
+  }
+
+  // 通用发布逻辑
+  private static async publish(reminder: reminderAgentManager.ReminderRequest): Promise<number> {
     try {
-      console.info(`[ReminderUtils] Publishing Timer (Virtual Calendar)... Delta: ${diffInSeconds}s, ID: ${reminderId}`);
-
-      // 5. 发布
-      const publishedId = await reminderAgentManager.publishReminder(targetReminder);
-
-      console.info(`[ReminderUtils] Success! ID: ${publishedId}`);
-      return publishedId;
+      console.info(`[ReminderUtils] Publishing ID:${reminder.notificationId} Type:${reminder.reminderType}`);
+      return await reminderAgentManager.publishReminder(reminder);
     } catch (err) {
       const error = err as BusinessError;
       console.error(`[ReminderUtils] FAILED: Code=${error.code}, Msg=${error.message}`);
-      throw new Error(`Publish error: ${error.code}`);
+      throw Error(error.message);
     }
   }
 
+  // 通用取消逻辑
   static async cancel(reminderId: number) {
     try {
       await reminderAgentManager.cancelReminder(reminderId);
-      console.info(`[ReminderUtils] Canceled reminder ID: ${reminderId}`);
-    } catch (err) {
-      // 忽略取消失败的错误（比如ID不存在）
-      console.warn(`[ReminderUtils] Cancel warning: ${JSON.stringify(err)}`);
+      console.info(`[ReminderUtils] Canceled ID: ${reminderId}`);
+    } catch (e) {
+      // 忽略 ID 不存在的错误
     }
   }
 
   static async clearAll() {
     try {
       await reminderAgentManager.cancelAllReminders();
-      console.info(`[ReminderUtils] All reminders cleared.`);
-    } catch (err) {
-      console.error(`[ReminderUtils] Clear all failed: ${JSON.stringify(err)}`);
-    }
+    } catch (e) {}
+  }
+
+  private static generateId(): number {
+    // 限制 ID 范围，防止溢出
+    return Math.floor((Date.now() % 100000000));
   }
 }
