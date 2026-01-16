@@ -196,6 +196,13 @@ struct NotificationSettings {
                 }
               })
             }
+
+            Text('通知推送功能使用华为代理提醒API实现，可能会出现通知推送不及时的问题。待后续版本解决。')
+              .fontSize(12)
+              .lineHeight(16)
+              .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+              .padding({ left: 24, right: 24, top: 8, bottom: 24 })
+              .width('100%')
           } else {
             // 权限关闭时的占位提示
             Text("开启通知权限后，可配置更多提醒选项。")
