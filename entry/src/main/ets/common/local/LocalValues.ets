@@ -104,9 +104,15 @@ export class LocalValues {
       const summaryTime = await this.pref.get(C.KEY_NOTIFY_SUMMARY_TIME, '21:00');
       AppStorage.setOrCreate(C.KEY_NOTIFY_SUMMARY_TIME, summaryTime);
 
+      const startupPage = await this.pref.get(C.KEY_STARTUP_PAGE, 0);
+      AppStorage.setOrCreate(C.KEY_STARTUP_PAGE, startupPage);
+
+      AppStorage.setOrCreate('IsAppDataReady', true);
+
       console.info('SettingsValue initialized successfully');
     } catch (err) {
       console.error(`Failed to load settings: ${JSON.stringify(err)}`);
+      AppStorage.setOrCreate('IsAppDataReady', true);
     }
   }
 
@@ -424,5 +430,13 @@ export class LocalValues {
     if (time) {
       await this.setValue(C.KEY_NOTIFY_SUMMARY_TIME, time);
     }
+  }
+
+  getStartupPage(): number {
+    return AppStorage.get<number>(C.KEY_STARTUP_PAGE) ?? 0;
+  }
+
+  async setStartupPage(index: number) {
+    await this.setValue(C.KEY_STARTUP_PAGE, index);
   }
 }

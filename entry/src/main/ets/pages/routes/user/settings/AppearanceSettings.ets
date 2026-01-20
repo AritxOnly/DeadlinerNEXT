@@ -1,6 +1,8 @@
 import { LocalValues } from '../../../../common/local/LocalValues';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
-import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch } from '../../../components/SettingsComponents';
+import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
+  SettingsCheckItem,
+  SubSettingsDivider} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
@@ -38,7 +40,7 @@ struct AppearanceSettings {
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setProgressDir(isOn)
             })
 
-            SettingsDivider()
+            SubSettingsDivider()
 
             SettingsItem({
               title: "小组件样式",
@@ -58,7 +60,7 @@ struct AppearanceSettings {
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setExcitementText(isOn)
             })
 
-            SettingsDivider()
+            SubSettingsDivider()
 
             SubSettingsSwitch({
               title: "任务完成礼花",

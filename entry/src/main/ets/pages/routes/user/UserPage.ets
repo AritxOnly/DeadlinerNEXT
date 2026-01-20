@@ -186,7 +186,7 @@ export struct UserPage {
 
             SettingsItem({
               title: "交互与行为",
-              subtitle: "触感反馈 · 快捷功能 · 自动归档",
+              subtitle: "启动页 · 操作体验 · 自动归档",
               icon: $r('sys.symbol.hand_point_up_tap'),
               onItemClick: () => {
                 this.appPathStack.pushPath({ name: 'settingsInteraction' });

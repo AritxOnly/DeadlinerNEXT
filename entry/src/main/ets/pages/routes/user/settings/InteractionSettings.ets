@@ -1,12 +1,19 @@
 import { LocalValues } from '../../../../common/local/LocalValues';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
-import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch } from '../../../components/SettingsComponents';
+import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
+  SubSettingsDivider,
+  SettingsCheckItem} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 
 @Builder
 export function InteractionSettingsBuilder() {
   InteractionSettings()
+}
+
+interface StartupOption {
+  text: string;
+  value: number;
 }
 
 @Component
@@ -19,10 +26,41 @@ struct InteractionSettings {
   @StorageLink(C.KEY_VIBRATION_ENABLE) vibrationEnable: boolean = true;
   @StorageLink(C.KEY_FULL_SCREEN_ADD) fullScreenAdd: boolean = false;
 
+  @StorageLink(C.KEY_STARTUP_PAGE) startupPageType: number = 0;
+
+  private options: StartupOption[] = [
+    { text: '任务', value: 0 },
+    { text: '习惯', value: 1 }
+  ];
+
+  handleSelect(value: number) {
+    this.startupPageType = value;
+
+    console.log(`[Startup] set ${value}`);
+
+    LocalValues.getInstance().setStartupPage(value);
+  }
+
   build() {
     HdsNavDestination() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
+
+          SettingsSection({ title: '启动页' }) {
+            ForEach(this.options, (item: StartupOption, index: number) => {
+              SettingsCheckItem({
+                title: item.text,
+                isSelected: this.startupPageType === item.value,
+                onItemClick: () => {
+                  this.handleSelect(item.value);
+                }
+              })
+
+              if (index < this.options.length - 1) {
+                SubSettingsDivider()
+              }
+            })
+          }
 
           // --- 操作体验 ---
           SettingsSection({ title: '操作体验' }) {
@@ -33,7 +71,7 @@ struct InteractionSettings {
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setVibration(isOn)
             })
 
-            SettingsDivider()
+            SubSettingsDivider()
 
             SubSettingsSwitch({
               title: "全屏添加页面",
@@ -42,7 +80,7 @@ struct InteractionSettings {
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
             })
 
-            SettingsDivider()
+            SubSettingsDivider()
 
             SettingsItem({
               title: "主页快捷功能",

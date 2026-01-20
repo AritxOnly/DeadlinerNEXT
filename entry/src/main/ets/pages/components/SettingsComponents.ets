@@ -257,6 +257,20 @@ export struct SettingsDivider {
 }
 
 /**
+ * SubSettingsDivider: 分割线
+ * 根据设计，不应该通栏，而是只在文字部分下方
+ */
+@Component
+export struct SubSettingsDivider {
+  build() {
+    Divider()
+      .color($r('sys.color.ohos_id_color_list_separator'))
+      .strokeWidth(0.5) // 细一点比较精致
+      .margin({ left: 16, right: 16, top: 2, bottom: 2 })
+  }
+}
+
+/**
  * SettingsVerticalDivider: 竖向分割线
  * 用于横向排列的 GridItem 之间，高度不占满，居中显示
  */

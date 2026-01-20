@@ -141,9 +141,28 @@ export struct MainHomePage {
 
   @State navSubtitle: string | undefined = undefined
 
+  @StorageProp(C.KEY_STARTUP_PAGE) @Watch('onStartupSettingLoaded') startupPageSetting: number = -1;
+
+  onStartupSettingLoaded() {
+    console.info(`[Startup] Detect change: ${this.startupPageSetting}`);
+
+    // 1. 如果是 -1，说明 LocalValues 还没加载完成，直接忽略
+    if (this.startupPageSetting === -1) {
+      return;
+    }
+
+    // 2. 数据已加载 (是 0 或 1)，强制应用到 UI
+    // 注意：为了防止用户使用过程中突然跳转，你可以加一个额外的判断，仅在 App 刚启动的前几秒允许跳转
+    // 但通常直接应用也是可以接受的（意味着用户刚改了设置）
+    this.currentIndex = this.startupPageSetting;
+    this.selectedIndexes = [this.startupPageSetting];
+  }
+
   aboutToAppear(): void {
     this.updateNavSubTitle();
     this.updateButtons();
+
+    this.onStartupSettingLoaded();
   }
 
   updateNavSubTitle() {

@@ -32,4 +32,6 @@ export class SettingsConstants {
   static readonly KEY_NOTIFY_HABIT_REMINDER = 'notify_habit_reminder';
   static readonly KEY_NOTIFY_SUMMARY_ENABLE = 'notify_summary_enable';
   static readonly KEY_NOTIFY_SUMMARY_TIME = 'notify_summary_time';
+
+  static readonly KEY_STARTUP_PAGE = 'startup_page';
 }

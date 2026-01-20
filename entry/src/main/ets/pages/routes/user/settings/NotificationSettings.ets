@@ -1,6 +1,8 @@
 import { LocalValues } from '../../../../common/local/LocalValues';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
-import { SettingsDivider, SettingsSection, SubSettingsSwitch } from '../../../components/SettingsComponents';
+import { SettingsDivider, SettingsSection,
+  SubSettingsDivider,
+  SubSettingsSwitch } from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { notificationManager } from '@kit.NotificationKit';
@@ -124,7 +126,7 @@ struct NotificationSettings {
                 }
               })
 
-              SettingsDivider()
+              SubSettingsDivider()
 
               // --- 每日摘要 ---
               SubSettingsSwitch({
@@ -178,7 +180,7 @@ struct NotificationSettings {
                 }
               })
 
-              SettingsDivider()
+              SubSettingsDivider()
 
               // --- 习惯打卡 ---
               SubSettingsSwitch({
