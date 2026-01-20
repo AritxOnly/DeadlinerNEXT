@@ -294,10 +294,9 @@ export struct SettingsUserProfile {
 
   @State isLoginSheetShow: boolean = false;
 
-  // 我们不再直接依赖 currentUser 来显示，而是拆分成独立的显示变量
   @State currentUser: AuthUser | null = null;
-  @State displayNickname: string = ''; // [新增] 专门用于显示的昵称
-  @State displayAvatar: string = '';   // [新增] 专门用于显示的头像
+  @State displayNickname: string = '';
+  @State displayAvatar: string = '';
 
   onTriggerRefresh() {
     if (this.isLoggedIn) {
@@ -313,7 +312,7 @@ export struct SettingsUserProfile {
 
   onLoginStatusChange() {
     if (this.isLoggedIn) {
-      this.refreshUser();
+      this.refreshUser(true);
       this.isLoginSheetShow = false;
     } else {
       this.currentUser = null;
@@ -322,10 +321,8 @@ export struct SettingsUserProfile {
     }
   }
 
-  // [核心修改] 刷新逻辑：混合查询
-  async refreshUser() {
+  async refreshUser(isInteractive: boolean = false) {
     try {
-      // 1. 获取 AGC 用户 (为了拿 UID 和 Session)
       const agcUser = await auth.getCurrentUser();
       this.currentUser = agcUser;
 
@@ -339,7 +336,7 @@ export struct SettingsUserProfile {
         if (!ctx) return;
 
         try {
-          const sysProfile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx);
+          const sysProfile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx, isInteractive);
           if (sysProfile.nickname) {
             console.info(`[Fix] Overwriting AGC nickname with System nickname: ${sysProfile.nickname}`);
             this.displayNickname = sysProfile.nickname;

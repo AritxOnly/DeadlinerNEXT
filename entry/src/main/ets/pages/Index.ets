@@ -1,5 +1,5 @@
 import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponent';
-import { LengthMetrics, SymbolGlyphModifier } from '@kit.ArkUI';
+import { LengthMetrics, promptAction, SymbolGlyphModifier } from '@kit.ArkUI';
 import { LocalValues } from '../common/local/LocalValues';
 import { PrivacyDialog } from './components/PrivacyDialog';
 import { MainHomePage } from './routes/main/MainHomePage';
@@ -9,6 +9,7 @@ import { common } from '@kit.AbilityKit';
 import { WebParams } from './common/WebBrowserPage';
 import { TabAnimModifier } from '../utils/animation/TabAnimModifier';
 import { AiFlowBackground } from './common/AIFlowBackground';
+import { HuaweiAccountUtils } from '../utils/account/HuaweiAccountUtils';
 
 interface TabData {
   title: string,
@@ -25,6 +26,9 @@ struct Index {
 
   @StorageProp('IsAppDataReady') @Watch('onDataReady') isAppDataReady: boolean = false;
   @State isShowUI: boolean = false;
+
+  @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
+  @State hasCheckedProfile: boolean = false;
 
   @StorageLink('QuickAddTaskTrigger') @Watch('onQuickAddTrigger') quickAddTrigger: boolean = false;
 
@@ -82,7 +86,54 @@ struct Index {
       this.onDataReady();
     }
 
+    if (this.isLoggedIn) {
+      this.checkAndRepairUserProfile();
+    }
+
     this.checkAndShowDialog();
+  }
+
+  onPageShow() {
+    if (this.isLoggedIn && !this.hasCheckedProfile) {
+      this.checkAndRepairUserProfile();
+    }
+  }
+
+  onLoginStatusChange() {
+    if (this.isLoggedIn) {
+      this.checkAndRepairUserProfile();
+    }
+  }
+
+  /**
+   * 核心修复逻辑：
+   * 检测是否属于“已登录但未授权”的用户，如果是，则强制弹窗。
+   */
+  async checkAndRepairUserProfile() {
+    if (this.hasCheckedProfile) return;
+    this.hasCheckedProfile = true;
+
+    const ctx = this.getUIContext().getHostContext();
+    if (!ctx) return;
+
+    try {
+      const sysProfile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx, false);
+
+      if (!sysProfile.nickname || sysProfile.nickname.trim() === '') {
+        console.info('[Fix] Detect logged-in user with missing profile. Triggering Force Auth...');
+
+        const fixedProfile = await HuaweiAccountUtils.getHuaweiAccountProfile(ctx, true);
+
+        if (fixedProfile.nickname) {
+          console.info('[Fix] User repaired successfully.');
+          promptAction.showToast({ message: '用户信息已同步' });
+        }
+      } else {
+        console.info('[Fix] User profile is healthy.');
+      }
+    } catch (e) {
+      console.error('[Fix] Profile check failed:', e);
+    }
   }
 
   async checkAndShowDialog() {

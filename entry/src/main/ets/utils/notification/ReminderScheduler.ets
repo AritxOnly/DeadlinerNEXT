@@ -293,7 +293,13 @@ export class ReminderScheduler {
       // 提前一天提醒
       const ONE_DAY_MS = 24 * 60 * 60 * 1000;
       const remindTime = new Date(deadlineDate.getTime() - ONE_DAY_MS);
+      const now = Date.now();
       const timeStr = formatDeadline(deadlineDate);
+
+      if (remindTime.getTime() < now) {
+        console.info(`[Scheduler] Reminder time (${remindTime.toLocaleString()}) is in the past. Skip publishing.`);
+        return;
+      }
 
       const contentText = ddl.note ? `${ddl.note} · 截止于 ${timeStr}` : `截止于 ${timeStr}`;
 

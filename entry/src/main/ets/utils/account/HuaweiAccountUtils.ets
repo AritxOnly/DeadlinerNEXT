@@ -59,14 +59,14 @@ export class HuaweiAccountUtils implements AccountUtils {
     return true;
   }
 
-   static async getHuaweiAccountProfile(context: Context): Promise<HuaweiAccountProfile> {
+   static async getHuaweiAccountProfile(context: Context, forcePrompt: boolean = false): Promise<HuaweiAccountProfile> {
     let avatarUri: string | undefined = undefined;
     let nickName: string | undefined = undefined;
     let authorizationCode: string | undefined = undefined;
 
     const authRequest = new authentication.HuaweiIDProvider().createAuthorizationWithHuaweiIDRequest();
-    authRequest.scopes = ['profile'];
-    authRequest.forceAuthorization = false; // 如果只是为了获取信息，建议设为 false (静默)，除非你确实需要强制拉起弹窗
+    authRequest.scopes = ['profile', 'openid'];
+    authRequest.forceAuthorization = forcePrompt;
     authRequest.state = util.generateRandomUUID();
 
     try {
