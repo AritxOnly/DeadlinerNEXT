@@ -109,17 +109,41 @@ export struct UserPage {
   }
 
   @State isAISheetShow: boolean = false;
+  @Consume('isAiFlowShown') isAiFlowShown: boolean;
+
+  private flowTimerId: number = -1;
+
+  openAiPanel() {
+    clearTimeout(this.flowTimerId);
+
+    this.isAISheetShow = true;
+
+    this.isAiFlowShown = true;
+
+    this.flowTimerId = setTimeout(() => {
+      animateTo({ duration: 500, curve: Curve.EaseOut }, () => {
+        this.isAiFlowShown = false;
+      })
+    }, 400);
+  }
+
+  closeAiPanel() {
+    clearTimeout(this.flowTimerId);
+
+    this.isAISheetShow = false;
+    this.isAiFlowShown = false; // 立即关闭，不需要动画了，因为 Sheet 都要没了
+  }
+
   @Builder
   aiSheet() {
     AIPanelView({
       onDismissPanel: () => {
-        this.isAISheetShow = false
+        this.closeAiPanel();
       }
     })
       .width('100%')
       .height('100%')
   }
-
 
   build() {
     HdsNavigation() {
@@ -351,7 +375,7 @@ export struct UserPage {
       height: SheetSize.LARGE,
       dragBar: true,
       onDisappear: () => {
-        this.isAISheetShow = false;
+        this.closeAiPanel();
       },
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,

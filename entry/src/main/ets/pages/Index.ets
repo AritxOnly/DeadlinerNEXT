@@ -8,6 +8,7 @@ import { UserPage } from './routes/user/UserPage';
 import { common } from '@kit.AbilityKit';
 import { WebParams } from './common/WebBrowserPage';
 import { TabAnimModifier } from '../utils/animation/TabAnimModifier';
+import { AiFlowBackground } from './common/AIFlowBackground';
 
 interface TabData {
   title: string,
@@ -20,6 +21,7 @@ interface TabData {
 struct Index {
   // 全局路由栈
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
+  @Provide('isAiFlowShown') isAiFlowShown: boolean = false;
 
   @StorageLink('QuickAddTaskTrigger') @Watch('onQuickAddTrigger') quickAddTrigger: boolean = false;
 
@@ -150,76 +152,90 @@ struct Index {
   }
 
   build() {
-    HdsNavigation(this.appPathStack) {
-      Tabs({
-        barPosition: BarPosition.End,
-        index: this.currentIndex,
-        controller: this.tabsController
-      }) {
-        // --- Tab 1: 主页 ---
-        TabContent() {
-          MainHomePage({ currentTabIndex: this.currentIndex })
-            .width("100%")
-            .height("100%")
-            .attributeModifier(new TabAnimModifier(0, this.currentIndex))
-            .animation({
-              duration: 300, // 保持与 Tabs 动画时长一致
-              curve: Curve.EaseInOut
-            })
-        }
-        .tabBar(this.getTabBarStyle(this.tabs[0]))
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-        .backgroundColor($r('app.color.background_primary'))
+    Stack() {
+      HdsNavigation(this.appPathStack) {
+        Tabs({
+          barPosition: BarPosition.End,
+          index: this.currentIndex,
+          controller: this.tabsController
+        }) {
+          // --- Tab 1: 主页 ---
+          TabContent() {
+            MainHomePage({ currentTabIndex: this.currentIndex })
+              .width("100%")
+              .height("100%")
+              .attributeModifier(new TabAnimModifier(0, this.currentIndex))
+              .animation({
+                duration: 300, // 保持与 Tabs 动画时长一致
+                curve: Curve.EaseInOut
+              })
+          }
+          .tabBar(this.getTabBarStyle(this.tabs[0]))
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+          .backgroundColor($r('app.color.background_primary'))
 
-        // --- Tab 2: 概览 ---
-        TabContent() {
-          OverviewPage({ currentTabIndex: this.currentIndex })
-            .attributeModifier(new TabAnimModifier(1, this.currentIndex))
-            .animation({
-              duration: 300, // 保持与 Tabs 动画时长一致
-              curve: Curve.EaseInOut
-            })
-        }
-        .tabBar(this.getTabBarStyle(this.tabs[1]))
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-        .backgroundColor($r('app.color.background_primary'))
+          // --- Tab 2: 概览 ---
+          TabContent() {
+            OverviewPage({ currentTabIndex: this.currentIndex })
+              .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+              .animation({
+                duration: 300, // 保持与 Tabs 动画时长一致
+                curve: Curve.EaseInOut
+              })
+          }
+          .tabBar(this.getTabBarStyle(this.tabs[1]))
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+          .backgroundColor($r('app.color.background_primary'))
 
-        // --- Tab 3: 我的 ---
-        TabContent() {
-          UserPage()
-            .attributeModifier(new TabAnimModifier(2, this.currentIndex))
-            .animation({
-              duration: 300, // 保持与 Tabs 动画时长一致
-              curve: Curve.EaseInOut
-            })
+          // --- Tab 3: 我的 ---
+          TabContent() {
+            UserPage()
+              .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+              .animation({
+                duration: 300, // 保持与 Tabs 动画时长一致
+                curve: Curve.EaseInOut
+              })
+          }
+          .tabBar(this.getTabBarStyle(this.tabs[2]))
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+          .backgroundColor($r('app.color.background_primary'))
         }
-        .tabBar(this.getTabBarStyle(this.tabs[2]))
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-        .backgroundColor($r('app.color.background_primary'))
+        .barMode(BarMode.Fixed) // 固定布局
+        .barOverlap(true) // TabBar 与内容叠加，方便做模糊
+        .background($r('app.color.background_primary'))
+        // .barBackgroundColor(Color.Transparent)
+        .animationDuration(300)
+        .scrollable(false) // 两个 Tab 不需要横向滚动
+        // .barHeight(48)
+        .height('100%')
+        .width('100%')
+        .onChange((index: number) => {
+          this.currentIndex = index;
+        })
+        .onTabBarClick((index: number) => {
+          this.tabAnimationTriggers[index] += 1;
+
+          if (index === this.currentIndex) {
+            console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
+            AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
+          }
+        })
       }
-      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-      .barMode(BarMode.Fixed) // 固定布局
-      .barOverlap(true) // TabBar 与内容叠加，方便做模糊
-      .background($r('app.color.background_primary'))
-      // .barBackgroundColor(Color.Transparent)
-      .animationDuration(300)
-      .scrollable(false) // 两个 Tab 不需要横向滚动
-      // .barHeight(48)
-      .height('100%')
-      .width('100%')
-      .onChange((index: number) => {
-        this.currentIndex = index;
-      })
-      .onTabBarClick((index: number) => {
-        this.tabAnimationTriggers[index] += 1;
+      .hideTitleBar(true)
+      // .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
 
-        if (index === this.currentIndex) {
-          console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
-          AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
-        }
-      })
+      if (this.isAiFlowShown) {
+        AiFlowBackground()
+          .height('110%')
+          .width('100%')
+          .hitTestBehavior(HitTestMode.None)
+          .zIndex(999)
+          .transition(TransitionEffect.OPACITY.animation({ duration: 500 }))
+          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+      }
     }
-    .hideTitleBar(true)
-    // .ignoreLayoutSafeArea([LayoutSafeAreaType.SYSTEM], [LayoutSafeAreaEdge.TOP, LayoutSafeAreaEdge.BOTTOM])
+    .height('100%')
+    .width('100%')
   }
 }

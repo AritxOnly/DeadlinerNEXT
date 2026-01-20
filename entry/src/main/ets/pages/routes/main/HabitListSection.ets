@@ -3,13 +3,14 @@ import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from '../../../model/DDLModels';
 import { HabitCircleProgress, WeekRow, HabitRow, DDLStatus, HabitWithDailyStatus, DayOverview } from '../../components/HabitComponents'
 import { HabitListController } from "./HabitListController";
-import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.ArkUI'
+import { ChipGroup, ChipGroupItemOptions, ChipSize, curves, promptAction } from '@kit.ArkUI'
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { HabitEditSheet } from "./modify/HabitEditSheet";
 import { HabitReminderDialog } from "../../components/HabitReminderDialog";
 import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler";
+import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -546,6 +547,10 @@ export struct HabitListSection {
                   })
                 }
                 .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
+                .attributeModifier(new PressEffectModifier(0.98))
+                .animation({
+                  curve: curves.responsiveSpringMotion(0.35, 0.60)
+                })
               }, (item: HabitWithDailyStatus) => {
                 return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
               })

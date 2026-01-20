@@ -1,6 +1,6 @@
 import { DDLStatus } from "../../../model/DDLStatus";
 import { DDLItemCardSwipeable } from "../../components/TaskItemCard";
-import { LengthMetrics, promptAction } from "@kit.ArkUI";
+import { curves, LengthMetrics, promptAction } from "@kit.ArkUI";
 import { DDLItem, DeadlineType } from "../../../model/DDLModels";
 import { TaskRepository } from "../../../common/repository/TaskRepository";
 import { VibrationUtils } from "../../../utils/VibrationUtils";
@@ -13,6 +13,7 @@ import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
 import { TaskEditSheet } from "./modify/TaskEditSheet";
+import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 
 export interface TaskUIModel {
   title: string;
@@ -512,6 +513,10 @@ export struct TaskListSection {
                         this.toggleSelection(item.dbId);
                       }
                     })
+                      .attributeModifier(new PressEffectModifier(0.98))
+                      .animation({
+                        curve: curves.responsiveSpringMotion(0.35, 0.60)
+                      })
                   }
                   .attributeModifier(new FloatUpModifier(index, 15, this.isFirstLoad))
                 }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
