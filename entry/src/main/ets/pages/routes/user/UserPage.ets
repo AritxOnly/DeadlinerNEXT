@@ -6,7 +6,7 @@ import { SettingsDivider,
   SettingsUserProfile,
   SettingsVerticalDivider} from "../../components/SettingsComponents";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
-import { common } from "@kit.AbilityKit";
+import { common, bundleManager } from "@kit.AbilityKit";
 import { LocalValues } from "../../../common/local/LocalValues";
 import { WebParams } from "../../common/WebBrowserPage";
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants';
@@ -15,46 +15,27 @@ import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { CodeTextParams } from "../../common/CodeTextPage";
 import { ArchivePanelView } from "../../common/ArchivePanelView";
 import { AIPanelView } from "../../common/AIPanelView";
+import { SupportPanelView } from "../../common/SupportPanelView";
 
 @Component
 export struct UserPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
-  private privacyUrl: string = 'resource://rawfile/privacy_agreement.html';
-
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
-
-  private context = getContext(this) as common.UIAbilityContext;
 
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
 
-  private showRevokeDialog() {
-    AlertDialog.show({
-      title: '撤回隐私协议',
-      message: '撤回协议后，应用将无法继续为您提供服务，并会自动退出账号，清除您的 WebDAV 与 AI API Key 设置。下次启动应用时，您需要重新同意协议。\n\n确定要撤回吗？',
-      autoCancel: true,
-      alignment: DialogAlignment.Bottom,
-      offset: { dx: 0, dy: -20 },
-      primaryButton: {
-        value: '取消',
-        action: () => {
-        },
-        fontColor: $r('app.color.brand')
-      },
-      secondaryButton: {
-        value: '确定撤回',
-        fontColor: Color.Red,
-        action: async () => {
-          await LocalValues.getInstance().revokePrivacy();
-          await LocalValues.getInstance().clearAllAdvancedSettings();
-          (new HuaweiAccountUtils()).signOut();
-          this.context.terminateSelf();
-        }
-      },
-      backgroundBlurStyle: BlurStyle.Regular
-    })
+  @State versionName: string = '';
+  aboutToAppear(): void {
+    try {
+      let bundleInfo = bundleManager.getBundleInfoForSelfSync(bundleManager.BundleFlag.GET_BUNDLE_INFO_WITH_APPLICATION);
+      this.versionName = bundleInfo.versionName;
+    } catch (error) {
+      console.error('获取版本号失败:', JSON.stringify(error));
+      this.versionName = '1.0.0'; // 失败时的默认值
+    }
   }
 
   private showTurnOnBasicDialog() {
@@ -85,18 +66,6 @@ export struct UserPage {
           LocalValues.getInstance().setBasicMode(true);
         }
       }
-    });
-  }
-
-  private showPrivacyWebPage() {
-    const params: WebParams = {
-      url: this.privacyUrl,
-      title: '隐私协议',
-    };
-
-    this.appPathStack.pushPath({
-      name: 'webBrowser',
-      param: params,
     });
   }
 
@@ -143,6 +112,18 @@ export struct UserPage {
     })
       .width('100%')
       .height('100%')
+  }
+
+  @State isSupportSheetShow: boolean = false;
+
+  // 2. 定义 Builder
+  @Builder
+  supportSheet() {
+    SupportPanelView({
+      closeAction: () => {
+        this.isSupportSheetShow = false;
+      }
+    })
   }
 
   build() {
@@ -245,81 +226,75 @@ export struct UserPage {
                   this.appPathStack.pushPath({ name: 'settingsAI' });
                 }
               })
+
+              SettingsDivider()
+
+              SettingsSwitch({
+                title: "基础模式",
+                subtitle: "仅保留核心任务管理功能",
+                icon: $r('sys.symbol.leaf'),
+                isOn: this.isBasicMode,
+                onChange: (isOn) => {
+                  if (isOn) {
+                    this.showTurnOnBasicDialog();
+                  } else {
+                    LocalValues.getInstance().setBasicMode(false);
+                  }
+                }
+              })
+            }
+          } else {
+            SettingsSection({ title: '模式切换' }) {
+              SettingsSwitch({
+                title: "基础模式",
+                subtitle: "仅保留核心任务管理功能",
+                icon: $r('sys.symbol.leaf'),
+                isOn: this.isBasicMode,
+                onChange: (isOn) => {
+                  if (isOn) {
+                    this.showTurnOnBasicDialog();
+                  } else {
+                    LocalValues.getInstance().setBasicMode(false);
+                  }
+                }
+              })
             }
           }
 
-          SettingsSection({
-            title: "隐私协议与许可"
-          }) {
-            SettingsSwitch({
-              title: "基础模式",
-              subtitle: "仅保留核心任务管理功能",
-              icon: $r('sys.symbol.leaf'),
-              isOn: this.isBasicMode,
-              onChange: (isOn) => {
-                if (isOn) {
-                  this.showTurnOnBasicDialog();
-                } else {
-                  LocalValues.getInstance().setBasicMode(false);
-                }
+          SettingsSection({ title: "更多" }) {
+            SettingsItem({
+              title: "关于与协议",
+              subtitle: `版本 ${this.versionName} · 开发故事 · 隐私政策与许可`,
+              icon: $r('sys.symbol.info_circle'),
+              onItemClick: () => {
+                this.appPathStack.pushPath({ name: 'settingsAbout' });
               }
             })
 
             SettingsDivider()
 
             SettingsItem({
-              title: "开源许可证",
-              subtitle: "了解 Deadliner 使用的 MIT 开源协议",
-              icon: $r('sys.symbol.doc_text'),
+              title: "支持与反馈",
+              subtitle: "捐赠 · 评分 · 开源共建",
+              icon: $r('sys.symbol.gift'),
               onItemClick: () => {
-                const params: CodeTextParams = {
-                  fileName: 'LICENSE.txt',
-                  title: '开源许可证'
-                };
-
-                this.appPathStack.pushPath({
-                  name: 'codeText',
-                  param: params
-                });
-              }
-            })
-
-            SettingsDivider()
-
-            SettingsItem({
-              title: "查看隐私协议",
-              subtitle: "浏览隐私协议的详细内容",
-              icon: $r('sys.symbol.person_shield_fill'),
-              onItemClick: () => {
-                this.showPrivacyWebPage();
-              }
-            })
-
-            SettingsDivider()
-
-            SettingsItem({
-              title: "撤回隐私协议",
-              subtitle: "撤回同意并退出应用",
-              icon: $r('sys.symbol.lock_shield'), // [新增] 撤回盾牌图标
-              onItemClick: () => {
-                this.showRevokeDialog(); // 触发弹窗
+                this.isSupportSheetShow = true;
               }
             })
           }
 
-          // SettingsSection() {
-          //   SettingsItem({
-          //     title: "开发人员模式",
-          //     subtitle: "Developer Options",
-          //     icon: $r('sys.symbol.code'),
-          //     onItemClick: () => {
-          //       this.appPathStack.pushPath({ name: 'devMode' });
-          //     }
-          //   })
-          // }
-
           // 底部留白
           Blank().height(50)
+            .bindSheet($$this.isSupportSheetShow, this.supportSheet(), {
+              height: SheetSize.FIT_CONTENT,
+              dragBar: true,
+              onDisappear: () => {
+                this.isSupportSheetShow = false;
+              },
+              blurStyle: BlurStyle.Regular,
+              backgroundColor: Color.Transparent,
+              title: { title: "支持与反馈" }
+            })
         }
         .width('100%')
         .padding({ left: 12, right: 12 })

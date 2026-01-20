@@ -19,10 +19,8 @@ export struct MarkdownView {
   @Builder
   UnifiedTextBuilder(text: string, fontSize: number, normalFontColor: ResourceColor) {
     Text() {
-      // 1. 先按链接语法 (<..>[..]) 切分
       ForEach(LinkParser.parse(text), (segment: LinkSegment) => {
 
-        // A. 如果是链接 (Help 或 Route)
         if (segment.type === LinkType.HELP_LINK || segment.type === LinkType.ROUTE_LINK) {
           Span(segment.text)
             .fontSize(fontSize)
@@ -33,19 +31,14 @@ export struct MarkdownView {
               if (segment.type === LinkType.HELP_LINK) {
                 const targetId = segment.target;
 
-                // 1. 尝试从全局数据管理器中查找真实的配置
                 const realItem = ManualDataManager.getInstance().getItemById(targetId);
 
                 if (realItem) {
-                  // A. 找到了：使用 JSON 中定义的正版数据
-                  // 注意：这里我们优先使用 JSON 里的 title，而不是链接文字(segment.text)
-                  // 如果你想保留链接文字作为标题，可以覆盖 realItem.title
                   this.appPathStack.pushPath({
                     name: 'helpDetail',
                     param: realItem
                   });
                 } else {
-                  // B. 没找到 (可能是 ID 写错了，或者是未注册的临时页面)：降级处理
                   console.warn(`ManualItem with id '${targetId}' not found in menu.json`);
 
                   const tempItem: ManualItem = {
@@ -65,7 +58,6 @@ export struct MarkdownView {
             })
         }
 
-        // B. 如果是普通文本，继续解析粗体/斜体
         else {
           // 这里把原来的 RichTextBuilder 逻辑内联进来，输出 Span
           // 逻辑：先切 **，再切 *

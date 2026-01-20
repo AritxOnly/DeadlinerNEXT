@@ -39,7 +39,6 @@ export struct AITextInput {
       end: 360
     });
 
-    // 【核心】：每一帧回调时，更新角度，并强制重绘 Canvas
     this.angleAnimator.onFrame = (value: number) => {
       this.currentAngle = value;
       this.drawBorder(); // 实时重绘

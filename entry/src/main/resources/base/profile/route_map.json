@@ -116,6 +116,16 @@
       "name": "settingsWidgetBackground",
       "pageSourceFile": "src/main/ets/pages/routes/user/settings/WidgetBackgroundSettings.ets",
       "buildFunction": "WidgetBackgroundSettingsBuilder"
+    },
+    {
+      "name": "settingsAbout",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/AboutPage.ets",
+      "buildFunction": "AboutPageBuilder"
+    },
+    {
+      "name": "letterPage",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/LetterPage.ets",
+      "buildFunction": "LetterPageBuilder"
     }
   ]
 }
