@@ -126,6 +126,11 @@
       "name": "letterPage",
       "pageSourceFile": "src/main/ets/pages/routes/user/settings/LetterPage.ets",
       "buildFunction": "LetterPageBuilder"
+    },
+    {
+      "name": "placeholder",
+      "pageSourceFile": "src/main/ets/pages/routes/Placeholder.ets",
+      "buildFunction": "PlaceholderBuilder"
     }
   ]
 }

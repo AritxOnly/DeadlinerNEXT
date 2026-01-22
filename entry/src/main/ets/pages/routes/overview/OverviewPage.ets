@@ -265,7 +265,7 @@ export struct OverviewPage {
   }
 
   build() {
-    HdsNavigation(this.appPathStack) {
+    HdsNavigation() {
       Stack() {
         if (!this.isLoading) {
           TopSafeContainer({
@@ -342,5 +342,7 @@ export struct OverviewPage {
     .titleMode(HdsNavigationTitleMode.MINI)
     .hideBackButton(true)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .mode(NavigationMode.Stack)
+    .navBarWidth('100%')
   }
 }

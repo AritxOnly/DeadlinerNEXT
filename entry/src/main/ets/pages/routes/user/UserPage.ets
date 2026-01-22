@@ -127,7 +127,7 @@ export struct UserPage {
   }
 
   build() {
-    HdsNavigation(this.appPathStack) {
+    HdsNavigation() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
           if (!this.isBasicMode) {
@@ -358,5 +358,7 @@ export struct UserPage {
         title: 'Deadliner AI',
       }
     })
+    .mode(NavigationMode.Stack)
+    .navBarWidth('100%')
   }
 }

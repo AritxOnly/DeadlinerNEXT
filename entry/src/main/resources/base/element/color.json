@@ -1,6 +1,6 @@
 {
   "color": [
-    { "name": "start_window_background", "value": "#FFFFFF" },
+    { "name": "start_window_background", "value": "#F2F3F5" },
     { "name": "brand", "value": "#FF507EC2" },
     { "name": "brand_50", "value": "#80507EC2" },
     { "name": "accent", "value": "#FFF08A7E" },

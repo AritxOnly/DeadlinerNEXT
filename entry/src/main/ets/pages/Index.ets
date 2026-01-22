@@ -17,6 +17,8 @@ interface TabData {
   index: number
 }
 
+const TAB_VERTICAL_PADDING = 86;
+
 @Entry
 @Component
 struct Index {
@@ -40,14 +42,10 @@ struct Index {
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
-  listener = mediaquery.matchMediaSync('(min-width: 600vp)');
+  listener = mediaquery.matchMediaSync('(min-width: 840vp)');
 
   onPortrait(mediaQueryResult: mediaquery.MediaQueryResult) {
     AppStorage.setOrCreate('isWideScreen', mediaQueryResult.matches);
-
-    if (this.isWideScreen && this.appPathStack.size() === 0) {
-      this.appPathStack.pushPath({ name: 'PlaceholderPage' }, false);
-    }
   }
 
   private context = getContext(this) as common.UIAbilityContext;
@@ -232,72 +230,81 @@ struct Index {
   build() {
     Stack() {
       if (this.isShowUI) {
-        Tabs({
-          barPosition: this.isWideScreen ? BarPosition.Start : BarPosition.End,
-          index: this.currentIndex,
-          controller: this.tabsController
-        }) {
-          // --- Tab 1: 主页 ---
-          TabContent() {
-            MainHomePage({ currentTabIndex: this.currentIndex })
-              .width("100%")
-              .height("100%")
-              .attributeModifier(new TabAnimModifier(0, this.currentIndex))
-              .animation({
-                duration: 300, // 保持与 Tabs 动画时长一致
-                curve: Curve.EaseInOut
-              })
-          }
-          .tabBar(this.getTabBarStyle(this.tabs[0]))
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .backgroundColor($r('app.color.background_primary'))
+        HdsNavigation(this.appPathStack) {
+          Tabs({
+            barPosition: this.isWideScreen ? BarPosition.Start : BarPosition.End,
+            index: this.currentIndex,
+            controller: this.tabsController
+          }) {
+            // --- Tab 1: 主页 ---
+            TabContent() {
+              MainHomePage({ currentTabIndex: this.currentIndex })
+                .width("100%")
+                .height("100%")
+                .attributeModifier(new TabAnimModifier(0, this.currentIndex))
+                .animation({
+                  duration: 300, // 保持与 Tabs 动画时长一致
+                  curve: Curve.EaseInOut
+                })
+                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+            }
+            .tabBar(this.getTabBarStyle(this.tabs[0]))
+            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+            .backgroundColor($r('app.color.background_primary'))
 
-          // --- Tab 2: 概览 ---
-          TabContent() {
-            OverviewPage({ currentTabIndex: this.currentIndex })
-              .attributeModifier(new TabAnimModifier(1, this.currentIndex))
-              .animation({
-                duration: 300, // 保持与 Tabs 动画时长一致
-                curve: Curve.EaseInOut
-              })
-          }
-          .tabBar(this.getTabBarStyle(this.tabs[1]))
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .backgroundColor($r('app.color.background_primary'))
+            // --- Tab 2: 概览 ---
+            TabContent() {
+              OverviewPage({ currentTabIndex: this.currentIndex })
+                .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+                .animation({
+                  duration: 300, // 保持与 Tabs 动画时长一致
+                  curve: Curve.EaseInOut
+                })
+                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+            }
+            .tabBar(this.getTabBarStyle(this.tabs[1]))
+            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+            .backgroundColor($r('app.color.background_primary'))
 
-          // --- Tab 3: 我的 ---
-          TabContent() {
-            UserPage()
-              .attributeModifier(new TabAnimModifier(2, this.currentIndex))
-              .animation({
-                duration: 300, // 保持与 Tabs 动画时长一致
-                curve: Curve.EaseInOut
-              })
+            // --- Tab 3: 我的 ---
+            TabContent() {
+              UserPage()
+                .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+                .animation({
+                  duration: 300, // 保持与 Tabs 动画时长一致
+                  curve: Curve.EaseInOut
+                })
+                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+            }
+            .tabBar(this.getTabBarStyle(this.tabs[2]))
+            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+            .backgroundColor($r('app.color.background_primary'))
           }
-          .tabBar(this.getTabBarStyle(this.tabs[2]))
+          .vertical(this.isWideScreen)
           .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .backgroundColor($r('app.color.background_primary'))
+          .barMode(BarMode.Fixed)
+          .barOverlap(true)
+          .background($r('app.color.background_primary'))
+          .animationDuration(300)
+          .scrollable(false)
+          .height('100%')
+          .width('100%')
+          .onChange((index: number) => {
+            this.currentIndex = index;
+          })
+          .onTabBarClick((index: number) => {
+            this.tabAnimationTriggers[index] += 1;
+
+            if (index === this.currentIndex) {
+              console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
+              AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
+            }
+          })
         }
-        .vertical(this.isWideScreen)
-        .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-        .barMode(BarMode.Fixed)
-        .barOverlap(!this.isWideScreen)
-        .background($r('app.color.background_primary'))
-        .animationDuration(300)
-        .scrollable(false)
-        .height('100%')
-        .width('100%')
-        .onChange((index: number) => {
-          this.currentIndex = index;
-        })
-        .onTabBarClick((index: number) => {
-          this.tabAnimationTriggers[index] += 1;
-
-          if (index === this.currentIndex) {
-            console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
-            AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
-          }
-        })
+        .hideTitleBar(true)
+        .transition(TransitionEffect.OPACITY.animation({ duration: 400, curve: Curve.EaseOut }))
+        .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
+        .navBarWidth(this.isWideScreen ? '40%' : '100%')
       }
 
       if (this.isAiFlowShown) {
@@ -312,6 +319,5 @@ struct Index {
     }
     .height('100%')
     .width('100%')
-    .backgroundColor($r('app.color.background_primary'))
   }
 }

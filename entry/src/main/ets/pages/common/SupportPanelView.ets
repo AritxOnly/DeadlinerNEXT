@@ -1,6 +1,7 @@
 import { SettingsDivider, SettingsItem, SettingsSection } from '../components/SettingsComponents';
 import { WebParams } from '../common/WebBrowserPage'; // 调整引用路径
 import { common, Want } from '@kit.AbilityKit';
+import { commentManager } from '@kit.AppGalleryKit';
 
 @Component
 export struct SupportPanelView {
@@ -22,11 +23,29 @@ export struct SupportPanelView {
     });
   }
 
+  private showInAppRating() {
+    try {
+      // 调用 showCommentDialog 拉起评论弹窗
+      commentManager.showCommentDialog(this.context)
+        .then(() => {
+          console.info('Deadliner', "succeeded in showing commentDialog.");
+          // this.closeAction?.();
+        })
+        .catch((error: BusinessError<Object>) => {
+          console.error('Deadliner', `showCommentDialog failed, Code: ${error.code}, message: ${error.message}`);
+
+          this.openAppStore();
+        });
+    } catch (error) {
+      console.error('Deadliner', `showCommentDialog failed, Code: ${error.code}, message: ${error.message}`);
+    }
+  }
+
   // 跳转应用市场评分
   private openAppStore() {
     let want: Want = {
       action: 'ohos.want.action.appdetail',
-      uri: 'store://appgallery.huawei.com/app/detail?id=com.aritxonly.deadliner' // ⚠️请确认你的包名
+      uri: 'store://appgallery.huawei.com/app/detail?id=com.aritxonly.deadliner'
     };
     this.context.startAbility(want).catch((err: object) => {
       console.error("Open AppGallery failed", JSON.stringify(err));
@@ -75,9 +94,20 @@ export struct SupportPanelView {
         // --- 情感与支持区域 ---
         SettingsSection({ title: '支持作者' }) {
           SettingsItem({
-            title: "去应用市场评分",
-            subtitle: "五星好评是最大的鼓励",
+            title: "给应用评分",
+            subtitle: "无需跳转，快速打分",
             icon: $r('sys.symbol.star'),
+            onItemClick: () => {
+              this.showInAppRating();
+            }
+          })
+
+          SettingsDivider()
+
+          SettingsItem({
+            title: "前往应用市场",
+            subtitle: "查看详情或撰写长评",
+            icon: $r('sys.symbol.bag'),
             onItemClick: () => {
               this.openAppStore();
             }
