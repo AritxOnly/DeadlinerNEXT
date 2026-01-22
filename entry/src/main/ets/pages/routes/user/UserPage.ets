@@ -21,6 +21,8 @@ import { SupportPanelView } from "../../common/SupportPanelView";
 export struct UserPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
@@ -358,7 +360,7 @@ export struct UserPage {
         title: 'Deadliner AI',
       }
     })
-    .mode(NavigationMode.Stack)
-    .navBarWidth('100%')
+    .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
+    .navBarWidth(this.isWideScreen ? '40%' : '100%')
   }
 }

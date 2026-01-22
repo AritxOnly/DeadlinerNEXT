@@ -1,6 +1,6 @@
 import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { ThemeControl, window } from '@kit.ArkUI';
+import { display, ThemeControl, window } from '@kit.ArkUI';
 import { gDeadlinerTheme } from '../AppTheme';
 import { LocalValues } from '../common/local/LocalValues';
 import { DatabaseHelper } from '../common/data/DatabaseHelper';
@@ -10,6 +10,8 @@ import { buffer } from '@kit.ArkTS';
 import auth from '@hw-agconnect/auth'
 import { ReminderDataManager } from '../utils/notification/ReminderDataManager';
 import { HabitRepository } from '../common/repository/HabitRepository';
+import { deviceInfo } from '@kit.BasicServicesKit';
+import { notificationManager } from '@kit.NotificationKit';
 
 const DOMAIN = 0x0000;
 
@@ -50,17 +52,20 @@ export default class EntryAbility extends UIAbility {
   }
 
   onWindowStageCreate(windowStage: window.WindowStage): void {
-    // Main window is created, set main page for this ability
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
-        hilog.error(DOMAIN, 'testTag', 'Failed to load the content. Cause: %{public}s', JSON.stringify(err));
+        hilog.error(DOMAIN, 'testTag', 'Failed to load content: %{public}s', JSON.stringify(err));
         return;
       }
 
-      ThemeControl.setDefaultTheme(gDeadlinerTheme)
+      ThemeControl.setDefaultTheme(gDeadlinerTheme);
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
+
+      this.handleResponsiveImmersive(windowStage);
+
+      this.requestNotificationPermission();
     });
   }
 
@@ -111,5 +116,81 @@ export default class EntryAbility extends UIAbility {
       // UI 监听到这个变为 true 后，就会打开弹窗
       AppStorage.setOrCreate('QuickAddTaskTrigger', true);
     }
+  }
+
+  /**
+   * 处理响应式沉浸逻辑
+   * 只有在宽度 >= 840vp 时才开启沉浸式，否则恢复默认
+   */
+  private handleResponsiveImmersive(windowStage: window.WindowStage) {
+    let windowClass: window.Window = windowStage.getMainWindowSync();
+
+    const updateWindowMode = () => {
+      // 获取当前窗口属性
+      let windowProperties = windowClass.getWindowProperties();
+      let widthPx = windowProperties.windowRect.width;
+
+      let displayClass = display.getDefaultDisplaySync();
+      let widthVp = widthPx / displayClass.densityPixels;
+
+      // 判断界限：840vp (与你 Index.ets 中的媒体查询保持一致)
+      let isWideScreen = widthVp >= 840;
+
+      if (isWideScreen) {
+        windowClass.setWindowLayoutFullScreen(true);
+        windowClass.setWindowSystemBarProperties({
+          navigationBarColor: '#00000000',
+          statusBarColor: '#00000000',
+          // 建议：在沉浸式下，状态栏文字颜色设为自动，或者根据你的 App 主题定
+          statusBarContentColor: '#000000',
+          isStatusBarLightIcon: false
+        });
+
+        hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp >= 840. Mode: Immersive`);
+      } else {
+        windowClass.setWindowLayoutFullScreen(false);
+        windowClass.setWindowSystemBarProperties({
+          navigationBarColor: '#FFFFFF', // 或跟随系统深色模式
+          statusBarColor: '#00000000'    // 非沉浸式下，状态栏背景色通常由系统控制或设为透明
+        });
+
+        hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp < 840. Mode: Normal`);
+      }
+
+      this.updateAvoidRects(windowClass);
+    };
+
+    // 2. 初始执行一次
+    updateWindowMode();
+
+    // 3. 监听窗口尺寸变化 (用户旋转屏幕或折叠屏展开/折叠时触发)
+    windowClass.on('windowSizeChange', (size) => {
+      updateWindowMode();
+    });
+
+    // 4. 保持避让区域监听 (用于全屏模式下的精确避让)
+    windowClass.on('avoidAreaChange', (data) => {
+      if (data.type === window.AvoidAreaType.TYPE_SYSTEM) {
+        AppStorage.setOrCreate('topRectHeight', data.area.topRect.height);
+      } else if (data.type == window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
+        AppStorage.setOrCreate('bottomRectHeight', data.area.bottomRect.height);
+      }
+    });
+  }
+
+  private updateAvoidRects(windowClass: window.Window) {
+    let topAvoidArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
+    let bottomAvoidArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+
+    AppStorage.setOrCreate('topRectHeight', topAvoidArea.topRect.height);
+    AppStorage.setOrCreate('bottomRectHeight', bottomAvoidArea.bottomRect.height);
+  }
+
+  private requestNotificationPermission() {
+    notificationManager.requestEnableNotification(this.context).then(() => {
+      hilog.info(DOMAIN, 'testTag', '[ANS] requestEnableNotification success');
+    }).catch((err: BusinessError) => {
+      hilog.error(DOMAIN, 'testTag', '[ANS] requestEnableNotification failed, code is %{public}d', err.code);
+    });
   }
 }

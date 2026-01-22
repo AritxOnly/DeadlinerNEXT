@@ -109,8 +109,6 @@ struct Index {
     if (this.isLoggedIn && !this.hasCheckedProfile) {
       this.checkAndRepairUserProfile();
     }
-
-    this.checkAndShowDialog();
   }
 
   onLoginStatusChange() {
