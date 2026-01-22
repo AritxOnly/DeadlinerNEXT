@@ -20,6 +20,18 @@ interface StartupOption {
 struct InteractionSettings {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
+  @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
+  private navigateTo(name: string) {
+    if (this.isWideScreen) {
+      this.userLocalPathStack.pushPath({ name: name });
+    } else {
+      this.appPathStack.pushPath({ name: name });
+    }
+  }
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
@@ -86,7 +98,7 @@ struct InteractionSettings {
               title: "主页快捷功能",
               subtitle: "配置主页顶栏按钮的快捷行为",
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: "settingsMainPageButtons" })
+                this.navigateTo('settingsMainPageButtons');
               }
             })
           }

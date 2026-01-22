@@ -15,6 +15,17 @@ export function AppearanceSettingsBuilder() {
 @Component
 struct AppearanceSettings {
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
+  private navigateTo(name: string) {
+    if (this.isWideScreen) {
+      this.userLocalPathStack.pushPath({ name: name });
+    } else {
+      this.appPathStack.pushPath({ name: name });
+    }
+  }
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
@@ -46,7 +57,7 @@ struct AppearanceSettings {
               title: "小组件样式",
               subtitle: "自定义桌面服务卡片的背景与风格",
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: "settingsWidgetBackground" })
+                this.navigateTo('settingsWidgetBackground');
               }
             })
           }

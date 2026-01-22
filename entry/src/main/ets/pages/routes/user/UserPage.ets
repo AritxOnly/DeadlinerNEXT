@@ -20,6 +20,7 @@ import { SupportPanelView } from "../../common/SupportPanelView";
 @Component
 export struct UserPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Provide('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
@@ -128,8 +129,16 @@ export struct UserPage {
     })
   }
 
+  private navigateTo(name: string) {
+    if (this.isWideScreen) {
+      this.userLocalPathStack.pushPath({ name: name });
+    } else {
+      this.appPathStack.pushPath({ name: name });
+    }
+  }
+
   build() {
-    HdsNavigation() {
+    HdsNavigation(this.userLocalPathStack) {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
           if (!this.isBasicMode) {
@@ -167,7 +176,7 @@ export struct UserPage {
                 icon: $r('sys.symbol.book_open_fill'),
                 iconColor: $r('app.color.func_manual'),
                 onItemClick: () => {
-                  this.appPathStack.pushPath({ name: "settingsHelpCenter" })
+                  this.navigateTo('settingsHelpCenter')
                 }
               })
             }
@@ -180,7 +189,7 @@ export struct UserPage {
               subtitle: "界面布局 · 动画效果 · 小组件样式",
               icon: $r('sys.symbol.paintpalette'),
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: 'settingsAppearance' });
+                this.navigateTo('settingsAppearance');
               }
             })
 
@@ -191,7 +200,7 @@ export struct UserPage {
               subtitle: "启动页 · 操作体验 · 自动归档",
               icon: $r('sys.symbol.hand_point_up_tap'),
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: 'settingsInteraction' });
+                this.navigateTo('settingsInteraction');
               }
             })
 
@@ -202,7 +211,7 @@ export struct UserPage {
               subtitle: "DDL 预警 · 每日摘要 · 习惯提醒",
               icon: $r('sys.symbol.bell'),
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: 'settingsNotification' });
+                this.navigateTo('settingsNotification');
               }
             })
           }
@@ -214,7 +223,7 @@ export struct UserPage {
                 subtitle: "WebDAV 云同步 · 本地导入导出",
                 icon: $r('sys.symbol.cloud'),
                 onItemClick: () => {
-                  this.appPathStack.pushPath({ name: 'settingsWebDav' });
+                  this.navigateTo('settingsWebDav');
                 }
               })
 
@@ -225,7 +234,7 @@ export struct UserPage {
                 subtitle: "模型配置 · API Key",
                 icon: $r('sys.symbol.AI'),
                 onItemClick: () => {
-                  this.appPathStack.pushPath({ name: 'settingsAI' });
+                  this.navigateTo('settingsAI')
                 }
               })
 
@@ -269,7 +278,7 @@ export struct UserPage {
               subtitle: `版本 ${this.versionName} · 开发故事 · 隐私政策与许可`,
               icon: $r('sys.symbol.info_circle'),
               onItemClick: () => {
-                this.appPathStack.pushPath({ name: 'settingsAbout' });
+                this.navigateTo('settingsAbout');
               }
             })
 
@@ -320,7 +329,7 @@ export struct UserPage {
     .titleBar({
       style: {
         scrollEffectOpts: {
-          enableScrollEffect: true,
+          enableScrollEffect: !this.isWideScreen,
           scrollEffectType: ScrollEffectType.COMMON_BLUR,
           blurEffectiveStartOffset: LengthMetrics.vp(0),
           blurEffectiveEndOffset: LengthMetrics.vp(10)
@@ -328,13 +337,17 @@ export struct UserPage {
         // --- 初始状态样式 (透明) ---
         originalStyle: {
           backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
+            backgroundColor: this.isWideScreen ?
+                $r('app.color.background_primary')
+              : $r('sys.color.ohos_id_color_background_transparent'),
           },
         },
         // --- 滚动生效后样式 (模糊) ---
         scrollEffectStyle: {
           backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
+            backgroundColor: this.isWideScreen ?
+                $r('app.color.background_primary')
+              : $r('sys.color.ohos_id_color_navigation_background_blur'),
           },
         },
       },
@@ -360,6 +373,7 @@ export struct UserPage {
         title: 'Deadliner AI',
       }
     })
+    .safeAreaPadding({ top: this.statusBarHeight })
     .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
     .navBarWidth(this.isWideScreen ? '40%' : '100%')
   }
