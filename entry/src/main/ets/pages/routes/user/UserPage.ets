@@ -55,7 +55,7 @@ export struct UserPage {
       },
       secondaryButton: {
         value: '确认开启',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           // 1. 清除高级设置
           await LocalValues.getInstance().clearAllAdvancedSettings();

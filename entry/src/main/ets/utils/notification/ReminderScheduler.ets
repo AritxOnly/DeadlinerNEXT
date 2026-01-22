@@ -6,7 +6,6 @@ import { ReminderUtils } from './ReminderUtils';
 import { reminderAgentManager } from '@kit.BackgroundTasksKit';
 import { LocalValues } from '../../common/local/LocalValues';
 
-// 常量配置
 const MAX_DDL_SLOTS = 20;
 
 export class ReminderScheduler {
@@ -20,15 +19,13 @@ export class ReminderScheduler {
     if (activeReminders.length === 0) return [];
 
     try {
-      // 1. 获取系统当前所有有效的提醒
       const systemReminders = await reminderAgentManager.getValidReminders();
-      // 2. 提取系统中的 ID 集合 (Set 查询效率 O(1))
+
       const systemIds = new Set(systemReminders.map(r => r.notificationId));
 
       const manager = ReminderDataManager.getInstance();
       const removedIds: string[] = [];
 
-      // 3. 遍历本地记录进行核对
       for (const record of activeReminders) {
         // 如果本地有 ID，但系统里没有
         if (!systemIds.has(record.reminderId)) {
@@ -71,7 +68,7 @@ export class ReminderScheduler {
       } else {
         console.info('[Scheduler] DDL Warning is DISABLED. No actions needed.');
       }
-      return; // ⛔️ 结束流程
+      return;
     }
 
     const activeMap = new Map<string, ActiveReminder>();
@@ -133,11 +130,9 @@ export class ReminderScheduler {
   static async refreshHabits(allHabits: Habit[]) {
     console.info('[Scheduler] Start refreshing HABIT reminders...');
 
-    // 1. 【开关检查】读取配置
     const isEnabled = LocalValues.getInstance().getHabitReminder();
     const manager = ReminderDataManager.getInstance();
 
-    // 2. 获取并清洗数据
     let activeReminders = manager.getAll().filter(r => r.type === 'HABIT');
     await ReminderScheduler.syncWithSystem(activeReminders);
     activeReminders = manager.getAll().filter(r => r.type === 'HABIT');
@@ -145,7 +140,6 @@ export class ReminderScheduler {
     const activeMap = new Map<string, ActiveReminder>();
     activeReminders.forEach(r => activeMap.set(r.targetId, r));
 
-    // 3. 【熔断逻辑】如果用户关闭了习惯提醒
     if (!isEnabled) {
       if (activeReminders.length > 0) {
         console.info('[Scheduler] Habit Reminder is DISABLED. Clearing existing reminders...');
@@ -153,10 +147,9 @@ export class ReminderScheduler {
           await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Feature disabled");
         }
       }
-      return; // ⛔️ 结束流程
+      return;
     }
 
-    // 4. 【正常发布逻辑】
     // 筛选有效习惯 (Active 且 设置了 alarmTime)
     const candidates = allHabits.filter(h =>
     h.status === HabitStatus.ACTIVE &&
@@ -183,7 +176,6 @@ export class ReminderScheduler {
         // 获取记录中的时间
         const recordDate = new Date(record.triggerTime);
 
-        // 【关键】只比较 时:分，不比较日期
         if (recordDate.getHours() !== targetHour || recordDate.getMinutes() !== targetMinute) {
           await ReminderScheduler.cancelAndRemove(record.targetId, record.reminderId, "Time(HH:mm) changed");
           activeMap.delete(record.targetId);
@@ -206,7 +198,6 @@ export class ReminderScheduler {
     const manager = ReminderDataManager.getInstance();
     let existingRecord = manager.getByTargetId(TARGET_ID);
 
-    // 1. 【僵尸数据检测】
     // 在决定是否发布前，先确认现有的 ID 是否真的有效
     if (existingRecord) {
       try {
@@ -223,7 +214,6 @@ export class ReminderScheduler {
       }
     }
 
-    // 2. 【开关检查】
     // 如果 summaryTimeStr 为 null，或者 LocalValues 里关闭了 (双重保障)
     // Settings 页面传参时已经处理了逻辑，传 null 即表示关闭
     if (!summaryTimeStr) {
@@ -233,7 +223,6 @@ export class ReminderScheduler {
       return;
     }
 
-    // 3. 【正常发布逻辑】
     const parts = summaryTimeStr.split(':');
     const hour = parseInt(parts[0]);
     const minute = parseInt(parts[1]);
@@ -241,7 +230,7 @@ export class ReminderScheduler {
     // 检查是否需要更新
     if (existingRecord) {
       const recordDate = new Date(existingRecord.triggerTime);
-      // 【关键】只比较 时:分
+
       if (recordDate.getHours() === hour && recordDate.getMinutes() === minute) {
         console.info('[Scheduler] Daily Summary time unchanged. Skip.');
         return;
@@ -303,7 +292,6 @@ export class ReminderScheduler {
 
       const contentText = ddl.note ? `${ddl.note} · 截止于 ${timeStr}` : `截止于 ${timeStr}`;
 
-      // 【调用 Timer 伪装的 Calendar 接口】
       const reminderId = await ReminderUtils.publishCalendar(
         `任务临近提醒: ${ddl.name}`,
         contentText,
@@ -333,7 +321,6 @@ export class ReminderScheduler {
 
       console.info(`[Scheduler] Publishing Habit:${habit.name} at ${hour}:${minute}`);
 
-      // 【调用 Alarm 接口】
       const reminderId = await ReminderUtils.publishAlarm(
         `打卡提醒: ${habit.name}`,
         `坚持就是胜利！该完成"${habit.name}"了。`,

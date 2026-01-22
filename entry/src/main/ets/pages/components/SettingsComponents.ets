@@ -373,7 +373,7 @@ export struct SettingsUserProfile {
       },
       secondaryButton: {
         value: '退出',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           try {
             await auth.signOut();

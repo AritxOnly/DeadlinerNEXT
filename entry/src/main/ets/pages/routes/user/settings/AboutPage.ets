@@ -49,7 +49,7 @@ export struct AboutPage {
       },
       secondaryButton: {
         value: '确定撤回',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           await LocalValues.getInstance().revokePrivacy();
           await LocalValues.getInstance().clearAllAdvancedSettings();

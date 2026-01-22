@@ -202,8 +202,7 @@ export struct TaskListSection {
     VibrationUtils.vibrateShort();
 
     try {
-      // 1. 获取原始数据 (为了简单，这里重新查库，或者你可以维护一个 Map<id, DDLItem>)
-      // 由于我们 loadData 时只拿了部分字段转 UI Model，最好重新 fetch 一下确保拿到最新全量字段
+      // 1. 获取原始数据
       const allItems = await this.repo.getAllDDLs();
       const targetItem = allItems.find(item => item.id === dbId);
 
@@ -218,7 +217,7 @@ export struct TaskListSection {
 
       // 3. 更新完成时间
       if (newStatus) {
-        targetItem.completeTime = new Date().toISOString(); // 或者用你之前的 formatLocalDateTime
+        targetItem.completeTime = new Date().toISOString();
         this.confetti.fire();
       } else {
         targetItem.completeTime = "";
@@ -228,7 +227,6 @@ export struct TaskListSection {
       await this.repo.updateDDL(targetItem);
 
       // 5. 刷新 UI
-      // 优化体验：这里可以直接修改 this.taskList 本地状态做乐观更新，但重新 loadData 最稳妥
       await this.loadData();
 
       promptAction.showToast({
@@ -260,7 +258,7 @@ export struct TaskListSection {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           try {
             await this.repo.deleteDDL(dbId);
@@ -311,7 +309,6 @@ export struct TaskListSection {
     }
   }
 
-  // [新增] 批量逻辑：标记完成
   private async handleBatchComplete() {
     if (this.selectedIds.length === 0) return;
 
@@ -341,7 +338,6 @@ export struct TaskListSection {
     }
   }
 
-  // [新增] 批量逻辑：归档
   private async handleBatchArchive() {
     if (this.selectedIds.length === 0) return;
 
@@ -349,7 +345,6 @@ export struct TaskListSection {
       const allItems = await this.repo.getAllDDLs();
       const targets = allItems.filter(item => this.selectedIds.includes(item.id));
 
-      // 1. 筛选出符合归档条件的项，并统计跳过的项
       const itemsToArchive: DDLItem[] = [];
       let skippedCount = 0;
 
@@ -362,14 +357,11 @@ export struct TaskListSection {
         }
       });
 
-      // 2. 仅更新真正发生变化的数据 (使用 Promise.all 并行执行以提高性能)
       const updatePromises = itemsToArchive.map(item => this.repo.updateDDL(item));
       await Promise.all(updatePromises);
 
-      // 3. 根据结果构建提示信息
       let message = `已归档 ${itemsToArchive.length} 项任务`;
 
-      //如果有未完成的任务被跳过，追加提示
       if (skippedCount > 0) {
         message += `，${skippedCount} 项因未完成无法归档`;
       }
@@ -384,7 +376,6 @@ export struct TaskListSection {
     }
   }
 
-  // [新增] 批量逻辑：删除
   private handleBatchDelete() {
     if (this.selectedIds.length === 0) return;
 
@@ -402,7 +393,7 @@ export struct TaskListSection {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           try {
             for (const id of this.selectedIds) {
@@ -437,7 +428,6 @@ export struct TaskListSection {
 
         console.log("[EDIT DEBUG] editingTask | target: ", this.editingTask.name, '|', target.name);
 
-        // 🔥 解析时间字符串为 Date 对象
         this.editingStartTime = target.startTime ? new Date(target.startTime) : new Date();
         this.editingEndTime = target.endTime ? new Date(target.endTime) : new Date();
 
@@ -476,10 +466,8 @@ export struct TaskListSection {
           .height(50)
           .margin({ top: 100 })
       } else {
-        // 使用新封装的组件
         TopSafeContainer({ topAvoidHeight: this.topAvoidHeight }) {
           Column() {
-            // Refresh 包裹 List
             Refresh({ refreshing: $$this.isRefreshing }) {
               List({
                 space: 8,
@@ -495,15 +483,12 @@ export struct TaskListSection {
                       isStarred: item.isStarred,
                       status: item.status,
 
-                      // 多选 Props
                       selectionMode: this.isSelectionMode,
                       selected: this.selectedIds.includes(item.dbId),
 
-                      // 普通交互
                       onComplete: async () => { this.handleComplete(item.dbId) },
                       onDelete: async () => { this.handleDelete(item.dbId, item.title) },
 
-                      // 多选交互
                       onLongPressSelect: () => {
                         if (!this.isSelectionMode) {
                           this.enterSelectionMode(item.dbId);
@@ -554,11 +539,11 @@ export struct TaskListSection {
     .width("100%")
     .height("100%")
     .bindSheet($$this.isEditSheetShow, this.taskEditSheet(), {
-      height: SheetSize.FIT_CONTENT, // 半屏高度，也可以自定义高度
-      dragBar: true,            // 显示拖拽条
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
       onDisappear: () => {
         this.isEditSheetShow = false;
-        this.editingTask = null; // 清理数据
+        this.editingTask = null;
       },
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,

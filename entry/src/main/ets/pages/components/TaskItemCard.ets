@@ -31,15 +31,12 @@ export struct ArchivedDDLItemCard {
 
   build() {
     Stack({ alignContent: Alignment.TopStart }) {
-      // 1. 背景层 (纯色背景，无进度条)
       Row()
         .width('100%')
         .height('100%')
         .backgroundColor(this.bgColor) // 背景底色
 
-      // 2. 内容层
       Row() {
-        // 左侧：文本信息区域 (占用剩余空间)
         Column() {
           // 标题
           Text(this.title)
@@ -83,7 +80,7 @@ export struct ArchivedDDLItemCard {
         }
         .width(36)
         .height(36)
-        .backgroundColor(Color.Red) // 红色背景
+        .backgroundColor($r('app.color.warning')) // 红色背景
         .margin({ left: 12 }) // 与左侧文字的间距
         .onClick(() => {
           this.onDelete()

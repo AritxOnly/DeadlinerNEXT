@@ -20,7 +20,7 @@
     { "name": "interactive_active", "value": "#FFFFFF"},
     { "name": "interactive_select", "value": "#333333"},
     { "name": "interactive_pressed", "value": "#4D4D4D"},
-    { "name": "warning", "value": "#FFC28B"},
+    { "name": "warning", "value": "#FFF76666"},
     { "name": "confirm", "value": "#A0D8A0"},
     { "name": "chart_red", "value": "#FFF77E66"},
     { "name": "chart_green", "value": "#FFBFD1C4"},

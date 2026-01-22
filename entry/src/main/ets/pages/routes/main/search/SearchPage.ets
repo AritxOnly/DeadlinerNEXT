@@ -128,7 +128,7 @@ export struct SearchPage {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           try {
             if (item.originalType === 'task') {

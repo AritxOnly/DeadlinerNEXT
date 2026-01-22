@@ -24,7 +24,7 @@
     { "name": "interactive_select", "value": "#E5E5E5" },
     { "name": "interactive_pressed", "value": "#CCCCCC" },
 
-    { "name": "warning", "value": "#F28C48" },
+    { "name": "warning", "value": "#FFE95757" },
     { "name": "confirm", "value": "#7EBC72" },
     { "name": "chart_red", "value": "#FFF77E66" },
     { "name": "chart_green", "value": "#FF82ABA3" },

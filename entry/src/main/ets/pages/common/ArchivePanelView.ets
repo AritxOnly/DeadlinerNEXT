@@ -103,7 +103,7 @@ export struct ArchivePanelView {
       },
       secondaryButton: {
         value: '删除',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           try {
             await deleteAction();

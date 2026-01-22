@@ -80,7 +80,7 @@ export struct PrivacyDialog {
       Row() {
         // 不同意按钮
         Button('不同意并退出')
-          .fontColor(Color.Red)
+          .fontColor($r('app.color.warning'))
           .backgroundColor(Color.Transparent) // 建议明确背景色，防止样式混淆
           .layoutWeight(1)
           .margin({ right: 12 })

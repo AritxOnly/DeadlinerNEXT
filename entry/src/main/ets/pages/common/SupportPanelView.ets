@@ -2,6 +2,7 @@ import { SettingsDivider, SettingsItem, SettingsSection } from '../components/Se
 import { WebParams } from '../common/WebBrowserPage'; // 调整引用路径
 import { common, Want } from '@kit.AbilityKit';
 import { commentManager } from '@kit.AppGalleryKit';
+import { promptAction } from '@kit.ArkUI';
 
 @Component
 export struct SupportPanelView {
@@ -33,6 +34,10 @@ export struct SupportPanelView {
         })
         .catch((error: BusinessError<Object>) => {
           console.error('Deadliner', `showCommentDialog failed, Code: ${error.code}, message: ${error.message}`);
+
+          if (error.code == 1021500009) promptAction.showToast({
+            message: '您已评分'
+          })
 
           this.openAppStore();
         });

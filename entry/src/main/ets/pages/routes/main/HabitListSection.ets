@@ -23,7 +23,6 @@ export struct HabitListSection {
   confetti: ConfettiController = new ConfettiController();
   controller: HabitListController = new HabitListController();
 
-  // —— 1. 数据源 (@State) ——
   @State selectedDate: Date = new Date();
   @State searchQuery: string = "";
   @State weekOverview: DayOverview[] = [];
@@ -94,7 +93,6 @@ export struct HabitListSection {
    * 逻辑：检查当前是否选中了【唯一】的一个习惯，如果是，则弹出设置框
    */
   async handleRequestSetAlarm() {
-    // 1. 校验选中数量
     if (this.selectedDdlIds.size !== 1) {
       promptAction.showToast({ message: '请选择一个习惯来设置提醒' });
       return;
@@ -103,12 +101,10 @@ export struct HabitListSection {
     const ddlId = Array.from(this.selectedDdlIds)[0];
     this.currentAlarmDdlId = ddlId;
 
-    // 2. 获取习惯数据
     const item = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
     if (!item) return;
     const habit = item.habit;
 
-    // 3. 准备弹窗数据 (对应 Android 中的 try-catch 解析逻辑)
     this.tempHabitName = habit.name;
 
     if (habit.alarmTime && habit.alarmTime.length > 0) {
@@ -126,10 +122,8 @@ export struct HabitListSection {
       this.tempSelectedTime = d;
     }
 
-    // 4. 打开弹窗
     this.alarmDialogController.open();
 
-    // 5. 可选：退出选择模式 (根据交互设计决定，Android 代码未退出，这里建议保留选择状态或退出均可)
     // this.exitSelectionMode();
   }
 
@@ -140,22 +134,18 @@ export struct HabitListSection {
     if (this.currentAlarmDdlId === -1) return;
 
     try {
-      // 1. 从库中重新获取最新对象 (防止并发修改)
       const habitRaw = await this.repo.getHabitByDdlId(this.currentAlarmDdlId);
       if (!habitRaw) return;
 
-      // 2. 更新对象
       // 如果 enabled 为 true，保存 timeStr (例如 "20:00")，否则为 null
       const updatedHabit = habitRaw; // 注意：直接修改引用或 clone
       updatedHabit.alarmTime = enabled ? timeStr : null; // ArkTS 中如果类型定义是 string | null
 
       await this.repo.updateHabit(updatedHabit);
 
-      // 3. 触发调度器刷新
       const allHabits = await this.repo.getAllHabits();
       await ReminderScheduler.refreshHabits(allHabits);
 
-      // 4. 界面反馈
       promptAction.showToast({ message: enabled ? `已设置提醒: ${timeStr}` : '提醒已关闭' });
 
       // 刷新列表显示（虽然 alarmTime 可能不显示在列表上，但保持数据一致性）
@@ -276,8 +266,6 @@ export struct HabitListSection {
     this.weekOverview = week;
   }
 
-  // —— 4. 交互事件 ——
-
   onDateSelected(date: Date) {
     this.selectedDate = date;
     this.refreshAll(date);
@@ -325,8 +313,7 @@ export struct HabitListSection {
     if (this.selectedDdlIds.size === 0) return;
 
     VibrationUtils.vibrateShort();
-    // 筛选出选中的、且当天还【未完成】的习惯
-    // 注意：allHabitsCache 里存的是 HabitWithDailyStatus，包含 ddlId
+
     const targets = this.allHabitsCache.filter(item =>
     this.selectedDdlIds.has(item.habit.ddlId) && !item.isCompleted
     );
@@ -338,12 +325,6 @@ export struct HabitListSection {
     }
 
     try {
-      // 并行执行插入记录
-      // 注意：这里简单地插入一条记录。如果需要精确控制次数（比如目标是3次，现在是0次，是否直接加满？），
-      // 目前逻辑是 insertRecord 默认 count=1。
-      // 如果你的“批量完成”定义是“直接设为达标”，你需要计算缺多少次。
-      // 这里简化为：直接补齐到目标次数 (或者简单地加一次，视你的业务定义而定)
-      // 假设业务定义：批量打卡 = 给选中的每一项加一次打卡
       await Promise.all(targets.map(item => {
         return this.repo.insertRecord(item.habit.id, this.selectedDate, 1);
       }));
@@ -361,25 +342,25 @@ export struct HabitListSection {
     if (this.selectedDdlIds.size === 0) return;
 
     VibrationUtils.vibrateMedium();
-    // 弹窗确认
+
     AlertDialog.show({
       title: '删除习惯',
       message: `确定要删除选中的 ${this.selectedDdlIds.size} 个习惯吗？此操作不可恢复。`,
-      autoCancel: true, // 点击遮罩层是否关闭
-      alignment: DialogAlignment.Bottom, // 弹窗位置
-      offset: { dx: 0, dy: -20 }, // 微调位置
-      gridCount: 4, // 弹窗宽度占用栅格数
+      autoCancel: true,
+      alignment: DialogAlignment.Bottom,
+      offset: { dx: 0, dy: -20 },
+      gridCount: 4,
       backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'), // 你的主题色
+        fontColor: $r('app.color.brand'),
         action: () => {
           // 点击取消，不做任何事，或者可以退出选择模式
         }
       },
       secondaryButton: {
         value: '删除',
-        fontColor: Color.Red,
+        fontColor: $r('app.color.warning'),
         action: async () => {
           // 点击删除
           try {
