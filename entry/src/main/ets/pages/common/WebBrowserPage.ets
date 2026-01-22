@@ -76,7 +76,13 @@ struct WebBrowserPage {
       }
     })
     .onBackPressed(() => {
+      if (this.controller.accessBackward()) {
+        this.controller.backward();
+        return true; // 返回 true，表示“我已消费该事件”，系统不会关闭页面
+      }
+
       if (this.onCloseCallback) {
+        console.info('[WebBrowserPage] Closing, trigger callback.');
         this.onCloseCallback();
       }
 

@@ -1,4 +1,3 @@
-import { HdsNavigation, HdsNavigationAttribute, } from '@hms.hds.hdsBaseComponent';
 import { LengthMetrics, mediaquery, promptAction, SymbolGlyphModifier } from '@kit.ArkUI';
 import { LocalValues } from '../common/local/LocalValues';
 import { PrivacyDialog } from './components/PrivacyDialog';
@@ -110,6 +109,8 @@ struct Index {
     if (this.isLoggedIn && !this.hasCheckedProfile) {
       this.checkAndRepairUserProfile();
     }
+
+    this.checkAndShowDialog();
   }
 
   onLoginStatusChange() {
@@ -150,6 +151,11 @@ struct Index {
   }
 
   async checkAndShowDialog() {
+    if (this.appPathStack.size() > 0) {
+      console.info('Current stack has pages, skip privacy check.');
+      return;
+    }
+
     const isAgreed = await LocalValues.getInstance().getIsPrivacyAgreed();
     if (!isAgreed && !this.isDialogOpened) {
       this.isBlocking = true;
@@ -230,7 +236,7 @@ struct Index {
   build() {
     Stack() {
       if (this.isShowUI) {
-        HdsNavigation(this.appPathStack) {
+        Navigation(this.appPathStack) {
           Tabs({
             barPosition: this.isWideScreen ? BarPosition.Start : BarPosition.End,
             index: this.currentIndex,
@@ -301,10 +307,8 @@ struct Index {
             }
           })
         }
+        .mode(NavigationMode.Stack)
         .hideTitleBar(true)
-        .transition(TransitionEffect.OPACITY.animation({ duration: 400, curve: Curve.EaseOut }))
-        .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
-        .navBarWidth(this.isWideScreen ? '40%' : '100%')
       }
 
       if (this.isAiFlowShown) {
@@ -319,5 +323,6 @@ struct Index {
     }
     .height('100%')
     .width('100%')
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 }

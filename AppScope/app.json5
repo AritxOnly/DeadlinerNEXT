@@ -2,7 +2,7 @@
   "app": {
     "bundleName": "com.aritxonly.deadliner",
     "vendor": "aritxonly",
-    "versionCode": 1010202,
+    "versionCode": 1010203,
     "versionName": "1.1.2",
     "icon": "$media:layered_image",
     "label": "$string:app_name"
