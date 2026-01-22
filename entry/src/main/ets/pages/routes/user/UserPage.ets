@@ -127,7 +127,7 @@ export struct UserPage {
   }
 
   build() {
-    HdsNavigation() {
+    HdsNavigation(this.appPathStack) {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
           if (!this.isBasicMode) {

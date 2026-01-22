@@ -1,8 +1,8 @@
 {  
   "color": [
     { "name": "start_window_background", "value": "#000000"},
-    { "name": "brand", "value": "#6BA4D6"},
-    { "name": "brand_50", "value": "#806BA4D6"},
+    { "name": "brand", "value": "#FF7CA6D6"},
+    { "name": "brand_50", "value": "#807CA6D6"},
     { "name": "func_ai", "value": "#B39DDB" },
     { "name": "func_manual", "value": "#80CBC4" },
     { "name": "font_primary", "value": "#FFFFFF"},

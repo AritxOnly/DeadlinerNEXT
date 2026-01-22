@@ -265,7 +265,7 @@ export struct OverviewPage {
   }
 
   build() {
-    HdsNavigation() {
+    HdsNavigation(this.appPathStack) {
       Stack() {
         if (!this.isLoading) {
           TopSafeContainer({

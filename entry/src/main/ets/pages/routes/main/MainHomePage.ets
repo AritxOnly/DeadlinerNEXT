@@ -372,7 +372,7 @@ export struct MainHomePage {
   }
 
   build() {
-    HdsNavigation() {
+    HdsNavigation(this.appPathStack) {
         RelativeContainer() {
           // 列表内容：铺满整个容器
           if (this.currentIndex === MainTabIndex.TASKS) {
@@ -558,5 +558,6 @@ export struct MainHomePage {
     })
     .titleMode(HdsNavigationTitleMode.FULL)
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+    .navBarWidth('50%')
   }
 }

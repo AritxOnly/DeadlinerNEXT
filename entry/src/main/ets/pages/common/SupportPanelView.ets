@@ -90,7 +90,6 @@ export struct SupportPanelView {
             subtitle: "通过捐赠支持后续开发",
             icon: $r('sys.symbol.heart'),
             onItemClick: () => {
-              // 你的捐赠页面或爱发电链接
               this.openWeb('捐赠支持', 'https://aritxonly.top/donate_deadliner');
             }
           })
