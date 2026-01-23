@@ -12,12 +12,13 @@ import {
 import { DashboardSection } from "./DashboardSection";
 import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
+import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
 
 @Component
-export struct OverviewPage {
+export struct OverviewPageTablet {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
-  readonly SEGMENT_HEIGHT: number = 48;
+  readonly SEGMENT_HEIGHT: number = 16;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   // --- 状态控制 ---
@@ -268,30 +269,118 @@ export struct OverviewPage {
     HdsNavigation() {
       Stack() {
         if (!this.isLoading) {
-          TopSafeContainer({
-            topAvoidHeight: this.statusBarHeight + this.SEGMENT_HEIGHT
-          }) {
-            if (this.selectedIndexes[0] === 0) {
-              OverviewStatsSection({
-                todayCompleted: this.todayCompleted,
-                todayTodo: this.todayTodo,
-                todayOverdue: this.todayOverdue,
-                historyStats: $historyStats,
-                completionTimeStats: $completionTimeStats,
-                overdueItems: this.overdueItems
-              })
-            } else if (this.selectedIndexes[0] === 1) {
-              TrendAnalysisSection({
-                dailyStats: $dailyStats,
-                monthlyStats: $monthlyStats,
-                weeklyStats: $weeklyStats
-              })
-            } else if (this.selectedIndexes[0] === 2) {
-              DashboardSection({
-                items: this.allItems
-              })
+          Row() {
+            RelativeContainer() {
+              Scroll() {
+                Column() {
+                  Row() {
+                    Text('概览统计')
+                      .fontColor($r('app.color.font_secondary'))
+
+                    Blank()
+
+                    SymbolGlyph($r('sys.symbol.questionmark_circle'))
+                      .fontColor([$r('app.color.font_secondary')])
+                  }
+
+                  OverviewStatsSection({
+                    todayCompleted: this.todayCompleted,
+                    todayTodo: this.todayTodo,
+                    todayOverdue: this.todayOverdue,
+                    historyStats: $historyStats,
+                    completionTimeStats: $completionTimeStats,
+                    overdueItems: this.overdueItems
+                  })
+                }
+              }
+                .id('overview_stats_section')
+                .alignRules({
+                  top: { anchor: '__container__', align: VerticalAlign.Top },
+                  bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                  left: { anchor: '__container__', align: HorizontalAlign.Start },
+                  right: { anchor: '__container__', align: HorizontalAlign.End },
+                })
             }
+            .layoutWeight(1)
+            .height('100%')
+
+            Divider()
+              .vertical(true)
+              .height('100%')
+              .strokeWidth(1)
+              .color($r('sys.color.ohos_id_color_list_separator'))
+              .opacity(0.5)
+
+            RelativeContainer() {
+              Scroll() {
+                Column() {
+                  Row() {
+                    Text('趋势分析')
+                      .fontColor($r('app.color.font_secondary'))
+
+                    Blank()
+
+                    SymbolGlyph($r('sys.symbol.questionmark_circle'))
+                      .fontColor([$r('app.color.font_secondary')])
+                  }
+
+                  TrendAnalysisSection({
+                    dailyStats: $dailyStats,
+                    monthlyStats: $monthlyStats,
+                    weeklyStats: $weeklyStats
+                  })
+                }
+              }
+                .id('trend_analysis_section')
+                .alignRules({
+                  top: { anchor: '__container__', align: VerticalAlign.Top },
+                  bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                  left: { anchor: '__container__', align: HorizontalAlign.Start },
+                  right: { anchor: '__container__', align: HorizontalAlign.End },
+                })
+            }
+            .layoutWeight(1)
+            .height('100%')
+
+            Divider()
+              .vertical(true)
+              .height('100%')
+              .strokeWidth(1)
+              .color($r('sys.color.ohos_id_color_list_separator'))
+              .opacity(0.5)
+
+            RelativeContainer() {
+              Scroll() {
+                Column() {
+                  Row() {
+                    Text('月度总结')
+                      .fontColor($r('app.color.font_secondary'))
+
+                    Blank()
+
+                    SymbolGlyph($r('sys.symbol.questionmark_circle'))
+                      .fontColor([$r('app.color.font_secondary')])
+                  }
+
+                  DashboardSection({
+                    items: this.allItems
+                  })
+                }
+              }
+                .id('dashboard_section')
+                .alignRules({
+                  top: { anchor: '__container__', align: VerticalAlign.Top },
+                  bottom: { anchor: '__container__', align: VerticalAlign.Bottom },
+                  left: { anchor: '__container__', align: HorizontalAlign.Start },
+                  right: { anchor: '__container__', align: HorizontalAlign.End },
+                })
+            }
+            .layoutWeight(1)
+            .height('100%')
           }
+          .width('100%')
+          .height('100%')
+          .padding({ top: this.SEGMENT_HEIGHT + this.statusBarHeight })
         } else {
           Column() {
             LoadingProgress()
@@ -311,29 +400,9 @@ export struct OverviewPage {
       }
     }
     .titleBar({
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        originalStyle: {
-          backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_background_transparent') },
-        },
-        scrollEffectStyle: {
-          backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur') },
-        }
-      },
+      style: getImmersiveTitleBarStyle(true),
       content: {
-        title: { mainTitle: '概览' },
-        stackBuilder: this.titleMenuBuilder.bind(this),
-        bottomBuilder: {
-          builder: this.tabSegment.bind(this),
-          height: this.SEGMENT_HEIGHT,
-          showType: BottomBuilderShowType.DIRECTLY_SHOW
-        },
-        // divider: { showType: DividerShowType.OFF }
+        title: { mainTitle: '概览' }
       }
     })
     .titleMode(HdsNavigationTitleMode.MINI)
@@ -341,5 +410,6 @@ export struct OverviewPage {
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavigationMode.Stack)
     .navBarWidth('100%')
+    .padding({ top: this.statusBarHeight })
   }
 }

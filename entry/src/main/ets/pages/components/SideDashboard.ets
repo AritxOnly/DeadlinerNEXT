@@ -152,12 +152,6 @@ export struct SideDashboard {
     }
     .width('100%')
     .height('100%')
-    // 整体左边框，使用分割线颜色
-    .border({
-      width: { left: 1 },
-      color: $r('app.color.comp_divider'),
-      style: BorderStyle.Solid
-    })
     .opacity(1)
   }
 }

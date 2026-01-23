@@ -10,6 +10,7 @@ import { TabAnimModifier } from '../utils/animation/TabAnimModifier';
 import { AiFlowBackground } from './common/AIFlowBackground';
 import { HuaweiAccountUtils } from '../utils/account/HuaweiAccountUtils';
 import { MainHomePageTablet } from './routes/main/MainHomePageTablet';
+import { OverviewPageTablet } from './routes/overview/OverviewPageTablet';
 
 interface TabData {
   title: string,
@@ -270,13 +271,22 @@ struct Index {
 
             // --- Tab 2: 概览 ---
             TabContent() {
-              OverviewPage({ currentTabIndex: this.currentIndex })
-                .attributeModifier(new TabAnimModifier(1, this.currentIndex))
-                .animation({
-                  duration: 300, // 保持与 Tabs 动画时长一致
-                  curve: Curve.EaseInOut
-                })
-                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+              if (!this.isWideScreen) {
+                OverviewPage({ currentTabIndex: this.currentIndex })
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+                  .animation({
+                    duration: 300, // 保持与 Tabs 动画时长一致
+                    curve: Curve.EaseInOut
+                  })
+              } else {
+                OverviewPageTablet()
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+                  .animation({
+                    duration: 300, // 保持与 Tabs 动画时长一致
+                    curve: Curve.EaseInOut
+                  })
+                  .padding({ left: TAB_VERTICAL_PADDING })
+              }
             }
             .tabBar(this.getTabBarStyle(this.tabs[1]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])

@@ -22,6 +22,7 @@ import { LocalValues } from '../../../common/local/LocalValues'
 import { MainButtonType } from '../../../common/local/LocalModels'
 import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 import { SideDashboard } from '../../components/SideDashboard'
+import { SearchPage } from './search/SearchPage'
 
 const EXCITEMENT_MESSAGES: Resource[] = [
   $r('app.string.excitement_deadline_chasing'),
@@ -154,7 +155,7 @@ export struct MainHomePageTablet {
     },
     {
       icon: $r('sys.symbol.magnifyingglass'),
-      onClick: () => { this.appPathStack.pushPath({ name: "search" }) }
+      onClick: () => { this.isSearchShow = true }
     },
     {
       icon: $r('sys.symbol.wand_and_stars'),
@@ -254,11 +255,11 @@ export struct MainHomePageTablet {
       buttons: [
         {
           text: '新建任务',
-          color: '#666666'
+          color: $r('app.color.font_secondary')
         },
         {
           text: '新建习惯',
-          color: '#666666'
+          color: $r('app.color.font_secondary')
         }
       ]
     }).then((res) => {
@@ -270,6 +271,19 @@ export struct MainHomePageTablet {
         else this.appPathStack.pushPathByName('addHabit', null);
       }
     })
+  }
+
+  @State isSearchShow: boolean = false;
+  @Builder
+  searchSheet() {
+    SearchPage({
+      bgColor: Color.Transparent,
+      backAction: () => {
+        this.isSearchShow = false;
+      }
+    })
+      .width('100%')
+      .height('100%')
   }
 
   build() {
@@ -348,6 +362,13 @@ export struct MainHomePageTablet {
           SideDashboard()
             .width(108)
             .height('100%')
+            .bindSheet($$this.isSearchShow, this.searchSheet(), {
+              height: SheetSize.FIT_CONTENT,
+              onDisappear: () => { this.isAddHabitShow = false; },
+              blurStyle: BlurStyle.Regular,
+              backgroundColor: Color.Transparent,
+              showClose: false
+            })
         }
         .width('100%')
         .height('100%')

@@ -25,6 +25,9 @@ export struct SearchPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
+  @State bgColor: Resource | Color = $r('app.color.background_primary');
+  backAction?: () => void
+
   @State searchText: string = '';
   @State isSearching: boolean = false;
   @State hasSearchTerm: boolean = false;
@@ -305,11 +308,14 @@ export struct SearchPage {
         .height('100%')
       }
     }
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.bgColor)
     .titleBar({
       content: {
         title: { mainTitle: '' },
-        stackBuilder: this.searchBuilder.bind(this)
+        stackBuilder: this.searchBuilder.bind(this),
+        backIcon: {
+          action: this.backAction
+        }
       }
     })
   }
