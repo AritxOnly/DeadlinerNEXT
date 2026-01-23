@@ -16,19 +16,99 @@ import { CodeTextParams } from "../../common/CodeTextPage";
 import { ArchivePanelView } from "../../common/ArchivePanelView";
 import { AIPanelView } from "../../common/AIPanelView";
 import { SupportPanelView } from "../../common/SupportPanelView";
+import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
+
+const USER_ROUTE_WHITELIST: string[] = [
+  'settingsAppearance',
+  'settingsInteraction',
+  'settingsNotification',
+  'settingsWebDav',
+  'settingsAI',
+  'settingsAbout',
+  'settingsHelpCenter',
+  'settingsWidgetBackground'
+];
+
+const PLACEHOLDER_ROUTE_NAME = 'placeholder';
 
 @Component
 export struct UserPage {
   @Consume('appPathStack') appPathStack: NavPathStack;
   @Provide('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
-  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+  @StorageLink('isWideScreen') @Watch('onScreenModeChange') isWideScreen: boolean = false;
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
+
+  onScreenModeChange() {
+    console.info(`[UserPage] Screen Mode Change Detected. Wide: ${this.isWideScreen}`);
+
+    setTimeout(() => {
+      if (this.isWideScreen) {
+        this.migrateToLocal();
+      } else {
+        this.migrateToGlobal();
+      }
+    }, 100);
+  }
+
+  /**
+   * 将全局栈顶的 User 相关页面移动到局部栈 (Narrow -> Wide)
+   */
+  private migrateToLocal() {
+    const allGlobalPaths = this.appPathStack.getAllPathName();
+
+    for (let i = allGlobalPaths.length - 1; i >= 0; i--) {
+      const name = allGlobalPaths[i];
+
+      if (USER_ROUTE_WHITELIST.includes(name)) {
+        const pathInfo = this.appPathStack.pop();
+
+        if (pathInfo) {
+          console.info(`[Router] Migrating ${name} from Global to Local`);
+          this.userLocalPathStack.pushPath(pathInfo, false);
+        }
+      } else {
+        break;
+      }
+    }
+
+    if (this.userLocalPathStack.size() === 0) {
+      console.info('[Router] Local stack empty, pushing placeholder.');
+      this.userLocalPathStack.pushPath({ name: PLACEHOLDER_ROUTE_NAME }, false);
+    }
+  }
+
+  /**
+   * 将局部栈的所有页面移动到全局栈 (Wide -> Narrow)
+   */
+  private migrateToGlobal() {
+    const allLocalPaths = this.userLocalPathStack.getAllPathName();
+
+    if (allLocalPaths.length === 0) return;
+
+    const stackBackup: NavPathInfo[] = [];
+    const size = this.userLocalPathStack.size();
+
+    for(let i=0; i<size; i++) {
+      const item = this.userLocalPathStack.pop();
+      if(item) stackBackup.push(item);
+    }
+
+    for (let i = stackBackup.length - 1; i >= 0; i--) {
+      const item = stackBackup[i];
+      if (item.name === PLACEHOLDER_ROUTE_NAME) {
+        console.info('[Router] Dropping placeholder page during migration.');
+        continue;
+      }
+      console.info(`[Router] Migrating ${item.name} from Local to Global`);
+      this.appPathStack.pushPath(item, false); // false = 无动画
+    }
+  }
 
   @State versionName: string = '';
   aboutToAppear(): void {
@@ -38,6 +118,10 @@ export struct UserPage {
     } catch (error) {
       console.error('获取版本号失败:', JSON.stringify(error));
       this.versionName = '1.0.0'; // 失败时的默认值
+    }
+
+    if (this.isWideScreen && this.userLocalPathStack.size() === 0) {
+      this.userLocalPathStack.pushPath({ name: PLACEHOLDER_ROUTE_NAME }, false);
     }
   }
 
@@ -327,32 +411,8 @@ export struct UserPage {
       }
     }
     .titleBar({
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: !this.isWideScreen,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        // --- 初始状态样式 (透明) ---
-        originalStyle: {
-          backgroundStyle: {
-            backgroundColor: this.isWideScreen ?
-                $r('app.color.background_primary')
-              : $r('sys.color.ohos_id_color_background_transparent'),
-          },
-        },
-        // --- 滚动生效后样式 (模糊) ---
-        scrollEffectStyle: {
-          backgroundStyle: {
-            backgroundColor: this.isWideScreen ?
-                $r('app.color.background_primary')
-              : $r('sys.color.ohos_id_color_navigation_background_blur'),
-          },
-        },
-      },
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: {
-        // --- 标题内容 ---
         title: {
           mainTitle: '我的'
         },
@@ -373,7 +433,7 @@ export struct UserPage {
         title: 'Deadliner AI',
       }
     })
-    .safeAreaPadding({ top: this.statusBarHeight })
+    .padding({ top: this.isWideScreen ? this.statusBarHeight : 0 })
     .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
     .navBarWidth(this.isWideScreen ? '40%' : '100%')
   }

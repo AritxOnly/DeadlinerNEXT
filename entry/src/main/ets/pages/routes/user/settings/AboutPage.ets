@@ -6,6 +6,7 @@ import { common, bundleManager, Want } from "@kit.AbilityKit";
 import { TopSafeContainer } from "../../../components/TopSafeContainer";
 import { CodeTextParams } from "../../../common/CodeTextPage";
 import { WebParams } from "../../../common/WebBrowserPage";
+import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 
 @Builder
 export function AboutPageBuilder() {
@@ -14,6 +15,7 @@ export function AboutPageBuilder() {
 
 @Component
 export struct AboutPage {
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
   @Consume('appPathStack') appPathStack: NavPathStack;
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
@@ -186,6 +188,9 @@ export struct AboutPage {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "关于与协议" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "关于与协议" } }
+    })
   }
 }

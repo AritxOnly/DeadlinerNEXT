@@ -129,7 +129,7 @@
     },
     {
       "name": "placeholder",
-      "pageSourceFile": "src/main/ets/pages/routes/Placeholder.ets",
+      "pageSourceFile": "src/main/ets/pages/common/Placeholder.ets",
       "buildFunction": "PlaceholderBuilder"
     }
   ]

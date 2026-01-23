@@ -4,6 +4,7 @@ import { promptAction } from "@kit.ArkUI";
 import { reminderAgentManager } from "@kit.BackgroundTasksKit";
 import { BusinessError } from "@kit.BasicServicesKit";
 import { ReminderUtils } from "../../../../utils/notification/ReminderUtils";
+import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 
 @Builder
 export function DevOptionsBuilder(name: string, param: Object) {
@@ -12,6 +13,8 @@ export function DevOptionsBuilder(name: string, param: Object) {
 
 @Component
 export struct DevOptionsPage {
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
   // 辅助方法：生成 toast
   private toast(msg: string) {
@@ -169,6 +172,7 @@ export struct DevOptionsPage {
       }
     }
     .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: {
         title: {
           mainTitle: '提醒服务 API 测试'

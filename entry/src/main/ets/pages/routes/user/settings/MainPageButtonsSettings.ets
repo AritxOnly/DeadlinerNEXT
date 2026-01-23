@@ -4,6 +4,7 @@ import { MainButtonType } from '../../../../common/local/LocalModels';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { SettingsSection, SettingsDivider, SettingsCheckItem } from '../../../components/SettingsComponents'; // 确保引入了 CheckItem
 import { LocalValues } from '../../../../common/local/LocalValues';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 /**
  * SchematicButton: 独立的按钮组件
@@ -80,6 +81,8 @@ interface ButtonOption {
 
 @Component
 struct MainPageButtonsSettings {
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
@@ -177,6 +180,9 @@ struct MainPageButtonsSettings {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "主页快捷功能" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "主页快捷功能" } }
+    })
   }
 }

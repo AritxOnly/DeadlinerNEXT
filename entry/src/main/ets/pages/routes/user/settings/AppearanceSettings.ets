@@ -6,6 +6,7 @@ import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -87,6 +88,9 @@ struct AppearanceSettings {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "显示与个性化" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "显示与个性化" } }
+    })
   }
 }

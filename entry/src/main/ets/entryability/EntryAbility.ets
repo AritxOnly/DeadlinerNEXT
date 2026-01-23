@@ -1,4 +1,4 @@
-import { AbilityConstant, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
+import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { display, ThemeControl, window } from '@kit.ArkUI';
 import { gDeadlinerTheme } from '../AppTheme';
@@ -86,6 +86,16 @@ export default class EntryAbility extends UIAbility {
     WidgetUpdater.updateAllWidgets(this.context)
   }
 
+  onConfigurationUpdate(newConfig: Configuration): void {
+    window.getLastWindow(this.context).then((windowClass) => {
+      if (windowClass) {
+        this.updateWindowMode(windowClass);
+      }
+    }).catch((err: BusinessError) => {
+      hilog.debug(DOMAIN, 'testTag', 'Window not ready during config update (Expected in onCreate): ' + err.code);
+    });
+  }
+
   private checkLoginStatus() {
     AppStorage.setOrCreate('isLoggedIn', false);
 
@@ -125,47 +135,11 @@ export default class EntryAbility extends UIAbility {
   private handleResponsiveImmersive(windowStage: window.WindowStage) {
     let windowClass: window.Window = windowStage.getMainWindowSync();
 
-    const updateWindowMode = () => {
-      // 获取当前窗口属性
-      let windowProperties = windowClass.getWindowProperties();
-      let widthPx = windowProperties.windowRect.width;
-
-      let displayClass = display.getDefaultDisplaySync();
-      let widthVp = widthPx / displayClass.densityPixels;
-
-      // 判断界限：840vp (与你 Index.ets 中的媒体查询保持一致)
-      let isWideScreen = widthVp >= 840;
-
-      if (isWideScreen) {
-        windowClass.setWindowLayoutFullScreen(true);
-        windowClass.setWindowSystemBarProperties({
-          navigationBarColor: '#00000000',
-          statusBarColor: '#00000000',
-          // 建议：在沉浸式下，状态栏文字颜色设为自动，或者根据你的 App 主题定
-          statusBarContentColor: '#000000',
-          isStatusBarLightIcon: false
-        });
-
-        hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp >= 840. Mode: Immersive`);
-      } else {
-        windowClass.setWindowLayoutFullScreen(false);
-        windowClass.setWindowSystemBarProperties({
-          navigationBarColor: '#FFFFFF', // 或跟随系统深色模式
-          statusBarColor: '#00000000'    // 非沉浸式下，状态栏背景色通常由系统控制或设为透明
-        });
-
-        hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp < 840. Mode: Normal`);
-      }
-
-      this.updateAvoidRects(windowClass);
-    };
-
-    // 2. 初始执行一次
-    updateWindowMode();
+    this.updateWindowMode(windowClass);
 
     // 3. 监听窗口尺寸变化 (用户旋转屏幕或折叠屏展开/折叠时触发)
     windowClass.on('windowSizeChange', (size) => {
-      updateWindowMode();
+      this.updateWindowMode(windowClass);
     });
 
     // 4. 保持避让区域监听 (用于全屏模式下的精确避让)
@@ -177,6 +151,42 @@ export default class EntryAbility extends UIAbility {
       }
     });
   }
+
+  private updateWindowMode(windowClass: window.Window) {
+    // 获取当前窗口属性
+    let windowProperties = windowClass.getWindowProperties();
+    let widthPx = windowProperties.windowRect.width;
+
+    let displayClass = display.getDefaultDisplaySync();
+    let widthVp = widthPx / displayClass.densityPixels;
+
+    // 判断界限：840vp (与你 Index.ets 中的媒体查询保持一致)
+    let isWideScreen = widthVp >= 840;
+
+    let isDark = this.context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
+
+    if (isWideScreen) {
+      windowClass.setWindowLayoutFullScreen(true);
+      windowClass.setWindowSystemBarProperties({
+        navigationBarColor: '#00000000',
+        statusBarColor: '#00000000',
+        statusBarContentColor: isDark ? '#FFFFFF' : '#000000',
+        isStatusBarLightIcon: isDark
+      });
+
+      hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp >= 840. Mode: Immersive`);
+    } else {
+      windowClass.setWindowLayoutFullScreen(false);
+      windowClass.setWindowSystemBarProperties({
+        navigationBarColor: '#FFFFFF',
+        statusBarColor: '#00000000'
+      });
+
+      hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp < 840. Mode: Normal`);
+    }
+
+    this.updateAvoidRects(windowClass);
+  };
 
   private updateAvoidRects(windowClass: window.Window) {
     let topAvoidArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);

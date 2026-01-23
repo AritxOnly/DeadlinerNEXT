@@ -5,6 +5,7 @@ import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
   SettingsCheckItem} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 @Builder
 export function InteractionSettingsBuilder() {
@@ -120,6 +121,9 @@ struct InteractionSettings {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "交互与行为" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "交互与行为" } }
+    })
   }
 }

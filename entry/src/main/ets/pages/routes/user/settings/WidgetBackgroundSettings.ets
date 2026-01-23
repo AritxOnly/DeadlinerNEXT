@@ -12,6 +12,7 @@ import { TaskWidgetCardSmallPreviewBuilder } from '../../../../widget/pages/Task
 import { formBindingData } from '@kit.FormKit';
 import { WidgetUpdater } from '../../../../utils/WidgetUpdater';
 import { image } from '@kit.ImageKit';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 let storage = new LocalStorage();
 
@@ -28,6 +29,8 @@ struct WidgetBackgroundSettings {
 
   // 这里的 Link 会与传入的 storage 绑定，同时驱动预览组件的 Prop
   @LocalStorageLink('widgetData') widgetData: WidgetData = new WidgetData();
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
   @State currentBgPath: string = '';
   private context = getContext(this) as common.UIAbilityContext;
@@ -289,6 +292,9 @@ struct WidgetBackgroundSettings {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "小组件样式" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "小组件样式" } }
+    })
   }
 }

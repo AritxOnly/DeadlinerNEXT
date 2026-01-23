@@ -13,6 +13,7 @@ import { common } from '@kit.AbilityKit';
 // 引入 Repository 用于触发数据刷新
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 @Builder
 export function NotificationSettingsBuilder() {
@@ -21,6 +22,8 @@ export function NotificationSettingsBuilder() {
 
 @Component
 struct NotificationSettings {
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
@@ -219,7 +222,10 @@ struct NotificationSettings {
         .constraintSize({ minHeight: '100%' })
       }
     }
-    .titleBar({ content: { title: { mainTitle: "通知与提醒" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      content: { title: { mainTitle: "通知与提醒" } }
+    })
     .onShown(() => {
       // NavDestination 生命周期：页面显示时（包括从后台切回来，或从系统设置页切回来）
       this.checkSystemPermission();
