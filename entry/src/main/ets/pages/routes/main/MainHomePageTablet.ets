@@ -362,18 +362,17 @@ export struct MainHomePageTablet {
           SideDashboard()
             .width(108)
             .height('100%')
-            .bindSheet($$this.isSearchShow, this.searchSheet(), {
-              height: SheetSize.FIT_CONTENT,
-              onDisappear: () => { this.isAddHabitShow = false; },
-              blurStyle: BlurStyle.Regular,
-              backgroundColor: Color.Transparent,
-              showClose: false
-            })
         }
         .width('100%')
         .height('100%')
         .backgroundColor(this.pageBackground)
         .padding({ top: this.statusBarHeight + this.topContentHeight })
+        .bindSheet($$this.isSearchShow, this.searchSheet(), {
+          height: SheetSize.FIT_CONTENT,
+          onDisappear: () => { this.isSearchShow = false; },
+          blurStyle: BlurStyle.Regular,
+          showClose: false
+        })
 
         ConfettiView({
           controller: this.confettiController,

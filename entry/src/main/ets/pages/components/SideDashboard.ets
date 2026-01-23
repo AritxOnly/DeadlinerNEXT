@@ -1,13 +1,20 @@
 import { Theme } from '@kit.ArkUI'
+import { DeadlineType, DDLItem, HabitStatus, Habit } from '../../model/DDLModels';
+import { common } from '@kit.AbilityKit';
+import { TaskRepository } from '../../common/repository/TaskRepository';
+import { HabitRepository } from '../../common/repository/HabitRepository';
 
 @Component
 export struct SideDashboard {
   @State currentDate: Date = new Date();
-  @Prop todayProgress: number = 65; // 今日任务完成度
 
-  // 模拟数据
-  @State nextDeadlineTime: string = "2h 15m";
-  @State nextDeadlineTask: string = "交互设计";
+  // 改为 @State，由内部逻辑驱动
+  @State todayProgress: number = 0;
+
+  // 数据展示
+  @State nextDeadlineTime: string = "No Due";
+  @State nextDeadlineTask: string = "Relax";
+  @State hasNextDue: boolean = false; // 控制是否显示 Next Due 的样式
 
   // 配色变量
   @State colorMonth: ResourceColor = $r('app.color.accent')
@@ -21,8 +28,184 @@ export struct SideDashboard {
   @State cardBg: ResourceColor = $r('app.color.background_secondary')
   @State dashboardBg: ResourceColor = $r('app.color.background_primary')
 
+  // 刷新防抖
+  private isRefreshing: boolean = false;
+
   onWillApplyTheme(theme: Theme) {
-    // 这里可以根据系统深色模式微调，但目前直接引用 resource 即可自动适配
+    // 主题适配逻辑
+  }
+
+  aboutToAppear() {
+    // 1. 初始化加载数据
+    this.refreshData();
+
+    // 2. 监听数据变更事件 (来自 TaskRepository 的 notifyDataChange)
+    // 假设 eventHub 事件名为 'sync_done' 或 'data_changed'
+    const context = getContext(this) as common.UIAbilityContext;
+    context.eventHub.on('sync_done', this.onDataChanged);
+    context.eventHub.on('refresh_dashboard', this.onDataChanged); // 如果有专门的刷新事件
+  }
+
+  aboutToDisappear() {
+    const context = getContext(this) as common.UIAbilityContext;
+    context.eventHub.off('sync_done', this.onDataChanged);
+    context.eventHub.off('refresh_dashboard', this.onDataChanged);
+  }
+
+  private onDataChanged = () => {
+    this.refreshData();
+  }
+
+  /**
+   * 核心逻辑：刷新所有面板数据
+   */
+  private async refreshData() {
+    if (this.isRefreshing) return;
+    this.isRefreshing = true;
+
+    try {
+      this.currentDate = new Date(); // 更新时间显示
+
+      const taskRepo = TaskRepository.getInstance();
+      const habitRepo = HabitRepository.getInstance();
+
+      // --- 并行获取数据 ---
+      const GeneratedDestructArray_1 = await Promise.all([
+        taskRepo.getAllDDLs(),
+        habitRepo.getAllHabits(),
+        habitRepo.getCompletedIdsForDate(this.currentDate)
+      ]);
+      const allDDLs = GeneratedDestructArray_1[0];
+      const allHabits = GeneratedDestructArray_1[1];
+      const completedHabitIds = GeneratedDestructArray_1[2];
+
+      // 1. 计算今日进度
+      this.calculateTodayProgress(allDDLs, allHabits, completedHabitIds);
+
+      // 2. 寻找 Next Due
+      this.findNextDeadline(allDDLs);
+
+    } catch (e) {
+      console.error('[SideDashboard] Refresh failed:', e);
+    } finally {
+      this.isRefreshing = false;
+    }
+  }
+
+  /**
+   * 逻辑：计算今日进度
+   * 定义：(今日完成的任务 + 今日完成的习惯) / (今日所有的任务 + 今日所有的习惯)
+   */
+  private calculateTodayProgress(ddls: DDLItem[], habits: Habit[], completedHabitIds: Set<number>) {
+    const todayStr = this.formatDate(this.currentDate);
+
+    // --- A. 任务部分 ---
+    // 筛选条件：未归档 & (截止日期是今天 OR (已完成且完成时间是今天))
+    const todayTasks = ddls.filter(task => {
+      if (task.isArchived) return false;
+      if (task.type !== DeadlineType.TASK) return false;
+
+      // 简单判断：如果任务已完成，看完成时间是否是今天
+      if (task.isCompleted && task.completeTime) {
+        return task.completeTime.startsWith(todayStr);
+      }
+
+      // 如果未完成，看截止日期是否是今天 (或者之前，表示 overdue 也算进今天的进度压力)
+      if (!task.isCompleted && task.endTime) {
+        return task.endTime.startsWith(todayStr) || task.endTime < todayStr;
+      }
+      return false;
+    });
+
+    const totalTasks = todayTasks.length;
+    const completedTasks = todayTasks.filter(t => t.isCompleted).length;
+
+    // --- B. 习惯部分 ---
+    // 筛选条件：Active 状态
+    // 简化逻辑：所有 Active 的习惯都算作今天需要关注的事项
+    const activeHabits = habits.filter(h => h.status === HabitStatus.ACTIVE);
+
+    const totalHabits = activeHabits.length;
+    const completedHabitsCount = activeHabits.filter(h => completedHabitIds.has(h.id)).length;
+
+    // --- C. 汇总计算 ---
+    const total = totalTasks + totalHabits;
+    const done = completedTasks + completedHabitsCount;
+
+    let progress = 0;
+    if (total > 0) {
+      progress = Math.round((done / total) * 100);
+    }
+
+    // 动画更新
+    animateTo({ duration: 600, curve: Curve.EaseOut }, () => {
+      this.todayProgress = progress;
+    });
+  }
+
+  /**
+   * 逻辑：寻找下一个 DDL
+   */
+  private findNextDeadline(ddls: DDLItem[]) {
+    const now = new Date().getTime();
+
+    // 筛选：Active, Uncompleted, Tasks, EndTime > Now
+    const candidates = ddls.filter(t =>
+    !t.isArchived &&
+      !t.isCompleted &&
+      t.type === DeadlineType.TASK &&
+    t.endTime
+    );
+
+    if (candidates.length === 0) {
+      this.hasNextDue = false;
+      this.nextDeadlineTime = "Done";
+      this.nextDeadlineTask = "All Clear";
+      return;
+    }
+
+    // 排序：按时间升序
+    candidates.sort((a, b) => {
+      return new Date(a.endTime).getTime() - new Date(b.endTime).getTime();
+    });
+
+    const nextTask = candidates[0];
+    const dueTime = new Date(nextTask.endTime).getTime();
+
+    this.hasNextDue = true;
+    this.nextDeadlineTask = nextTask.name;
+    this.nextDeadlineTime = this.formatTimeDiff(now, dueTime);
+  }
+
+  // ================= 辅助函数 =================
+
+  // 格式化时间差： "2h 15m", "3 Days", "Overdue"
+  private formatTimeDiff(now: number, due: number): string {
+    const diffMs = due - now;
+
+    if (diffMs < 0) {
+      return "Overdue";
+    }
+
+    const diffMins = Math.floor(diffMs / (1000 * 60));
+    const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
+    const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+
+    if (diffDays > 0) {
+      return `${diffDays} Days`;
+    }
+    if (diffHours > 0) {
+      const remainMins = diffMins % 60;
+      return `${diffHours}h ${remainMins}m`;
+    }
+    return `${diffMins}m`;
+  }
+
+  private formatDate(date: Date): string {
+    const y = date.getFullYear();
+    const m = (date.getMonth() + 1).toString().padStart(2, '0');
+    const d = date.getDate().toString().padStart(2, '0');
+    return `${y}-${m}-${d}`;
   }
 
   // 计算今年的进度 (0-100)
@@ -85,7 +268,7 @@ export struct SideDashboard {
       // 3. 宏观时间进度 (Year Progress)
       Column() {
         Row() {
-          Text('2026')
+          Text(this.currentDate.getFullYear().toString())
             .fontSize(10)
             .fontWeight(FontWeight.Medium)
             .fontColor(this.colorWeek)
@@ -125,7 +308,7 @@ export struct SideDashboard {
           // 沙漏图标
           SymbolGlyph($r('sys.symbol.hourglass'))
             .fontSize(24)
-            .fontColor([this.colorNextDue]) // Chart Red
+            .fontColor(this.hasNextDue ? [this.colorNextDue] : [this.colorWeek]) // 如果没有 DDL，图标变灰
             .margin({ bottom: 8 })
 
           // 时间
@@ -152,6 +335,11 @@ export struct SideDashboard {
     }
     .width('100%')
     .height('100%')
+    .border({
+      width: { left: 1 },
+      color: $r('app.color.comp_divider'),
+      style: BorderStyle.Solid
+    })
     .opacity(1)
   }
 }

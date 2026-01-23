@@ -229,7 +229,16 @@ export struct OverviewPage {
 
   @Builder titleMenuBuilder() {
     Stack({ alignContent: Alignment.Center }) {
-      Row() {
+      Row({ space: 8 }) {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.move_1'))
+            .fontSize(24)
+            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
+
         Button({ type: ButtonType.Circle, stateEffect: true }) {
           SymbolGlyph($r('sys.symbol.questionmark_circle'))
             .fontSize(24)
