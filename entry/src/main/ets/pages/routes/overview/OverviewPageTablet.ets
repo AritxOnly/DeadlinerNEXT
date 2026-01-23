@@ -382,7 +382,17 @@ export struct OverviewPageTablet {
     .titleBar({
       style: getImmersiveTitleBarStyle(true),
       content: {
-        title: { mainTitle: '概览' }
+        title: { mainTitle: '概览' },
+        menu: {
+          value: [
+            {
+              content: {
+                icon: $r('sys.symbol.text_and_arrow_down'),
+                action: () => {}
+              }
+            }
+          ]
+        }
       }
     })
     .titleMode(HdsNavigationTitleMode.MINI)

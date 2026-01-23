@@ -201,7 +201,11 @@ export struct SearchPage {
 
   build() {
     HdsNavDestination() {
-      TopSafeContainer({ topAvoidHeight: this.statusBarHeight, scrollable: false }) {
+      TopSafeContainer({
+        topAvoidHeight: this.statusBarHeight,
+        scrollable: false,
+        bgColor: this.bgColor
+      }) {
         Column() {
           if (!this.hasSearchTerm) {
             this.buildEmptyPlaceholder()

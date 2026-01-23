@@ -231,7 +231,7 @@ export struct OverviewPage {
     Stack({ alignContent: Alignment.Center }) {
       Row({ space: 8 }) {
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph($r('sys.symbol.move_1'))
+          SymbolGlyph($r('sys.symbol.text_and_arrow_down'))
             .fontSize(24)
             .fontColor([$r('sys.color.ohos_id_color_text_primary')])
         }
