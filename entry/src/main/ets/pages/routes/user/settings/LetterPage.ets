@@ -2,7 +2,7 @@ import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit'
 import { MarkdownView } from '../../../components/MarkdownView';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 
-const LETTER_CONTENT = `
+export const LETTER_CONTENT = `
 # 致每一位追赶 DDL 的人
 
 你好，我是 **AritxOnly**。

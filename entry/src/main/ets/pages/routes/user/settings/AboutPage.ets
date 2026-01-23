@@ -7,6 +7,8 @@ import { TopSafeContainer } from "../../../components/TopSafeContainer";
 import { CodeTextParams } from "../../../common/CodeTextPage";
 import { WebParams } from "../../../common/WebBrowserPage";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
+import { MarkdownView } from "../../../components/MarkdownView";
+import { LETTER_CONTENT } from "./LetterPage";
 
 @Builder
 export function AboutPageBuilder() {
@@ -89,6 +91,19 @@ export struct AboutPage {
     });
   }
 
+  @State isLetterSheetShow: boolean = false;
+  @Builder
+  letterSheet() {
+    Column() {
+      MarkdownView({
+        content: LETTER_CONTENT,
+        baseColor: $r('app.color.brand')
+      })
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16 })
+  }
+
   build() {
     HdsNavDestination() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
@@ -116,7 +131,9 @@ export struct AboutPage {
               title: "致用户的一封信",
               subtitle: "开发背后的故事与初衷",
               icon: $r('sys.symbol.envelope'),
-              onItemClick: () => { this.appPathStack.pushPath({ name: 'letterPage' }); }
+              onItemClick: () => {
+                if (this.isWideScreen) this.isLetterSheetShow = true;
+                else this.appPathStack.pushPath({ name: 'letterPage' }); }
             })
 
             SettingsDivider()
@@ -191,6 +208,12 @@ export struct AboutPage {
     .titleBar({
       style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: { title: { mainTitle: "关于与协议" } }
+    })
+    .bindSheet($$this.isLetterSheetShow, this.letterSheet(), {
+      title: { title: '开发者说' },
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      height: SheetSize.LARGE
     })
   }
 }
