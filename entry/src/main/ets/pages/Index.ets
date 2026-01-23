@@ -9,6 +9,7 @@ import { WebParams } from './common/WebBrowserPage';
 import { TabAnimModifier } from '../utils/animation/TabAnimModifier';
 import { AiFlowBackground } from './common/AIFlowBackground';
 import { HuaweiAccountUtils } from '../utils/account/HuaweiAccountUtils';
+import { MainHomePageTablet } from './routes/main/MainHomePageTablet';
 
 interface TabData {
   title: string,
@@ -242,15 +243,26 @@ struct Index {
           }) {
             // --- Tab 1: 主页 ---
             TabContent() {
-              MainHomePage({ currentTabIndex: this.currentIndex })
-                .width("100%")
-                .height("100%")
-                .attributeModifier(new TabAnimModifier(0, this.currentIndex))
-                .animation({
-                  duration: 300, // 保持与 Tabs 动画时长一致
-                  curve: Curve.EaseInOut
-                })
-                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+              if (!this.isWideScreen) {
+                MainHomePage({ currentTabIndex: this.currentIndex })
+                  .width("100%")
+                  .height("100%")
+                  .attributeModifier(new TabAnimModifier(0, this.currentIndex))
+                  .animation({
+                    duration: 300, // 保持与 Tabs 动画时长一致
+                    curve: Curve.EaseInOut
+                  })
+              } else {
+                MainHomePageTablet()
+                  .width("100%")
+                  .height("100%")
+                  .attributeModifier(new TabAnimModifier(0, this.currentIndex))
+                  .animation({
+                    duration: 300, // 保持与 Tabs 动画时长一致
+                    curve: Curve.EaseInOut
+                  })
+                  .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+              }
             }
             .tabBar(this.getTabBarStyle(this.tabs[0]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
