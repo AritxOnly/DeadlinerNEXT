@@ -1,17 +1,11 @@
 import { BottomBuilderShowType, DividerShowType, HdsNavigation, HdsNavigationTitleMode, ScrollEffectType, HdsNavigationAttribute } from "@kit.UIDesignKit";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { ItemRestriction, LengthMetrics, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem, router, promptAction } from "@kit.ArkUI";
-import { OverviewSettingsDialog } from '../../components/OverviewSettingsDialog';
-import { TaskRepository } from '../../../common/repository/TaskRepository';
-import { DDLItem, DeadlineType } from '../../../model/DDLModels';
-import {
-  hashColor, safeParseDate, isOverdue, isToday, extractTimeBucket, bucketOrder,
-  computeDailyCompletedCounts, computeMonthlyTaskStats, computeWeeklyCompletedCounts,
-  DailyStat, MonthlyStat, WeeklyStat
-} from '../../../utils/OverviewUtils'
 import { DashboardSection } from "./DashboardSection";
 import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
+import { OverviewCard, OverviewViewModel } from "./OverviewViewModel";
+import { SortSheet } from "./SortSheet";
 
 @Component
 export struct OverviewPage {
@@ -20,26 +14,13 @@ export struct OverviewPage {
   readonly SEGMENT_HEIGHT: number = 48;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
+  @State viewModel: OverviewViewModel = new OverviewViewModel();
+
   // --- 状态控制 ---
   @State selectedIndexes: number[] = [0];
   @State isLoading: boolean = true;
 
-  // --- 数据源 ---
-
-  // [修改 1] 将 activeStats Map 拆解为 3 个具体的数字状态
-  // 这样传给子组件时是值传递，UI 刷新 100% 稳定
-  @State todayCompleted: number = 0;
-  @State todayTodo: number = 0;
-  @State todayOverdue: number = 0;
-  @State historyStats: Map<string, number> = new Map();
-  @State completionTimeStats: Array<[string, number]> = [];
-  @State overdueItems: DDLItem[] = [];
-
-  @State dailyStats: DailyStat[] = [];
-  @State monthlyStats: MonthlyStat[] = [];
-  @State weeklyStats: WeeklyStat[] = [];
-
-  @State allItems: DDLItem[] = [];
+  @State isSortSheetShow: boolean = false;
 
   // --- Tab 配置 ---
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
@@ -54,7 +35,9 @@ export struct OverviewPage {
   })
 
   aboutToAppear(): void {
-    this.loadData();
+    this.viewModel.loadData().then(() => {
+      this.isLoading = false;
+    });
   }
 
   @Prop @Watch('onTabSwitch') currentTabIndex: number = 0;
@@ -64,68 +47,12 @@ export struct OverviewPage {
   onTabSwitch() {
     if (this.currentTabIndex === this.TARGET_INDEX) {
       console.debug('[OverviewPage] Tab switched to Overview. Reloading data...');
-      this.loadData();
+      this.isLoading = true;
+      this.viewModel.loadData().then(() => {
+        this.isLoading = false;
+      });
       this.selectedIndexes[0] = 0;
     } else {
-    }
-  }
-
-  async loadData() {
-    this.isLoading = true;
-
-    try {
-      // 1. 获取数据
-      const items = await TaskRepository.getInstance().getDDLsByType(DeadlineType.TASK);
-
-      this.allItems = items;
-
-      // 2. 数据处理
-      const activeItems = items.filter(it => !it.isArchived);
-
-      // 筛选各类条目
-      const completedItems = activeItems.filter(it => it.isCompleted && isToday(it.completeTime));
-      const incompleteItems = activeItems.filter(it => !it.isCompleted && !isOverdue(it));
-      const todayOverdueItems = activeItems.filter(it => !it.isCompleted && isToday(it.endTime) && isOverdue(it));
-
-      const historyCompleted = items.filter(it => it.isCompleted);
-      const historyIncomplete = items.filter(it => !it.isCompleted);
-      const historyOverdue = activeItems.filter(it => isOverdue(it));
-
-      // [修改 3] 更新拆分后的状态 (简单数字)
-      this.todayCompleted = completedItems.length;
-      this.todayTodo = incompleteItems.length;
-      this.todayOverdue = todayOverdueItems.length;
-
-      // [修改 4] 更新 Map (使用 new Map 确保触发更新)
-      const newHistoryStats = new Map<string, number>();
-      newHistoryStats.set('累计完成', historyCompleted.length);
-      newHistoryStats.set('当前待办', historyIncomplete.length);
-      newHistoryStats.set('累计逾期', historyOverdue.length);
-      this.historyStats = newHistoryStats;
-
-      // [修改 5] 更新 Array
-      const bucketMap = new Map<string, number>();
-      historyCompleted.forEach(it => {
-        const bucket = extractTimeBucket(it.completeTime);
-        const count = bucketMap.get(bucket) || 0;
-        bucketMap.set(bucket, count + 1);
-      });
-
-      const sortedBuckets = Array.from(bucketMap.entries()).sort((a, b) => {
-        return (bucketOrder[a[0]] || 99) - (bucketOrder[b[0]] || 99);
-      });
-      this.completionTimeStats = sortedBuckets;
-
-      this.overdueItems = historyOverdue;
-
-      this.dailyStats = computeDailyCompletedCounts(items, 7);   // 过去7天
-      this.monthlyStats = computeMonthlyTaskStats(items, 6);     // 过去6个月 (防止手机屏太挤)
-      this.weeklyStats = computeWeeklyCompletedCounts(items, 4); // 过去4周
-    } catch (e) {
-      console.error(`[OverviewPage] Load data error: ${e}`);
-    } finally {
-      // 结束加载
-      this.isLoading = false;
     }
   }
 
@@ -227,17 +154,32 @@ export struct OverviewPage {
     .width(280)
   }
 
+  @Builder SortSheetBuilder() {
+    SortSheet({
+      viewModel: $viewModel, // 传递引用
+      selectedTabIndex: this.selectedIndexes[0],
+      onClose: () => { this.isSortSheetShow = false }
+    })
+  }
+
   @Builder titleMenuBuilder() {
     Stack({ alignContent: Alignment.Center }) {
       Row({ space: 8 }) {
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph($r('sys.symbol.text_and_arrow_down'))
+          SymbolGlyph($r('sys.symbol.text_and_arrow_down')) // 或者换成 'list_bullet' 这种图标
             .fontSize(24)
             .fontColor([$r('sys.color.ohos_id_color_text_primary')])
         }
         .width(40)
         .height(40)
         .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
+        .onClick(() => {
+          if (this.selectedIndexes[0] <= 1) {
+            this.isSortSheetShow = true;
+          } else {
+            promptAction.showToast({ message: '当前页面暂不支持排序' });
+          }
+        })
 
         Button({ type: ButtonType.Circle, stateEffect: true }) {
           SymbolGlyph($r('sys.symbol.questionmark_circle'))
@@ -282,22 +224,24 @@ export struct OverviewPage {
           }) {
             if (this.selectedIndexes[0] === 0) {
               OverviewStatsSection({
-                todayCompleted: this.todayCompleted,
-                todayTodo: this.todayTodo,
-                todayOverdue: this.todayOverdue,
-                historyStats: $historyStats,
-                completionTimeStats: $completionTimeStats,
-                overdueItems: this.overdueItems
+                todayCompleted: this.viewModel.todayCompleted,
+                todayTodo: this.viewModel.todayTodo,
+                todayOverdue: this.viewModel.todayOverdue,
+                historyStats: this.viewModel.historyStats,
+                completionTimeStats: this.viewModel.completionTimeStats,
+                overdueItems: this.viewModel.overdueItems,
+
+                cardOrder: this.viewModel.overviewCardOrder,
               })
             } else if (this.selectedIndexes[0] === 1) {
               TrendAnalysisSection({
-                dailyStats: $dailyStats,
-                monthlyStats: $monthlyStats,
-                weeklyStats: $weeklyStats
+                dailyStats: this.viewModel.dailyStats,
+                monthlyStats: this.viewModel.monthlyStats,
+                weeklyStats: this.viewModel.weeklyStats
               })
             } else if (this.selectedIndexes[0] === 2) {
               DashboardSection({
-                items: this.allItems
+                items: this.viewModel.allItems
               })
             }
           }
@@ -350,5 +294,21 @@ export struct OverviewPage {
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .mode(NavigationMode.Stack)
     .navBarWidth('100%')
+    .bindSheet($$this.isSortSheetShow, this.SortSheetBuilder(), {
+      detents: [
+        SheetSize.FIT_CONTENT,
+        SheetSize.MEDIUM,
+        SheetSize.LARGE
+      ],
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      backgroundColor: Color.Transparent,
+      blurStyle: BlurStyle.Regular,
+      onDisappear: () => { this.isSortSheetShow = false },
+      title: {
+        title: '调整卡片顺序',
+        subtitle: '长按以拖动卡片标题'
+      }
+    })
   }
 }

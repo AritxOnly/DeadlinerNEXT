@@ -107,6 +107,7 @@ struct DateTimeContent {
     }
     .padding({ left: 8, right: 8 })
     .width('95%')
+    .constraintSize({ maxWidth: 360 })
     .borderRadius(36)
     .backgroundBlurStyle(BlurStyle.Regular)
   }
@@ -146,7 +147,7 @@ export class DateTimePicker {
         if (dismissDialogAction.reason == DismissReason.TOUCH_OUTSIDE) {
           dismissDialogAction.dismiss()
         }
-      }
+      },
     });
   }
 }

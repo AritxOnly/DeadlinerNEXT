@@ -34,4 +34,7 @@ export class SettingsConstants {
   static readonly KEY_NOTIFY_SUMMARY_TIME = 'notify_summary_time';
 
   static readonly KEY_STARTUP_PAGE = 'startup_page';
+
+  static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';
+  static readonly KEY_TREND_CARD_ORDER = 'trend_card_order';
 }

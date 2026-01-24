@@ -23,6 +23,7 @@ import { MainButtonType } from '../../../common/local/LocalModels'
 import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 import { SideDashboard } from '../../components/SideDashboard'
 import { SearchPage } from './search/SearchPage'
+import { AddDialogTablet } from '../../components/AddDialogTablet'
 
 const EXCITEMENT_MESSAGES: Resource[] = [
   $r('app.string.excitement_deadline_chasing'),
@@ -238,6 +239,23 @@ export struct MainHomePageTablet {
     AddHabitSheet({ onDone: this.onAddHabitQuit }).width('100%')
   }
 
+  addDialogController: CustomDialogController = new CustomDialogController({
+    builder: AddDialogTablet({
+      onAddTask: () => {
+        // 处理新建任务逻辑
+        if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddTaskShow = true;
+        else this.appPathStack.pushPathByName('addTask', null);
+      },
+      onAddHabit: () => {
+        // 处理新建习惯逻辑
+        if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddHabitShow = true;
+        else this.appPathStack.pushPathByName('addHabit', null);
+      }
+    }),
+    alignment: DialogAlignment.Center, // 居中显示
+    autoCancel: true, // 点击遮罩层关闭
+  });
+
   // 统一的 FAB 点击处理
   handleFabAddClick() {
     // 如果处于多选模式，点击是退出多选
@@ -250,27 +268,7 @@ export struct MainHomePageTablet {
       return;
     }
 
-    promptAction.showActionMenu({
-      title: '新建...',
-      buttons: [
-        {
-          text: '新建任务',
-          color: $r('app.color.font_secondary')
-        },
-        {
-          text: '新建习惯',
-          color: $r('app.color.font_secondary')
-        }
-      ]
-    }).then((res) => {
-      if (res.index === 0) {
-        if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddTaskShow = true;
-        else this.appPathStack.pushPathByName('addTask', null);
-      } else if (res.index === 1) {
-        if (!LocalValues.getInstance().getFullScreenAdd()) this.isAddHabitShow = true;
-        else this.appPathStack.pushPathByName('addHabit', null);
-      }
-    })
+    this.addDialogController.open();
   }
 
   @State isSearchShow: boolean = false;

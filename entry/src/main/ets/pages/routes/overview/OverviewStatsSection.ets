@@ -24,6 +24,7 @@ import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
 import { ColorUtils } from '../../../utils/ColorUtils';
 import { CustomMarkerView } from './utils/CustomMarkerView';
 import { FloatUpModifier } from '../../../utils/animation/FloatUpModifier';
+import { OverviewCard } from './OverviewViewModel';
 
 // --- 颜色转换辅助函数 (保持不变) ---
 function getHexColorSync(context: Context, resource: Resource): string {
@@ -51,24 +52,31 @@ export struct OverviewStatsSection {
   @Prop todayCompleted: number;
   @Prop todayTodo: number;
   @Prop todayOverdue: number;
-  @Link historyStats: Map<string, number>;
-  @Link completionTimeStats: Array<[string, number]>;
-  @ObjectLink overdueItems: DDLItem[];
+  @Prop historyStats: Map<string, number>;
+  @Prop completionTimeStats: Array<[string, number]>;
+  @Prop overdueItems: DDLItem[];
+
+  @Prop cardOrder: OverviewCard[];
 
   build() {
     Column({ space: 8 }) {
-      ActiveStatsCard({
-        completed: this.todayCompleted,
-        todo: this.todayTodo,
-        overdue: this.todayOverdue
-      })
-        .attributeModifier(new FloatUpModifier(0))
-
-      CompletionTimeCard({ completionTimeStats: $completionTimeStats })
-        .attributeModifier(new FloatUpModifier(1))
-
-      HistoryStatsCard({ historyStats: $historyStats })
-        .attributeModifier(new FloatUpModifier(2))
+      ForEach(this.cardOrder, (cardId: OverviewCard) => {
+        if (cardId === OverviewCard.ACTIVE_STATS) {
+          ActiveStatsCard({
+            completed: this.todayCompleted,
+            todo: this.todayTodo,
+            overdue: this.todayOverdue
+          })
+          // 加个简单的入场动画，看起来更生动
+            .attributeModifier(new FloatUpModifier(0))
+        } else if (cardId === OverviewCard.COMPLETION_TIME) {
+          CompletionTimeCard({ completionTimeStats: $completionTimeStats })
+            .attributeModifier(new FloatUpModifier(1))
+        } else if (cardId === OverviewCard.HISTORY_STATS) {
+          HistoryStatsCard({ historyStats: $historyStats })
+            .attributeModifier(new FloatUpModifier(2))
+        }
+      }, (item: string) => item)
 
       Blank().height(48)
     }

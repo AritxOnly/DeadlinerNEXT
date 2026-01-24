@@ -44,9 +44,9 @@ function getHexColorSync(context: Context, resource: Resource): string {
 // --- 3. 主组件 ---
 @Component
 export struct TrendAnalysisSection {
-  @Link dailyStats: DailyStat[];
-  @Link monthlyStats: MonthlyStat[];
-  @Link weeklyStats: WeeklyStat[];
+  @Prop dailyStats: DailyStat[];
+  @Prop monthlyStats: MonthlyStat[];
+  @Prop weeklyStats: WeeklyStat[];
 
   build() {
     Column({ space: 8 }) {
@@ -77,7 +77,7 @@ struct DailyCompletedCard {
   @Link @Watch('updateChart') dailyStats: DailyStat[];
 
   // 【新增】控制是否显示逾期数据
-  @State @Watch('updateChart') isOverdueShow: boolean = true;
+  @Prop @Watch('updateChart') isOverdueShow: boolean = true;
 
   private model: BarChartModel = new BarChartModel();
 

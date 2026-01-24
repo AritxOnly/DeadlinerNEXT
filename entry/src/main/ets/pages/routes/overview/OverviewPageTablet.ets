@@ -1,16 +1,11 @@
 import { HdsNavigation, HdsNavigationTitleMode, HdsNavigationAttribute } from "@kit.UIDesignKit";
-import { LengthMetrics, SegmentButtonOptions } from "@kit.ArkUI";
-import { TaskRepository } from '../../../common/repository/TaskRepository';
-import { DDLItem, DeadlineType } from '../../../model/DDLModels';
-import {
-  isOverdue, isToday, extractTimeBucket, bucketOrder,
-  computeDailyCompletedCounts, computeMonthlyTaskStats, computeWeeklyCompletedCounts,
-  DailyStat, MonthlyStat, WeeklyStat
-} from '../../../utils/OverviewUtils'
 import { DashboardSection } from "./DashboardSection";
 import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
 import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
+import { OverviewViewModel } from "./OverviewViewModel";
+import { SortSheet } from "./SortSheet";
+import { SortSheetTablet } from "./SortSheetTablet";
 
 @Component
 export struct OverviewPageTablet {
@@ -25,75 +20,21 @@ export struct OverviewPageTablet {
   @State isTrendHelpShow: boolean = false;
   @State isDashboardHelpShow: boolean = false;
 
-  // --- 数据源 ---
-  @State todayCompleted: number = 0;
-  @State todayTodo: number = 0;
-  @State todayOverdue: number = 0;
-  @State historyStats: Map<string, number> = new Map();
-  @State completionTimeStats: Array<[string, number]> = [];
-  @State overdueItems: DDLItem[] = [];
-
-  @State dailyStats: DailyStat[] = [];
-  @State monthlyStats: MonthlyStat[] = [];
-  @State weeklyStats: WeeklyStat[] = [];
-
-  @State allItems: DDLItem[] = [];
+  @State viewModel: OverviewViewModel = new OverviewViewModel();
 
   aboutToAppear(): void {
-    this.loadData();
+    this.viewModel.loadData().then(() => {
+      this.isLoading = false;
+    });
   }
 
-  async loadData() {
-    this.isLoading = true;
-    try {
-      // 1. 获取数据
-      const items = await TaskRepository.getInstance().getDDLsByType(DeadlineType.TASK);
-      this.allItems = items;
+  @State isSortSheetShow: boolean = false;
 
-      // 2. 数据处理
-      const activeItems = items.filter(it => !it.isArchived);
-
-      // 筛选各类条目
-      const completedItems = activeItems.filter(it => it.isCompleted && isToday(it.completeTime));
-      const incompleteItems = activeItems.filter(it => !it.isCompleted && !isOverdue(it));
-      const todayOverdueItems = activeItems.filter(it => !it.isCompleted && isToday(it.endTime) && isOverdue(it));
-
-      const historyCompleted = items.filter(it => it.isCompleted);
-      const historyIncomplete = items.filter(it => !it.isCompleted);
-      const historyOverdue = activeItems.filter(it => isOverdue(it));
-
-      // 更新状态
-      this.todayCompleted = completedItems.length;
-      this.todayTodo = incompleteItems.length;
-      this.todayOverdue = todayOverdueItems.length;
-
-      const newHistoryStats = new Map<string, number>();
-      newHistoryStats.set('累计完成', historyCompleted.length);
-      newHistoryStats.set('当前待办', historyIncomplete.length);
-      newHistoryStats.set('累计逾期', historyOverdue.length);
-      this.historyStats = newHistoryStats;
-
-      const bucketMap = new Map<string, number>();
-      historyCompleted.forEach(it => {
-        const bucket = extractTimeBucket(it.completeTime);
-        const count = bucketMap.get(bucket) || 0;
-        bucketMap.set(bucket, count + 1);
-      });
-
-      const sortedBuckets = Array.from(bucketMap.entries()).sort((a, b) => {
-        return (bucketOrder[a[0]] || 99) - (bucketOrder[b[0]] || 99);
-      });
-      this.completionTimeStats = sortedBuckets;
-      this.overdueItems = historyOverdue;
-
-      this.dailyStats = computeDailyCompletedCounts(items, 7);
-      this.monthlyStats = computeMonthlyTaskStats(items, 6);
-      this.weeklyStats = computeWeeklyCompletedCounts(items, 4);
-    } catch (e) {
-      console.error(`[OverviewPage] Load data error: ${e}`);
-    } finally {
-      this.isLoading = false;
-    }
+  @Builder SortSheetBuilder() {
+    SortSheetTablet({
+      viewModel: $viewModel,
+      onClose: () => { this.isSortSheetShow = false }
+    })
   }
 
   // --- 独立的 Popup Builders ---
@@ -216,12 +157,13 @@ export struct OverviewPageTablet {
               Scroll() {
                 Column() {
                   OverviewStatsSection({
-                    todayCompleted: this.todayCompleted,
-                    todayTodo: this.todayTodo,
-                    todayOverdue: this.todayOverdue,
-                    historyStats: $historyStats,
-                    completionTimeStats: $completionTimeStats,
-                    overdueItems: this.overdueItems
+                    todayCompleted: this.viewModel.todayCompleted,
+                    todayTodo: this.viewModel.todayTodo,
+                    todayOverdue: this.viewModel.todayOverdue,
+                    historyStats: this.viewModel.historyStats,
+                    completionTimeStats: this.viewModel.completionTimeStats,
+                    overdueItems: this.viewModel.overdueItems,
+                    cardOrder: this.viewModel.overviewCardOrder,
                   })
                 }
                 .padding({ bottom: 24 })
@@ -282,9 +224,9 @@ export struct OverviewPageTablet {
               Scroll() {
                 Column() {
                   TrendAnalysisSection({
-                    dailyStats: $dailyStats,
-                    monthlyStats: $monthlyStats,
-                    weeklyStats: $weeklyStats
+                    dailyStats: this.viewModel.dailyStats,
+                    monthlyStats: this.viewModel.monthlyStats,
+                    weeklyStats: this.viewModel.weeklyStats
                   })
                 }
                 .padding({ bottom: 24 })
@@ -345,7 +287,7 @@ export struct OverviewPageTablet {
               Scroll() {
                 Column() {
                   DashboardSection({
-                    items: this.allItems
+                    items: this.viewModel.allItems
                   })
                 }
                 .padding({ bottom: 24 })
@@ -388,7 +330,9 @@ export struct OverviewPageTablet {
             {
               content: {
                 icon: $r('sys.symbol.text_and_arrow_down'),
-                action: () => {}
+                action: () => {
+                  this.isSortSheetShow = true;
+                }
               }
             }
           ]
@@ -401,5 +345,21 @@ export struct OverviewPageTablet {
     .mode(NavigationMode.Stack)
     .navBarWidth('100%')
     .padding({ top: this.statusBarHeight })
+    .bindSheet($$this.isSortSheetShow, this.SortSheetBuilder(), {
+      detents: [
+        SheetSize.FIT_CONTENT,
+        SheetSize.MEDIUM,
+        SheetSize.LARGE
+      ],
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      backgroundColor: Color.Transparent,
+      blurStyle: BlurStyle.Regular,
+      onDisappear: () => { this.isSortSheetShow = false },
+      title: {
+        title: '调整卡片顺序',
+        subtitle: '长按以拖动卡片标题'
+      }
+    })
   }
 }

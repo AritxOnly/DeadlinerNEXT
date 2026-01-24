@@ -107,6 +107,12 @@ export class LocalValues {
       const startupPage = await this.pref.get(C.KEY_STARTUP_PAGE, 0);
       AppStorage.setOrCreate(C.KEY_STARTUP_PAGE, startupPage);
 
+      const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
+      AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
+
+      const trendOrder = await this.pref.get(C.KEY_TREND_CARD_ORDER, []) as string[];
+      AppStorage.setOrCreate(C.KEY_TREND_CARD_ORDER, trendOrder);
+
       AppStorage.setOrCreate('IsAppDataReady', true);
 
       console.info('SettingsValue initialized successfully');
@@ -438,5 +444,33 @@ export class LocalValues {
 
   async setStartupPage(index: number) {
     await this.setValue(C.KEY_STARTUP_PAGE, index);
+  }
+
+  /**
+   * 获取概览页卡片顺序
+   */
+  getOverviewCardOrder(): string[] {
+    return AppStorage.get<string[]>(C.KEY_OVERVIEW_CARD_ORDER) ?? [];
+  }
+
+  /**
+   * 保存概览页卡片顺序
+   */
+  async setOverviewCardOrder(order: string[]) {
+    await this.setValue(C.KEY_OVERVIEW_CARD_ORDER, order);
+  }
+
+  /**
+   * 获取趋势页卡片顺序
+   */
+  getTrendCardOrder(): string[] {
+    return AppStorage.get<string[]>(C.KEY_TREND_CARD_ORDER) ?? [];
+  }
+
+  /**
+   * 保存趋势页卡片顺序
+   */
+  async setTrendCardOrder(order: string[]) {
+    await this.setValue(C.KEY_TREND_CARD_ORDER, order);
   }
 }
