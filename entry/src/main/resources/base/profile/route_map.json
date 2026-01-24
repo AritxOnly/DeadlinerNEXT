@@ -123,6 +123,11 @@
       "buildFunction": "AboutPageBuilder"
     },
     {
+      "name": "settingsHabitProgressStyle",
+      "pageSourceFile": "src/main/ets/pages/routes/user/settings/HabitProgressStylePage.ets",
+      "buildFunction": "HabitProgressStyleSettingsBuilder"
+    },
+    {
       "name": "letterPage",
       "pageSourceFile": "src/main/ets/pages/routes/user/settings/LetterPage.ets",
       "buildFunction": "LetterPageBuilder"

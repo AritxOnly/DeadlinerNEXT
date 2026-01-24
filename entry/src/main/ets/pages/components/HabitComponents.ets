@@ -25,11 +25,90 @@ export enum DDLStatus {
 }
 
 @Component
-export struct HabitCircleProgress {
+export struct HabitProgress {
+  // 必须接收 progress，否则子组件无法获取数据
+  @Prop progress: number = 0;
+  @StorageProp(C.KEY_HABIT_PROGRESS_STYLE) style: string = 'ellipse';
+
+  build() {
+    Column() {
+      if (this.style === 'linear') {
+        HabitLinearProgress({ progress: this.progress })
+      } else if (this.style === 'ring') {
+        HabitRingProgress({ progress: this.progress })
+      } else {
+        HabitEllipseProgress({ progress: this.progress })
+      }
+    }
+    // 加上动画，让样式切换时平滑过渡
+    .animation({ duration: 300, curve: Curve.EaseInOut })
+  }
+}
+
+@Component
+struct HabitRingProgress {
   @Prop progress: number;
-  // 直接定义默认颜色
-  private indicatorColor: ResourceColor = $r('app.color.brand');
-  private bgColor: ResourceColor = $r('app.color.background_emphasize');
+
+  build() {
+    Stack({ alignContent: Alignment.Center }) {
+      Progress({ value: this.progress * 100, total: 100, type: ProgressType.Ring })
+        .width(84)
+        .height(84)
+        .color($r('app.color.brand')) // 进度条颜色
+        // .backgroundColor($r('app.color.brand_10')) // 可选：底轨颜色
+        .style({ strokeWidth: 8 }) // 环的粗细
+        .animation({ duration: 800, curve: Curve.Smooth })
+
+      Column() {
+        Text(`${(this.progress * 100).toFixed(0)}%`)
+          .fontSize(20)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.font_primary'))
+      }
+    }
+  }
+}
+
+@Component
+struct HabitLinearProgress {
+  @Prop progress: number;
+
+  build() {
+    Column() {
+      // 为了美观，Linear 模式通常文字在上面或侧面，这里采用上下布局
+      Row() {
+        Text("今日完成度")
+          .fontSize(12)
+          .fontColor($r('app.color.font_secondary'))
+
+        Blank()
+
+        Text(`${(this.progress * 100).toFixed(0)}%`)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.font_primary'))
+      }
+      .width('100%')
+      .margin({ bottom: 8 })
+      .padding({ left: 4, right: 4 })
+
+      Progress({ value: this.progress * 100, total: 100, type: ProgressType.Linear })
+        .width('100%') // 撑满宽度
+        .height(12)    // 稍微加粗一点
+        .color($r('app.color.brand'))
+        // .backgroundColor($r('app.color.background_secondary'))
+        .style({ strokeWidth: 12, enableSmoothEffect: true })
+        .animation({ duration: 800, curve: Curve.Smooth })
+    }
+    .width('90%')
+    .justifyContent(FlexAlign.Center)
+    .justifyContent(FlexAlign.Center)
+  }
+}
+
+@Component
+export struct HabitEllipseProgress {
+  @Prop progress: number;
 
   build() {
     Stack({ alignContent: Alignment.Center }) {
@@ -38,8 +117,6 @@ export struct HabitCircleProgress {
         .width(84)
         .height(84)
         .color($r('app.color.brand_50'))
-        // .backgroundColor(this.bgColor)
-        // .style({ strokeWidth: 8 })
         .animation({ duration: 800, curve: Curve.Smooth })
 
       Text(`${(this.progress * 100).toFixed(0)}%`)
@@ -281,6 +358,7 @@ export struct WeekRow {
         )
       }
       .width('100%')
+      .padding({ left: 8, right: 8 })
       .clip(true)
     }
   }

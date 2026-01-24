@@ -62,6 +62,16 @@ struct AppearanceSettings {
             SubSettingsDivider()
 
             SettingsItem({
+              title: "习惯进度展示样式",
+              subtitle: "自定义主页习惯页的进度展示样式",
+              onItemClick: () => {
+                this.navigateTo('settingsHabitProgressStyle');
+              }
+            })
+
+            SubSettingsDivider()
+
+            SettingsItem({
               title: "小组件样式",
               subtitle: "自定义桌面服务卡片的背景与风格",
               onItemClick: () => {

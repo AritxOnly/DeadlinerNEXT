@@ -1,7 +1,8 @@
 import { TopSafeContainer } from "../../components/TopSafeContainer"
 import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from '../../../model/DDLModels';
-import { HabitCircleProgress, WeekRow, HabitRow, DDLStatus, HabitWithDailyStatus, DayOverview } from '../../components/HabitComponents'
+import { WeekRow, HabitRow, DDLStatus, HabitWithDailyStatus, DayOverview,
+  HabitProgress } from '../../components/HabitComponents'
 import { HabitListController } from "./HabitListController";
 import { ChipGroup, ChipGroupItemOptions, ChipSize, curves, promptAction } from '@kit.ArkUI'
 import { VibrationUtils } from "../../../utils/VibrationUtils";
@@ -539,7 +540,7 @@ export struct HabitListSection {
       TopSafeContainer({ topAvoidHeight: this.topAvoidHeight, scrollable: false }) {
         Column() {
           // 1. 顶部进度 (使用新组件)
-          HabitCircleProgress({ progress: this.getTodayCompletionRatio() })
+          HabitProgress({ progress: this.getTodayCompletionRatio() })
             .margin({ top: 12, bottom: 12 })
             .align(Alignment.Center)
             .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))

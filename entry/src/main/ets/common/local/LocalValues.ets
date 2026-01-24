@@ -110,6 +110,9 @@ export class LocalValues {
       const english = await this.pref.get(C.KEY_ENGLISH_SOMEWHERE, true);
       AppStorage.setOrCreate(C.KEY_ENGLISH_SOMEWHERE, english);
 
+      const habitPs = await this.pref.get(C.KEY_HABIT_PROGRESS_STYLE, 'ellipse');
+      AppStorage.setOrCreate(C.KEY_HABIT_PROGRESS_STYLE, habitPs);
+
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
 
@@ -489,5 +492,13 @@ export class LocalValues {
    */
   async setEnglishSomewhere(enable: boolean) {
     await this.setValue(C.KEY_ENGLISH_SOMEWHERE, enable);
+  }
+
+  getHabitProgressStyle(): string {
+    return AppStorage.get<string>(C.KEY_HABIT_PROGRESS_STYLE) ?? 'ellipse';
+  }
+
+  async setHabitProgressStyle(style: string) {
+    await this.setValue(C.KEY_HABIT_PROGRESS_STYLE, style);
   }
 }

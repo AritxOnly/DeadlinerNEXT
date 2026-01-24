@@ -36,6 +36,7 @@ export class SettingsConstants {
   static readonly KEY_STARTUP_PAGE = 'startup_page';
 
   static readonly KEY_ENGLISH_SOMEWHERE = 'english_somewhere';
+  static readonly KEY_HABIT_PROGRESS_STYLE = 'habit_progress_style';
 
   static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';
   static readonly KEY_TREND_CARD_ORDER = 'trend_card_order';
