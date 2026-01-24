@@ -107,6 +107,9 @@ export class LocalValues {
       const startupPage = await this.pref.get(C.KEY_STARTUP_PAGE, 0);
       AppStorage.setOrCreate(C.KEY_STARTUP_PAGE, startupPage);
 
+      const english = await this.pref.get(C.KEY_ENGLISH_SOMEWHERE, true);
+      AppStorage.setOrCreate(C.KEY_ENGLISH_SOMEWHERE, english);
+
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
 
@@ -472,5 +475,19 @@ export class LocalValues {
    */
   async setTrendCardOrder(order: string[]) {
     await this.setValue(C.KEY_TREND_CARD_ORDER, order);
+  }
+
+  /**
+   * 获取是否显示少量英语
+   */
+  getEnglishSomewhere(): boolean {
+    return AppStorage.get<boolean>(C.KEY_ENGLISH_SOMEWHERE) ?? true;
+  }
+
+  /**
+   * 保存是否显示少量英语
+   */
+  async setEnglishSomewhere(enable: boolean) {
+    await this.setValue(C.KEY_ENGLISH_SOMEWHERE, enable);
   }
 }

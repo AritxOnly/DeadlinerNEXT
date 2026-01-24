@@ -490,6 +490,32 @@ export struct HabitListSection {
 
   @State isRefreshing: boolean = false;
 
+  @Builder
+  EmptyPlaceholder() {
+    Column() {
+      SymbolGlyph($r('sys.symbol.bicycle'))
+        .fontSize(80)
+        .fontColor([$r('app.color.font_secondary')])
+        .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+        .opacity(0.5)
+
+      Text("暂无待打卡习惯")
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.font_secondary'))
+        .margin({ top: 16 })
+
+      Text("一点一滴，养成好习惯")
+        .fontSize(14)
+        .fontColor($r('app.color.font_secondary'))
+        .opacity(0.6)
+        .margin({ top: 8 })
+    }
+    .width('100%')
+    .height('100%')
+    .justifyContent(FlexAlign.Center)
+  }
+
   build() {
     Column() {
       TopSafeContainer({ topAvoidHeight: this.topAvoidHeight, scrollable: false }) {
@@ -514,32 +540,40 @@ export struct HabitListSection {
             refreshing: $$this.isRefreshing
           }) {
             List({ scroller: this.scroller, space: 10 }) {
-              ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
-                ListItem() {
-                  // 使用新组件 HabitRow
-                  HabitRow({
-                    data: item,
-                    status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
-                    isSelected: this.isSelected(item.habit.ddlId),
-                    canToggle: new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0),
-                    remainingText: "",
-                    onToggle: (): Promise<void> => this.onToggleHabit(item),
-                    onLongPress: (): void => this.onLongPress(item.habit.ddlId)
+              if (this.displayHabits.length > 0) {
+                ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
+                  ListItem() {
+                    // 使用新组件 HabitRow
+                    HabitRow({
+                      data: item,
+                      status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
+                      isSelected: this.isSelected(item.habit.ddlId),
+                      canToggle: new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0),
+                      remainingText: "",
+                      onToggle: (): Promise<void> => this.onToggleHabit(item),
+                      onLongPress: (): void => this.onLongPress(item.habit.ddlId)
+                    })
+                  }
+                  .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
+                  .attributeModifier(new PressEffectModifier(0.98))
+                  .animation({
+                    curve: curves.responsiveSpringMotion(0.35, 0.60)
                   })
-                }
-                .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
-                .attributeModifier(new PressEffectModifier(0.98))
-                .animation({
-                  curve: curves.responsiveSpringMotion(0.35, 0.60)
+                }, (item: HabitWithDailyStatus) => {
+                  return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
                 })
-              }, (item: HabitWithDailyStatus) => {
-                return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
-              })
 
-              ListItem() {
-                Column() {
-                  Blank().height(140)
+                ListItem() {
+                  Column() {
+                    Blank().height(140)
+                  }
                 }
+              } else {
+                ListItem() {
+                  this.EmptyPlaceholder()
+                }
+                .width('100%')
+                .height('100%')
               }
             }
             .width('100%')

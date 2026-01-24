@@ -31,12 +31,10 @@ struct AppearanceSettings {
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
-  // 1. 进度条方向
   @StorageLink(C.KEY_PROGRESS_DIRECTION) progressDir: boolean = false;
-  // 2. 激励语
   @StorageLink(C.KEY_EXCITEMENT_TEXT) excitementText: boolean = true;
-  // 3. 礼花特效
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
+  @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
 
   build() {
     HdsNavDestination() {
@@ -50,6 +48,15 @@ struct AppearanceSettings {
               subtitle: "开启后，首页任务卡片将显示“已进行时间”，关闭则显示“剩余时间”。",
               isOn: this.progressDir,
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setProgressDir(isOn)
+            })
+
+            SubSettingsDivider()
+
+            SubSettingsSwitch({
+              title: "装饰区域显示英语",
+              subtitle: "开启后，将在界面非功能区显示少量英语",
+              isOn: this.english,
+              onChange: (isOn): Promise<void> => LocalValues.getInstance().setEnglishSomewhere(isOn)
             })
 
             SubSettingsDivider()

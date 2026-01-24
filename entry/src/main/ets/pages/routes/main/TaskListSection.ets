@@ -458,6 +458,34 @@ export struct TaskListSection {
     })
   }
 
+  @Builder
+  EmptyPlaceholder() {
+    Column() {
+      SymbolGlyph($r('sys.symbol.cup'))
+        .fontSize(80)
+        .fontColor([$r('app.color.font_secondary')])
+        .renderingStrategy(SymbolRenderingStrategy.SINGLE)
+        .opacity(0.5)
+
+      Text("暂无待办任务")
+        .fontSize(16)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('app.color.font_secondary'))
+        .margin({ top: 16 })
+
+      Text("享受美好的一天吧")
+        .fontSize(14)
+        .fontColor($r('app.color.font_secondary'))
+        .opacity(0.6)
+        .margin({ top: 8 })
+    }
+    .width('100%')
+    // 这里的 height 设为 100% 会撑满 List 的可视区域
+    // 减去一点顶部距离，视觉上更居中
+    .height('80%')
+    .justifyContent(FlexAlign.Center)
+  }
+
   build() {
     Column() {
       if (this.isLoading && this.taskList.length === 0) {
@@ -473,41 +501,53 @@ export struct TaskListSection {
                 space: 8,
                 scroller: this.scroller,
               }) {
-                ForEach(this.taskList, (item: TaskUIModel, index: number) => {
-                  ListItem() {
-                    DDLItemCardSwipeable({
-                      title: item.title,
-                      remainingTimeAlt: item.remainingTimeAlt,
-                      note: item.note,
-                      progress: item.progress,
-                      isStarred: item.isStarred,
-                      status: item.status,
+                if (this.taskList.length > 0) {
+                  ForEach(this.taskList, (item: TaskUIModel, index: number) => {
+                    ListItem() {
+                      DDLItemCardSwipeable({
+                        title: item.title,
+                        remainingTimeAlt: item.remainingTimeAlt,
+                        note: item.note,
+                        progress: item.progress,
+                        isStarred: item.isStarred,
+                        status: item.status,
 
-                      selectionMode: this.isSelectionMode,
-                      selected: this.selectedIds.includes(item.dbId),
+                        selectionMode: this.isSelectionMode,
+                        selected: this.selectedIds.includes(item.dbId),
 
-                      onComplete: async () => { this.handleComplete(item.dbId) },
-                      onDelete: async () => { this.handleDelete(item.dbId, item.title) },
+                        onComplete: async () => {
+                          this.handleComplete(item.dbId)
+                        },
+                        onDelete: async () => {
+                          this.handleDelete(item.dbId, item.title)
+                        },
 
-                      onLongPressSelect: () => {
-                        if (!this.isSelectionMode) {
-                          this.enterSelectionMode(item.dbId);
+                        onLongPressSelect: () => {
+                          if (!this.isSelectionMode) {
+                            this.enterSelectionMode(item.dbId);
+                          }
+                        },
+                        onToggleSelect: () => {
+                          this.toggleSelection(item.dbId);
                         }
-                      },
-                      onToggleSelect: () => {
-                        this.toggleSelection(item.dbId);
-                      }
-                    })
-                      .attributeModifier(new PressEffectModifier(0.98))
-                      .animation({
-                        curve: curves.responsiveSpringMotion(0.35, 0.60)
                       })
-                  }
-                  .attributeModifier(new FloatUpModifier(index, 15, this.isFirstLoad))
-                }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
+                        .attributeModifier(new PressEffectModifier(0.98))
+                        .animation({
+                          curve: curves.responsiveSpringMotion(0.35, 0.60)
+                        })
+                    }
+                    .attributeModifier(new FloatUpModifier(index, 15, this.isFirstLoad))
+                  }, (item: TaskUIModel) => `${item.dbId}_${item.status}_${item.progress}`)
 
-                ListItem() {
-                  Divider().color(Color.Transparent).height(80).width('100%')
+                  ListItem() {
+                    Divider().color(Color.Transparent).height(80).width('100%')
+                  }
+                } else {
+                  ListItem() {
+                    this.EmptyPlaceholder()
+                  }
+                  .width('100%')
+                  .height('100%')
                 }
               }
               .width("100%")

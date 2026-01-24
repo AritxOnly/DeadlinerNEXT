@@ -1,3 +1,4 @@
+import { SettingsConstants as C } from '../../common/local/SettingsConstants';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus } from '../../model/DDLModels';
 import { ColorUtils } from '../../utils/ColorUtils';
 
@@ -64,6 +65,12 @@ export struct WeekRow {
   @Prop selectedDate: Date;
   onSelectDate: (d: Date) => void = () => {};
 
+  // --- 【关键修改点 1】 ---
+  // 使用 @StorageProp 监听 AppStorage 中对应的 Key
+  // 当 LocalValues 更新 AppStorage 时，这里会自动更新并触发 build 重绘
+  @StorageProp(C.KEY_ENGLISH_SOMEWHERE)
+  englishSomewhere: boolean = true;
+
   // 颜色资源
   private primaryColor: ResourceColor = $r('app.color.brand');
   private bgColor: ResourceColor = $r('app.color.brand_50');
@@ -71,7 +78,12 @@ export struct WeekRow {
   private surfaceVariant: ResourceColor = $r('app.color.background_primary');
 
   private getDayLabel(date: Date): string {
-    const days = ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'];
+    // --- 【关键修改点 2】 ---
+    // 直接使用 this.englishSomewhere
+    // 因为它是状态变量，当它变化时，依赖它的 Text 组件会自动更新
+    const english = this.englishSomewhere;
+
+    const days = english ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
     return days[date.getDay()];
   }
 
@@ -86,6 +98,8 @@ export struct WeekRow {
       ForEach(this.weekOverview, (day: DayOverview) => {
         ListItem() {
           Column() {
+            // 这里调用 getDayLabel，因为 getDayLabel 内部读取了 @StorageProp 变量
+            // 所以每当 AppStorage 变化 -> englishSomewhere 变化 -> Text 重新渲染
             Text(this.getDayLabel(day.date))
               .fontSize(12)
               .fontColor(this.isSameDay(day.date, this.selectedDate) ? this.primaryColor : this.secondaryColor)
@@ -119,7 +133,6 @@ export struct WeekRow {
       })
     }
     .listDirection(Axis.Horizontal)
-    // .width('100%')
     .height(80)
     .alignListItem(ListItemAlign.Center)
     .scrollBar(BarState.Off)

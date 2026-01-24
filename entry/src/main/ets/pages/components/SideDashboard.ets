@@ -3,6 +3,7 @@ import { DeadlineType, DDLItem, HabitStatus, Habit } from '../../model/DDLModels
 import { common } from '@kit.AbilityKit';
 import { TaskRepository } from '../../common/repository/TaskRepository';
 import { HabitRepository } from '../../common/repository/HabitRepository';
+import { SettingsConstants as C } from '../../common/local/SettingsConstants';
 
 @Component
 export struct SideDashboard {
@@ -28,11 +29,21 @@ export struct SideDashboard {
   @State cardBg: ResourceColor = $r('app.color.background_secondary')
   @State dashboardBg: ResourceColor = $r('app.color.background_primary')
 
+  @StorageProp(C.KEY_ENGLISH_SOMEWHERE) @Watch('onLangModeChange') englishEnable: boolean = true;
+  @StorageProp('IsAppDataReady') @Watch('onLangModeChange') _initialized: boolean = false;
+
   // 刷新防抖
   private isRefreshing: boolean = false;
 
   onWillApplyTheme(theme: Theme) {
     // 主题适配逻辑
+  }
+
+  @State langTag: string = 'en-US';
+
+  private onLangModeChange() {
+    this.langTag = this.englishEnable ? 'en-US' : 'zh-CN';
+    this.refreshData();
   }
 
   aboutToAppear() {
@@ -159,8 +170,8 @@ export struct SideDashboard {
 
     if (candidates.length === 0) {
       this.hasNextDue = false;
-      this.nextDeadlineTime = "Done";
-      this.nextDeadlineTask = "All Clear";
+      this.nextDeadlineTime = this.englishEnable ? "Done" : "已完成";
+      this.nextDeadlineTask = this.englishEnable ? "All Clear" : "无剩余任务";
       return;
     }
 
@@ -184,21 +195,32 @@ export struct SideDashboard {
     const diffMs = due - now;
 
     if (diffMs < 0) {
-      return "Overdue";
+      return this.englishEnable ? "Overdue" : "逾期";
     }
 
     const diffMins = Math.floor(diffMs / (1000 * 60));
     const diffHours = Math.floor(diffMs / (1000 * 60 * 60));
     const diffDays = Math.floor(diffMs / (1000 * 60 * 60 * 24));
 
-    if (diffDays > 0) {
-      return `${diffDays} Days`;
+    if (!this.englishEnable) {
+      if (diffDays > 0) {
+        return `${diffDays} 天`;
+      }
+      if (diffHours > 0) {
+        const remainMins = diffMins % 60;
+        return `${diffHours}小时 ${remainMins}分`;
+      }
+      return `${diffMins}分`;
+    } else {
+      if (diffDays > 0) {
+        return `${diffDays} Days`;
+      }
+      if (diffHours > 0) {
+        const remainMins = diffMins % 60;
+        return `${diffHours}h ${remainMins}m`;
+      }
+      return `${diffMins}m`;
     }
-    if (diffHours > 0) {
-      const remainMins = diffMins % 60;
-      return `${diffHours}h ${remainMins}m`;
-    }
-    return `${diffMins}m`;
   }
 
   private formatDate(date: Date): string {
@@ -221,7 +243,7 @@ export struct SideDashboard {
     Column() {
       // 1. 日历撕页
       Column() {
-        Text(this.currentDate.toLocaleString('en-US', { month: 'short' }).toUpperCase())
+        Text(this.currentDate.toLocaleString(this.langTag, { month: 'short' }).toUpperCase())
           .fontSize(16)
           .fontColor(this.colorMonth) // Accent Color
           .fontWeight(FontWeight.Bold)
@@ -233,7 +255,7 @@ export struct SideDashboard {
           .fontColor(this.colorDay)
           .height(46)
 
-        Text(this.currentDate.toLocaleString('en-US', { weekday: 'short' }))
+        Text(this.currentDate.toLocaleString(this.langTag, { weekday: 'short' }))
           .fontSize(14)
           .fontColor(this.colorWeek)
           .margin({ top: 4 })
@@ -296,7 +318,7 @@ export struct SideDashboard {
       // 4. 最近的危机 (Next DDL)
       // 使用胶囊卡片，背景白色，内容红色
       Column() {
-        Text('NEXT DUE')
+        Text(this.englishEnable ? 'NEXT DUE' : '下一项任务')
           .fontSize(10)
           .fontWeight(FontWeight.Bold)
           .fontColor(this.colorWeek)
