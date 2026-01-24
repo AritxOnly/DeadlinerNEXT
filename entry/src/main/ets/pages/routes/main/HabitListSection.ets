@@ -516,6 +516,25 @@ export struct HabitListSection {
     .justifyContent(FlexAlign.Center)
   }
 
+  /**
+   * 切换周
+   * @param offset -1 表示上一周，1 表示下一周
+   */
+  changeWeek(offset: number) {
+    const newDate = new Date(this.selectedDate);
+    // 偏移 7 天
+    newDate.setDate(newDate.getDate() + (offset * 7));
+
+    // 更新选中日期，这会自动触发 UI 重绘（因为 selectedDate 是 @State）
+    this.selectedDate = newDate;
+
+    // 刷新数据（重新计算周视图数据 和 当日习惯状态）
+    this.refreshAll(newDate);
+
+    // 可选：加个震动反馈
+    VibrationUtils.vibrateShort();
+  }
+
   build() {
     Column() {
       TopSafeContainer({ topAvoidHeight: this.topAvoidHeight, scrollable: false }) {
@@ -530,6 +549,8 @@ export struct HabitListSection {
           WeekRow({
             weekOverview: this.weekOverview,
             selectedDate: this.selectedDate,
+            currentDate: new Date(),
+            onChangeWeek: (offset: number): void => this.changeWeek(offset),
             onSelectDate: (d: Date): void => this.onDateSelected(d)
           })
             .margin({ bottom: 8 })

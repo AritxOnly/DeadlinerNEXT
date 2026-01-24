@@ -48,94 +48,241 @@ export struct HabitCircleProgress {
         .fontColor($r('app.color.font_primary'))
     }
   }
-
-  private addAlpha(color: ResourceColor, alpha: number): string | ResourceColor {
-    try {
-      let context = this.getUIContext().getHostContext();
-      return ColorUtils.addAlpha(color, alpha, context);
-    } catch (e) {
-      return color;
-    }
-  }
 }
 
 @Component
 export struct WeekRow {
+  // 数据源
   @Prop weekOverview: DayOverview[];
   @Prop selectedDate: Date;
-  onSelectDate: (d: Date) => void = () => {};
+  @Prop currentDate: Date = new Date();
 
-  // --- 【关键修改点 1】 ---
-  // 使用 @StorageProp 监听 AppStorage 中对应的 Key
-  // 当 LocalValues 更新 AppStorage 时，这里会自动更新并触发 build 重绘
+  // 回调
+  onSelectDate: (d: Date) => void = () => {};
+  onChangeWeek: (offset: number) => void = () => {};
+
   @StorageProp(C.KEY_ENGLISH_SOMEWHERE)
   englishSomewhere: boolean = true;
 
-  // 颜色资源
+  // 动画状态
+  @State animOffset: number = 0; // X轴偏移量
+  @State animOpacity: number = 1; // 透明度
+
+  // 颜色定义
   private primaryColor: ResourceColor = $r('app.color.brand');
   private bgColor: ResourceColor = $r('app.color.brand_50');
-  private secondaryColor: ResourceColor = $r('app.color.font_secondary')
-  private surfaceVariant: ResourceColor = $r('app.color.background_primary');
+  private secondaryColor: ResourceColor = $r('app.color.font_secondary');
+  private primaryFontColor: ResourceColor = $r('app.color.font_primary');
 
-  private getDayLabel(date: Date): string {
-    // --- 【关键修改点 2】 ---
-    // 直接使用 this.englishSomewhere
-    // 因为它是状态变量，当它变化时，依赖它的 Text 组件会自动更新
-    const english = this.englishSomewhere;
-
-    const days = english ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-    return days[date.getDay()];
-  }
-
+  // --- 逻辑判断方法 ---
   private isSameDay(d1: Date, d2: Date): boolean {
     return d1.getDate() === d2.getDate() &&
       d1.getMonth() === d2.getMonth() &&
       d1.getFullYear() === d2.getFullYear();
   }
 
-  build() {
-    List({ space: 0, initialIndex: 0 }) {
-      ForEach(this.weekOverview, (day: DayOverview) => {
-        ListItem() {
-          Column() {
-            // 这里调用 getDayLabel，因为 getDayLabel 内部读取了 @StorageProp 变量
-            // 所以每当 AppStorage 变化 -> englishSomewhere 变化 -> Text 重新渲染
-            Text(this.getDayLabel(day.date))
-              .fontSize(12)
-              .fontColor(this.isSameDay(day.date, this.selectedDate) ? this.primaryColor : this.secondaryColor)
-              .margin({ bottom: 4 })
+  private getDayLabel(date: Date): string {
+    const english = this.englishSomewhere;
+    const days = english ? ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'] : ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return days[date.getDay()];
+  }
 
-            Column() {
-              Text(day.date.getDate().toString())
-                .fontSize(16)
-                .fontWeight(FontWeight.Medium)
-                .fontColor(this.secondaryColor)
-            }
-            .justifyContent(FlexAlign.Center)
-            .width(32)
-            .height(32)
-            .borderRadius(24)
-            .backgroundColor(this.isSameDay(day.date, this.selectedDate) ? this.bgColor : Color.Transparent)
+  private getDayLabelColor(date: Date): ResourceColor {
+    return this.isSameDay(date, this.currentDate) ? this.primaryColor : this.secondaryColor;
+  }
 
-            if (day.completionRatio > 0) {
-              Circle()
-                .width(6)
-                .height(6)
-                .fill(this.primaryColor)
-                .margin({ top: 4 })
-            } else {
-              Blank().height(6).margin({ top: 4 })
-            }
-          }
-          .width(50)
-          .onClick(() => this.onSelectDate(day.date))
-        }
-      })
+  private getDayLabelWeight(date: Date): FontWeight {
+    return this.isSameDay(date, this.currentDate) ? FontWeight.Bold : FontWeight.Normal;
+  }
+
+  private getDateBgColor(date: Date): ResourceColor {
+    return this.isSameDay(date, this.selectedDate) ? this.bgColor : Color.Transparent;
+  }
+
+  private getDateTextColor(date: Date): ResourceColor {
+    const isToday = this.isSameDay(date, this.currentDate);
+    const isSelected = this.isSameDay(date, this.selectedDate);
+    if (isToday) return this.primaryColor;
+    if (isSelected) return this.primaryFontColor;
+    return this.secondaryColor;
+  }
+
+  private getDateFontWeight(date: Date): FontWeight {
+    const isToday = this.isSameDay(date, this.currentDate);
+    const isSelected = this.isSameDay(date, this.selectedDate);
+    return (isToday || isSelected) ? FontWeight.Bold : FontWeight.Medium;
+  }
+
+  private getMonthTitle(): string[] {
+    if (!this.weekOverview || this.weekOverview.length === 0) return ['', ''];
+    const firstDay = this.weekOverview[0].date;
+    return [`${firstDay.getFullYear()}`, `${firstDay.getMonth() + 1}`];
+  }
+
+  @Builder
+  MonthTitle() {
+    Row() {
+      Text(this.getMonthTitle()[0])
+        .fontSize('16vp')
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.primaryFontColor)
+        .textAlign(TextAlign.Center)
+        .opacity(this.animOpacity)
+        .animation({ duration: 200 })
+
+      Text(' / ')
+        .fontSize('16vp')
+        .fontWeight(FontWeight.Bold)
+        .fontColor($r('app.color.brand'))
+        .textAlign(TextAlign.Center)
+        .opacity(this.animOpacity)
+        .animation({ duration: 200 })
+
+      Text(this.getMonthTitle()[1])
+        .fontSize('16vp')
+        .fontWeight(FontWeight.Medium)
+        .fontColor(this.primaryFontColor)
+        .textAlign(TextAlign.Center)
+        .opacity(this.animOpacity)
+        .animation({ duration: 200 })
     }
-    .listDirection(Axis.Horizontal)
-    .height(80)
-    .alignListItem(ListItemAlign.Center)
-    .scrollBar(BarState.Off)
+    .justifyContent(FlexAlign.Center)
+    .layoutWeight(1)
+  }
+
+  // --- 核心动画逻辑 ---
+
+  /**
+   * 执行切换动画
+   * @param direction -1: 上一周(右滑), 1: 下一周(左滑)
+   */
+  private triggerSwitchAnimation(direction: number) {
+    const screenWidth = 300;
+
+    animateTo({ duration: 200, curve: Curve.EaseOut }, () => {
+      this.animOffset = direction === 1 ? -screenWidth : screenWidth;
+      this.animOpacity = 0;
+    });
+
+    setTimeout(() => {
+      this.onChangeWeek(direction);
+
+      this.animOffset = direction === 1 ? screenWidth : -screenWidth;
+
+      animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
+        this.animOffset = 0;
+        this.animOpacity = 1;
+      });
+    }, 200);
+  }
+
+  // --- UI 构建 ---
+
+  @Builder
+  DayItem(day: DayOverview) {
+    Column() {
+      Text(this.getDayLabel(day.date))
+        .fontSize('12vp')
+        .fontColor(this.getDayLabelColor(day.date))
+        .fontWeight(this.getDayLabelWeight(day.date))
+        .margin({ bottom: 4 })
+
+      Column() {
+        Text(day.date.getDate().toString())
+          .fontSize('16vp')
+          .fontWeight(this.getDateFontWeight(day.date))
+          .fontColor(this.getDateTextColor(day.date))
+      }
+      .justifyContent(FlexAlign.Center)
+      .width(36)
+      .height(36)
+      .borderRadius(18)
+      .backgroundColor(this.getDateBgColor(day.date))
+
+      if (day.completionRatio > 0) {
+        Circle()
+          .width(5)
+          .height(5)
+          .fill(this.primaryColor)
+          .margin({ top: 4 })
+      } else {
+        Blank().height(5).margin({ top: 4 })
+      }
+    }
+    .width('100%')
+    .onClick(() => this.onSelectDate(day.date))
+  }
+
+  build() {
+    Column() {
+      // 顶部操作栏
+      Row() {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.chevron_left'))
+            .fontSize('20vp')
+            .fontColor([this.secondaryColor])
+        }
+        .backgroundColor(Color.Transparent)
+        .width(32)
+        .height(32)
+        .onClick(() => this.triggerSwitchAnimation(-1))
+
+        this.MonthTitle()
+
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph($r('sys.symbol.chevron_right'))
+            .fontSize('20vp')
+            .fontColor([this.secondaryColor])
+        }
+        .backgroundColor(Color.Transparent)
+        .width(32)
+        .height(32)
+        .onClick(() => this.triggerSwitchAnimation(1))
+      }
+      .width('100%')
+      .padding({ left: 16, right: 16, bottom: 8 })
+
+      Column() {
+        List() {
+          ForEach(this.weekOverview, (day: DayOverview) => {
+            ListItem() {
+              this.DayItem(day)
+            }
+            .width(`${100 / 7}%`)
+          })
+        }
+        .listDirection(Axis.Horizontal)
+        .width('100%')
+        .height(56)
+        .translate({ x: this.animOffset })
+        .opacity(this.animOpacity)
+        .gesture(
+          PanGesture({ direction: PanDirection.Horizontal })
+            .onActionUpdate((event: GestureEvent) => {
+              // 1. 跟随手指移动 (阻尼效果可选，这里直接跟随)
+              this.animOffset = event.offsetX;
+            })
+            .onActionEnd((event: GestureEvent) => {
+              const threshold = 60; // 触发切换的阈值距离
+
+              if (event.offsetX < -threshold) {
+                // 左滑距离足够 -> 下一周
+                this.triggerSwitchAnimation(1);
+              } else if (event.offsetX > threshold) {
+                // 右滑距离足够 -> 上一周
+                this.triggerSwitchAnimation(-1);
+              } else {
+                // 距离不够 -> 回弹复位
+                animateTo({ duration: 300, curve: Curve.Rhythm }, () => {
+                  this.animOffset = 0;
+                });
+              }
+            })
+        )
+      }
+      .width('100%')
+      .clip(true)
+    }
   }
 }
 
