@@ -164,9 +164,9 @@ export struct OverviewPage {
 
   @Builder titleMenuBuilder() {
     Stack({ alignContent: Alignment.Center }) {
-      Row({ space: 8 }) {
+      Row({ space: 10 }) {
         Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph($r('sys.symbol.text_and_arrow_down')) // 或者换成 'list_bullet' 这种图标
+          SymbolGlyph($r('sys.symbol.text_and_arrow_down'))
             .fontSize(24)
             .fontColor([$r('sys.color.ohos_id_color_text_primary')])
         }

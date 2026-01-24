@@ -1,5 +1,6 @@
 import { OverviewViewModel, OverviewCard, TrendCard } from './OverviewViewModel';
 import { vibrator } from '@kit.SensorServiceKit';
+import { VibrationUtils } from '../../../utils/VibrationUtils';
 
 @Component
 export struct SortSheet {
@@ -7,11 +8,11 @@ export struct SortSheet {
   @Prop selectedTabIndex: number;
   onClose: () => void = () => {};
 
+  @State gridWidth: number = 0;
+
   // --- 震动反馈 ---
   private triggerVibration() {
-    try {
-      vibrator.startVibration({ type: 'time', duration: 15 }, { id: 0, usage: 'touch' });
-    } catch (e) {}
+    VibrationUtils.vibrateTouch();
   }
 
   // --- 卡片样式 (复用之前的漂亮设计) ---
@@ -45,7 +46,7 @@ export struct SortSheet {
         this.SortItemCard(this.getTrendCardName(this.viewModel.trendCardOrder[itemIndex]), true)
       }
     }
-    .width('100%')
+    .width(this.gridWidth)
   }
 
   build() {
@@ -67,6 +68,11 @@ export struct SortSheet {
           }, (item: string) => item)
         }
       }
+      .onAreaChange((oldArea, newArea) => {
+        if (typeof newArea.width === 'number') {
+          this.gridWidth = newArea.width;
+        }
+      })
       .width('100%')
       .height(
         (this.selectedTabIndex === 0

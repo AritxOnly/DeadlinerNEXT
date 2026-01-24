@@ -28,4 +28,10 @@ export class VibrationUtils {
       })
     }
   }
+
+  public static vibrateTouch() {
+    if (VibrationUtils.assureVibrationEnable()) {
+      vibrator.startVibration({ type: 'time', duration: 15 }, { id: 0, usage: 'touch' });
+    }
+  }
 }
