@@ -531,8 +531,7 @@ export struct HabitListSection {
     // 刷新数据（重新计算周视图数据 和 当日习惯状态）
     this.refreshAll(newDate);
 
-    // 可选：加个震动反馈
-    VibrationUtils.vibrateShort();
+    VibrationUtils.vibrateSoft();
   }
 
   build() {

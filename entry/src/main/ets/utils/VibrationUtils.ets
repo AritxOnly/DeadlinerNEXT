@@ -34,4 +34,10 @@ export class VibrationUtils {
       vibrator.startVibration({ type: 'time', duration: 15 }, { id: 0, usage: 'touch' });
     }
   }
+
+  public static vibrateSoft() {
+    if (VibrationUtils.assureVibrationEnable()) {
+      vibrator.startVibration({ type: 'time', duration: 10 }, { usage: 'touch' })
+    }
+  }
 }
