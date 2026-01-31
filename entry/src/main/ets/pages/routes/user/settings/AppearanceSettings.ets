@@ -9,6 +9,7 @@ import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { window } from '@kit.ArkUI';
+import { ThemeSelectSheet } from './ThemeSelectSheet';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -42,13 +43,29 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
 
+  @State isThemeSelectSheetShow: boolean = false;
+  @Builder
+  themeSheet() {
+    ThemeSelectSheet()
+  }
+
   build() {
     HdsNavDestination() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         Column({ space: 16 }) {
 
-          // --- 界面布局 ---
           SettingsSection({ title: '界面显示' }) {
+            SettingsItem({
+              title: "个性化主题",
+              subtitle: "自定义应用配色方案",
+              icon: $r('sys.symbol.brush'),
+              onItemClick: () => {
+                this.isThemeSelectSheetShow = true;
+              }
+            })
+          }
+
+          SettingsSection() {
             SubSettingsSwitch({
               title: "正向进度条",
               subtitle: "开启后，首页任务卡片将显示“已进行时间”，关闭则显示“剩余时间”。",
@@ -155,6 +172,24 @@ struct AppearanceSettings {
     .titleBar({
       style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: { title: { mainTitle: "显示与个性化" } }
+    })
+    .bindSheet($$this.isThemeSelectSheetShow, this.themeSheet(), {
+      detents: [
+        SheetSize.FIT_CONTENT,
+        SheetSize.MEDIUM,
+        SheetSize.LARGE
+      ],
+      height: SheetSize.FIT_CONTENT,
+      dragBar: true,
+      enableOutsideInteractive: false,
+      onDisappear: () => {
+        this.isThemeSelectSheetShow = false;
+      },
+      blurStyle: BlurStyle.Regular,
+      backgroundColor: Color.Transparent,
+      title: {
+        title: '选择主题',
+      }
     })
   }
 }

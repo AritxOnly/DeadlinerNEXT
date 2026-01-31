@@ -25,6 +25,8 @@ export default class EntryAbility extends UIAbility {
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
 
+      await ThemeManager.init(this.context);
+
       await LocalValues.getInstance().init(this.context);
 
       if (this.mainWindowClass) {
@@ -73,8 +75,6 @@ export default class EntryAbility extends UIAbility {
         hilog.error(DOMAIN, 'testTag', 'Failed to load content: %{public}s', JSON.stringify(err));
         return;
       }
-
-      ThemeManager.init();
 
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
 
@@ -200,8 +200,10 @@ export default class EntryAbility extends UIAbility {
     } else {
       windowClass.setWindowLayoutFullScreen(false);
       windowClass.setWindowSystemBarProperties({
-        navigationBarColor: '#FFFFFF',
-        statusBarColor: '#00000000'
+        navigationBarColor: isDark ? '#000000' : '#FFFFFF',
+        statusBarColor: '#00000000',
+        statusBarContentColor: isDark ? '#FFFFFF' : '#000000',
+        isStatusBarLightIcon: isDark
       });
 
       hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp < 840. Mode: Normal`);

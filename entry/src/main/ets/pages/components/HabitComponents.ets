@@ -423,6 +423,8 @@ struct HabitSelectionOverlay {
 
 @Component
 export struct HabitRow {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop data: HabitWithDailyStatus;
   @Prop status: DDLStatus;
   @Prop isSelected: boolean;
@@ -438,44 +440,44 @@ export struct HabitRow {
   // --- 1. 获取纯色 (用于 Checkbox 选中色) ---
   private getIndicatorColor(): ResourceColor {
     switch (this.status) {
-      case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo');
-      case DDLStatus.NEAR: return $r('app.color.indicator_color_near');
-      case DDLStatus.PASSED: return $r('app.color.indicator_color_passed');
-      case DDLStatus.COMPLETED: return $r('app.color.indicator_color_completed');
-      default: return $r('app.color.indicator_color_undergo');
+      case DDLStatus.UNDERGO: return this.theme.indicatorUndergo;
+      case DDLStatus.NEAR: return this.theme.indicatorNear;
+      case DDLStatus.PASSED: return this.theme.indicatorPassed;
+      case DDLStatus.COMPLETED: return this.theme.indicatorCompleted;
+      default: return this.theme.indicatorUndergo;
     }
   }
 
   // --- 2. 新增：获取 50% 透明度的主色 (用于渐变起色) ---
   private getIndicatorColor50(): ResourceColor {
     switch (this.status) {
-      case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo_50');
-      case DDLStatus.NEAR: return $r('app.color.indicator_color_near_50');
-      case DDLStatus.PASSED: return $r('app.color.indicator_color_passed_50');
-      case DDLStatus.COMPLETED: return $r('app.color.indicator_color_completed_50');
-      default: return $r('app.color.indicator_color_undergo_50');
+      case DDLStatus.UNDERGO: return this.theme.indicatorUndergo50;
+      case DDLStatus.NEAR: return this.theme.indicatorNear50;
+      case DDLStatus.PASSED: return this.theme.indicatorPassed50;
+      case DDLStatus.COMPLETED: return this.theme.indicatorCompleted50;
+      default: return this.theme.indicatorUndergo50;
     }
   }
 
   // --- 3. 新增：获取 70% 透明度的主色 (用于渐变终色) ---
   private getIndicatorColor70(): ResourceColor {
     switch (this.status) {
-      case DDLStatus.UNDERGO: return $r('app.color.indicator_color_undergo_70');
-      case DDLStatus.NEAR: return $r('app.color.indicator_color_near_70');
-      case DDLStatus.PASSED: return $r('app.color.indicator_color_passed_70');
-      case DDLStatus.COMPLETED: return $r('app.color.indicator_color_completed_70');
-      default: return $r('app.color.indicator_color_undergo_70');
+      case DDLStatus.UNDERGO: return this.theme.indicatorUndergo70;
+      case DDLStatus.NEAR: return this.theme.indicatorNear70;
+      case DDLStatus.PASSED: return this.theme.indicatorPassed70;
+      case DDLStatus.COMPLETED: return this.theme.indicatorCompleted70;
+      default: return this.theme.indicatorUndergo70;
     }
   }
 
   // --- 4. 新增：获取 40% 透明度的背景色 (用于底色) ---
   private getBgColor40(): ResourceColor {
     switch (this.status) {
-      case DDLStatus.UNDERGO: return $r('app.color.background_color_undergo_40');
-      case DDLStatus.NEAR: return $r('app.color.background_color_near_40');
-      case DDLStatus.PASSED: return $r('app.color.background_color_passed_40');
-      case DDLStatus.COMPLETED: return $r('app.color.background_color_completed_40');
-      default: return $r('app.color.background_color_undergo_40');
+      case DDLStatus.UNDERGO: return this.theme.bgUndergo40;
+      case DDLStatus.NEAR: return this.theme.bgNear40;
+      case DDLStatus.PASSED: return this.theme.bgPassed40;
+      case DDLStatus.COMPLETED: return this.theme.bgCompleted40;
+      default: return this.theme.bgUndergo40;
     }
   }
 

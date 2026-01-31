@@ -14,7 +14,7 @@ export struct ArchivedDDLItemCard {
   onDelete: () => void = () => {}; // 删除回调
 
   // 主题颜色状态 - 固定为 Undergo 风格
-  @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo');
+  @State private indicatorColor: ResourceColor = this.theme.indicatorUndergo;
   @State private bgColor: ResourceColor = $r('app.color.background_secondary');
   @State private titleColor: ResourceColor = Color.Black;
   @State private noteColor: ResourceColor = Color.Gray;
@@ -28,7 +28,7 @@ export struct ArchivedDDLItemCard {
     this.globalBgColor = theme.colors.backgroundPrimary;
 
     // 强制使用 Undergo 风格
-    this.indicatorColor = $r('app.color.indicator_color_undergo');
+    this.indicatorColor = this.theme.indicatorUndergo;
     this.bgColor = $r('app.color.background_secondary');
   }
 
@@ -115,6 +115,8 @@ export struct ArchivedDDLItemCard {
 
 @Component
 export struct DDLItemCardSimplified {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop title: string;
   @Prop remainingTimeAlt: string;
   @Prop note: string;
@@ -124,12 +126,12 @@ export struct DDLItemCardSimplified {
 
   // 1. 状态定义：增加专门用于不同透明度的状态变量
   // 仍然保留 indicatorColor 用于星标 Icon (纯色)
-  @State private indicatorColor: ResourceColor = $r('app.color.indicator_color_undergo');
+  @State private indicatorColor: ResourceColor = this.theme.indicatorUndergo;
 
   // 新增：直接对应 json 中的透明度资源
-  @State private indicatorColor50: ResourceColor = $r('app.color.indicator_color_undergo_50');
-  @State private indicatorColor70: ResourceColor = $r('app.color.indicator_color_undergo_70');
-  @State private bgColor40: ResourceColor = $r('app.color.background_color_undergo_40');
+  @State private indicatorColor50: ResourceColor = this.theme.indicatorUndergo50;
+  @State private indicatorColor70: ResourceColor = this.theme.indicatorUndergo70;
+  @State private bgColor40: ResourceColor = this.theme.bgUndergo40;
 
   @State private titleColor: ResourceColor = Color.Black;
   @State private noteColor: ResourceColor = Color.Gray;
@@ -143,28 +145,28 @@ export struct DDLItemCardSimplified {
     // 2. 根据 Status 映射资源 ID
     // 系统会自动根据当前深浅模式解析这些 ID
     if (this.status === DDLStatus.UNDERGO) {
-      this.indicatorColor = $r('app.color.indicator_color_undergo');
-      this.indicatorColor50 = $r('app.color.indicator_color_undergo_50');
-      this.indicatorColor70 = $r('app.color.indicator_color_undergo_70');
-      this.bgColor40 = $r('app.color.background_color_undergo_40');
+      this.indicatorColor = this.theme.indicatorUndergo;
+      this.indicatorColor50 = this.theme.indicatorUndergo50;
+      this.indicatorColor70 = this.theme.indicatorUndergo70;
+      this.bgColor40 = this.theme.bgUndergo40;
 
     } else if (this.status === DDLStatus.NEAR) {
-      this.indicatorColor = $r('app.color.indicator_color_near');
-      this.indicatorColor50 = $r('app.color.indicator_color_near_50');
-      this.indicatorColor70 = $r('app.color.indicator_color_near_70');
-      this.bgColor40 = $r('app.color.background_color_near_40');
+      this.indicatorColor = this.theme.indicatorNear;
+      this.indicatorColor50 = this.theme.indicatorNear50;
+      this.indicatorColor70 = this.theme.indicatorNear70;
+      this.bgColor40 = this.theme.bgNear40;
 
     } else if (this.status === DDLStatus.PASSED) {
-      this.indicatorColor = $r('app.color.indicator_color_passed');
-      this.indicatorColor50 = $r('app.color.indicator_color_passed_50');
-      this.indicatorColor70 = $r('app.color.indicator_color_passed_70');
-      this.bgColor40 = $r('app.color.background_color_passed_40');
+      this.indicatorColor = this.theme.indicatorPassed;
+      this.indicatorColor50 = this.theme.indicatorPassed50;
+      this.indicatorColor70 = this.theme.indicatorPassed70;
+      this.bgColor40 = this.theme.bgPassed40;
 
     } else if (this.status === DDLStatus.COMPLETED) {
-      this.indicatorColor = $r('app.color.indicator_color_completed');
-      this.indicatorColor50 = $r('app.color.indicator_color_completed_50');
-      this.indicatorColor70 = $r('app.color.indicator_color_completed_70');
-      this.bgColor40 = $r('app.color.background_color_completed_40');
+      this.indicatorColor = this.theme.indicatorCompleted;
+      this.indicatorColor50 = this.theme.indicatorCompleted50;
+      this.indicatorColor70 = this.theme.indicatorCompleted70;
+      this.bgColor40 = this.theme.bgCompleted40;
     }
   }
 

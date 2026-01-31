@@ -240,7 +240,7 @@ export struct UserPage {
               SettingsGridItem({
                 title: "归档管理",
                 icon: $r('sys.symbol.archivebox_fill'),
-                iconColor: this.theme.brand,
+                iconColor: $r('app.color.func_archive'),
                 onItemClick: () => {
                   this.isArchiveSheetShow = true;
                 }
