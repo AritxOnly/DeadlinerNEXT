@@ -2,11 +2,13 @@ import { LocalValues } from '../../../../common/local/LocalValues';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
 import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
   SettingsCheckItem,
-  SubSettingsDivider} from '../../../components/SettingsComponents';
+  SubSettingsDivider,
+  SettingsSlider} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
+import { window } from '@kit.ArkUI';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -35,6 +37,10 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_EXCITEMENT_TEXT) excitementText: boolean = true;
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
   @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
+  @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) weight: number = 600;
+
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
+  @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
 
   build() {
     HdsNavDestination() {
@@ -42,7 +48,7 @@ struct AppearanceSettings {
         Column({ space: 16 }) {
 
           // --- 界面布局 ---
-          SettingsSection({ title: '界面布局' }) {
+          SettingsSection({ title: '界面显示' }) {
             SubSettingsSwitch({
               title: "正向进度条",
               subtitle: "开启后，首页任务卡片将显示“已进行时间”，关闭则显示“剩余时间”。",
@@ -78,6 +84,47 @@ struct AppearanceSettings {
                 this.navigateTo('settingsWidgetBackground');
               }
             })
+          }
+
+          SettingsSection() {
+            SettingsSlider({
+              title: "主页添加按钮字重",
+              icon: $r('sys.symbol.plus_circle'), // 使用加号图标作为示意
+              value: $weight, // 双向绑定 StorageLink
+              min: 100, // 字重最小值
+              max: 800, // 字重最大值
+              step: 100, // 步长，让用户可以选择 400, 500, 600 等整数
+              showSteps: true, // 显示吸附点
+              showValueText: true,
+              onChange: (val) => {
+                // 保存设置
+                LocalValues.getInstance().setAddSymbolWeight(val);
+              }
+            })
+          }
+
+          if (this.isWideScreen) {
+            SettingsSection({ title: '平板专区' }) {
+              SubSettingsSwitch({
+                title: "平板 UI 适配",
+                subtitle: "关闭后，平板电脑将回归和手机一致的 UI 布局；否则则为平板特殊适配的布局。",
+                isOn: this.tabletUi,
+                onChange: async (isOn): Promise<void> => {
+                  await LocalValues.getInstance().setTabletUI(isOn);
+                  const context = getContext(this) as common.UIAbilityContext;
+                  context.eventHub.emit('refresh_window_mode');
+                }
+              })
+
+              SubSettingsDivider()
+
+              SubSettingsSwitch({
+                title: "主页侧边看板",
+                subtitle: "开启后，主页将展示侧边看板展示可供预览的信息。",
+                isOn: this.tabletSd,
+                onChange: (isOn): Promise<void> => LocalValues.getInstance().setSideDashboard(isOn)
+              })
+            }
           }
 
           // --- 视觉反馈 ---

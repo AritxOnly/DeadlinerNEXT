@@ -11,6 +11,7 @@ import { AiFlowBackground } from './common/AIFlowBackground';
 import { HuaweiAccountUtils } from '../utils/account/HuaweiAccountUtils';
 import { MainHomePageTablet } from './routes/main/MainHomePageTablet';
 import { OverviewPageTablet } from './routes/overview/OverviewPageTablet';
+import { SettingsConstants as C } from '../common/local/SettingsConstants';
 
 interface TabData {
   title: string,
@@ -42,6 +43,7 @@ struct Index {
   }
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
 
   listener = mediaquery.matchMediaSync('(min-width: 840vp)');
 
@@ -238,13 +240,13 @@ struct Index {
       if (this.isShowUI) {
         Navigation(this.appPathStack) {
           Tabs({
-            barPosition: this.isWideScreen ? BarPosition.Start : BarPosition.End,
+            barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
             index: this.currentIndex,
             controller: this.tabsController
           }) {
             // --- Tab 1: 主页 ---
             TabContent() {
-              if (!this.isWideScreen) {
+              if (!(this.isWideScreen && this.tabletUi)) {
                 MainHomePage({ currentTabIndex: this.currentIndex })
                   .width("100%")
                   .height("100%")
@@ -271,7 +273,7 @@ struct Index {
 
             // --- Tab 2: 概览 ---
             TabContent() {
-              if (!this.isWideScreen) {
+              if (!(this.isWideScreen && this.tabletUi)) {
                 OverviewPage({ currentTabIndex: this.currentIndex })
                   .attributeModifier(new TabAnimModifier(1, this.currentIndex))
                   .animation({
@@ -300,13 +302,13 @@ struct Index {
                   duration: 300, // 保持与 Tabs 动画时长一致
                   curve: Curve.EaseInOut
                 })
-                .padding({ left: this.isWideScreen ? TAB_VERTICAL_PADDING : 0 })
+                .padding({ left: (this.isWideScreen && this.tabletUi) ? TAB_VERTICAL_PADDING : 0 })
             }
             .tabBar(this.getTabBarStyle(this.tabs[2]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor($r('app.color.background_primary'))
           }
-          .vertical(this.isWideScreen)
+          .vertical(this.isWideScreen && this.tabletUi)
           .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .barMode(BarMode.Fixed)
           .barOverlap(true)

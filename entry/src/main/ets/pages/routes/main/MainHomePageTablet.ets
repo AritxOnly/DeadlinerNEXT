@@ -59,6 +59,7 @@ export struct MainHomePageTablet {
 
   @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
   @StorageLink(C.KEY_EXCITEMENT_TEXT) @Watch('updateNavSubTitle') excitementText: boolean = true;
+  @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) sdEnabled: boolean = true;
 
   // --- Controllers ---
   // 添加 Watch 监听，实现“互斥多选”逻辑
@@ -351,17 +352,18 @@ export struct MainHomePageTablet {
             backgroundColor: Color.Transparent,
             showClose: false
           })
+          if (this.sdEnabled) {
+            Divider()
+              .vertical(true)
+              .height('100%')
+              .strokeWidth(1)
+              .color($r('sys.color.ohos_id_color_list_separator'))
+              .opacity(0.5)
 
-          Divider()
-            .vertical(true)
-            .height('100%')
-            .strokeWidth(1)
-            .color($r('sys.color.ohos_id_color_list_separator'))
-            .opacity(0.5)
-
-          SideDashboard()
-            .width(108)
-            .height('100%')
+            SideDashboard()
+              .width(108)
+              .height('100%')
+          }
         }
         .width('100%')
         .height('100%')

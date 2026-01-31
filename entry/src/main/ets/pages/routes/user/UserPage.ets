@@ -37,6 +37,7 @@ export struct UserPage {
   @Provide('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
   @StorageLink('isWideScreen') @Watch('onScreenModeChange') isWideScreen: boolean = false;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) @Watch('onScreenModeChange') tabletUi: boolean = true;
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
@@ -48,7 +49,7 @@ export struct UserPage {
     console.info(`[UserPage] Screen Mode Change Detected. Wide: ${this.isWideScreen}`);
 
     setTimeout(() => {
-      if (this.isWideScreen) {
+      if ((this.isWideScreen && this.tabletUi)) {
         this.migrateToLocal();
       } else {
         this.migrateToGlobal();
@@ -120,7 +121,7 @@ export struct UserPage {
       this.versionName = '1.0.0'; // 失败时的默认值
     }
 
-    if (this.isWideScreen && this.userLocalPathStack.size() === 0) {
+    if ((this.isWideScreen && this.tabletUi) && this.userLocalPathStack.size() === 0) {
       this.userLocalPathStack.pushPath({ name: PLACEHOLDER_ROUTE_NAME }, false);
     }
   }
@@ -214,7 +215,7 @@ export struct UserPage {
   }
 
   private navigateTo(name: string) {
-    if (this.isWideScreen) {
+    if ((this.isWideScreen && this.tabletUi)) {
       this.userLocalPathStack.pushPath({ name: name });
     } else {
       this.appPathStack.pushPath({ name: name });
@@ -413,7 +414,7 @@ export struct UserPage {
       }
     }
     .titleBar({
-      style: getImmersiveTitleBarStyle(this.isWideScreen),
+      style: getImmersiveTitleBarStyle((this.isWideScreen && this.tabletUi)),
       content: {
         title: {
           mainTitle: '我的'
@@ -436,8 +437,8 @@ export struct UserPage {
         title: 'Deadliner AI',
       }
     })
-    .padding({ top: this.isWideScreen ? this.statusBarHeight : 0 })
-    .mode(this.isWideScreen ? NavigationMode.Split : NavigationMode.Stack)
-    .navBarWidth(this.isWideScreen ? '40%' : '100%')
+    .padding({ top: (this.isWideScreen && this.tabletUi) ? this.statusBarHeight : 0 })
+    .mode((this.isWideScreen && this.tabletUi) ? NavigationMode.Split : NavigationMode.Stack)
+    .navBarWidth((this.isWideScreen && this.tabletUi) ? '40%' : '100%')
   }
 }

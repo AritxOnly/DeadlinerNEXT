@@ -38,6 +38,10 @@ export class SettingsConstants {
   static readonly KEY_ENGLISH_SOMEWHERE = 'english_somewhere';
   static readonly KEY_HABIT_PROGRESS_STYLE = 'habit_progress_style';
 
+  static readonly KEY_ADD_SYMBOL_WEIGHT = 'add_symbol_weight';
+  static readonly KEY_ENABLE_TABLET_UI = 'enable_tablet_ui';
+  static readonly KEY_TABLET_SIDE_DASHBOARD = 'tablet_side_dashboard';
+
   static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';
   static readonly KEY_TREND_CARD_ORDER = 'trend_card_order';
 }

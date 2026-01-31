@@ -13,15 +13,25 @@ import { HabitRepository } from '../common/repository/HabitRepository';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { ManualDataManager } from '../common/manual/ManualModel';
+import { SettingsConstants as C } from '../common/local/SettingsConstants';
 
 const DOMAIN = 0x0000;
 
 export default class EntryAbility extends UIAbility {
+
+  private mainWindowClass: window.Window | undefined = undefined;
+
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
 
       await LocalValues.getInstance().init(this.context);
+
+      if (this.mainWindowClass) {
+        hilog.info(DOMAIN, 'testTag', 'LocalValues loaded after window created, refreshing window mode...');
+        this.updateWindowMode(this.mainWindowClass);
+      }
+
       await DatabaseHelper.getInstance().init(this.context);
       TaskRepository.getInstance().setContext(this.context)
     } catch (err) {
@@ -56,6 +66,8 @@ export default class EntryAbility extends UIAbility {
   onWindowStageCreate(windowStage: window.WindowStage): void {
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onWindowStageCreate');
 
+    this.mainWindowClass = windowStage.getMainWindowSync();
+
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
         hilog.error(DOMAIN, 'testTag', 'Failed to load content: %{public}s', JSON.stringify(err));
@@ -66,6 +78,11 @@ export default class EntryAbility extends UIAbility {
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
 
       this.handleResponsiveImmersive(windowStage);
+
+      this.context.eventHub.on('refresh_window_mode', () => {
+        let windowClass = windowStage.getMainWindowSync();
+        this.updateWindowMode(windowClass);
+      });
 
       this.requestNotificationPermission();
     });
@@ -162,12 +179,14 @@ export default class EntryAbility extends UIAbility {
     let displayClass = display.getDefaultDisplaySync();
     let widthVp = widthPx / displayClass.densityPixels;
 
+    let enableTabletUi = AppStorage.get<boolean>(C.KEY_ENABLE_TABLET_UI) ?? true;
+
     // 判断界限：840vp (与你 Index.ets 中的媒体查询保持一致)
     let isWideScreen = widthVp >= 840;
 
     let isDark = this.context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
 
-    if (isWideScreen) {
+    if (isWideScreen && enableTabletUi) {
       windowClass.setWindowLayoutFullScreen(true);
       windowClass.setWindowSystemBarProperties({
         navigationBarColor: '#00000000',

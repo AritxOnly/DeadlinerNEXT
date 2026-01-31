@@ -113,6 +113,15 @@ export class LocalValues {
       const habitPs = await this.pref.get(C.KEY_HABIT_PROGRESS_STYLE, 'ellipse');
       AppStorage.setOrCreate(C.KEY_HABIT_PROGRESS_STYLE, habitPs);
 
+      const addWeight = await this.pref.get(C.KEY_ADD_SYMBOL_WEIGHT, 600);
+      AppStorage.setOrCreate(C.KEY_ADD_SYMBOL_WEIGHT, addWeight);
+
+      const tabletMode = await this.pref.get(C.KEY_ENABLE_TABLET_UI, true);
+      AppStorage.setOrCreate(C.KEY_ENABLE_TABLET_UI, tabletMode);
+
+      const tabletSideDashboard = await this.pref.get(C.KEY_TABLET_SIDE_DASHBOARD, true);
+      AppStorage.setOrCreate(C.KEY_TABLET_SIDE_DASHBOARD, tabletSideDashboard);
+
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
 
@@ -500,5 +509,29 @@ export class LocalValues {
 
   async setHabitProgressStyle(style: string) {
     await this.setValue(C.KEY_HABIT_PROGRESS_STYLE, style);
+  }
+
+  getAddSymbolWeight(): number {
+    return AppStorage.get<number>(C.KEY_ADD_SYMBOL_WEIGHT) ?? 600;
+  }
+
+  async setAddSymbolWeight(weight: number) {
+    await this.setValue(C.KEY_ADD_SYMBOL_WEIGHT, weight);
+  }
+
+  getTabletUI(): boolean {
+    return AppStorage.get<boolean>(C.KEY_ENABLE_TABLET_UI) ?? true;
+  }
+
+  async setTabletUI(enable: boolean) {
+    await this.setValue(C.KEY_ENABLE_TABLET_UI, enable);
+  }
+
+  getSideDashboard(): boolean {
+    return AppStorage.get<boolean>(C.KEY_TABLET_SIDE_DASHBOARD) ?? true;
+  }
+
+  async setSideDashboard(enable: boolean) {
+    await this.setValue(C.KEY_TABLET_SIDE_DASHBOARD, enable);
   }
 }

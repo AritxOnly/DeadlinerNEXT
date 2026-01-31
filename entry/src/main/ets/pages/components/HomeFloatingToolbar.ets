@@ -1,5 +1,6 @@
 import { HdsActionBar, ActionBarButton, ActionBarStyle, BlurStrategy } from '@kit.UIDesignKit'
 import { ColorMetrics, SymbolGlyphModifier } from '@kit.ArkUI'
+import { SettingsConstants as C } from '../../common/local/SettingsConstants'
 
 @Component
 export struct HomeFloatingToolbar {
@@ -14,6 +15,8 @@ export struct HomeFloatingToolbar {
 
   @Prop isSelectionMode: boolean = false
   @Prop selectedTask: boolean = true;
+
+  @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) addSymbolWeight: number = 600;
 
   getLeftButton() {
     if (this.selectedTask) {
@@ -47,11 +50,11 @@ export struct HomeFloatingToolbar {
         primaryButton: new ActionBarButton({
           baseIconSymbolGlyphModifier: this.getIconButtonWeighed(
             $r('sys.symbol.plus'),
-            500
+            this.addSymbolWeight
           ),
           altIconSymbolGlyphModifier: this.getIconButtonWeighed(
             $r('sys.symbol.xmark'),
-            500
+            this.addSymbolWeight
           ),
           backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
           onClick: () => {
@@ -100,11 +103,11 @@ export struct HomeFloatingToolbar {
         primaryButton: new ActionBarButton({
           baseIconSymbolGlyphModifier: this.getIconButtonWeighed(
             $r('sys.symbol.plus'),
-            500
+            this.addSymbolWeight
           ),
           altIconSymbolGlyphModifier: this.getIconButtonWeighed(
             $r('sys.symbol.xmark'),
-            500
+            this.addSymbolWeight
           ),
           backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
           onClick: () => {

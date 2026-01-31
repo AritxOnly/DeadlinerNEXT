@@ -583,3 +583,111 @@ export struct SettingsCheckItem {
     })
   }
 }
+
+/**
+ * SettingsSlider: 滑动条设置项
+ * 支持连续滑动和分段滑动（通过 step 参数控制）
+ * 样式保持与其他 SettingsItem 一致
+ */
+@Component
+export struct SettingsSlider {
+  // 基础信息
+  title: string | Resource = '';
+  icon?: Resource;
+
+  // 数据绑定
+  @Link value: number; // 双向绑定，父组件需使用 $value
+  min: number = 0;
+  max: number = 100;
+
+  /**
+   * 步长：
+   * - undefined 或 0: 连续滑动
+   * - > 0: 分段滑动 (吸附效果)
+   */
+  step?: number = 0;
+
+  // 样式与交互配置
+  showValueText: boolean = true; // 是否显示当前数值
+  valueSuffix: string = ''; // 数值后缀，例如 "%", "px"
+  showSteps: boolean = false; // 是否在轨道上显示分段圆点 (仅 step > 0 时有效)
+
+  // 回调
+  onChange?: (value: number) => void;
+
+  // 内部状态
+  @State isPressed: boolean = false;
+
+  build() {
+    Column() {
+      // 1. 标题行 (图标 + 标题 + 当前数值)
+      Row() {
+        if (this.icon) {
+          SymbolGlyph(this.icon)
+            .fontSize(24)
+            .fontColor([$r('app.color.font_primary')])
+            .margin({ right: 16 })
+        }
+
+        Text(this.title)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.font_primary'))
+          .layoutWeight(1)
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        // 右侧显示当前值 (可选)
+        if (this.showValueText) {
+          Text(`${Math.round(this.value)}${this.valueSuffix}`)
+            .fontSize(14)
+            .fontColor($r('app.color.font_secondary'))
+            .fontWeight(FontWeight.Medium)
+            .margin({ left: 8 })
+            .textAlign(TextAlign.End)
+        }
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Center)
+
+      // 2. 滑动条区域
+      Row() {
+        Slider({
+          value: this.value,
+          min: this.min,
+          max: this.max,
+          step: this.step, // 关键：step 决定了是否分段
+          style: SliderStyle.OutSet // OutSet 风格更适合列表项，InSet 更适合媒体控制器
+        })
+          .showSteps(this.showSteps && (this.step ?? 0) > 0) // 是否显示刻度点
+          // .blockColor('#FFFFFF') // 滑块颜色
+          .trackColor($r('sys.color.ohos_id_color_list_separator')) // 轨道背景色
+          .selectedColor($r('app.color.brand')) // 选中轨道颜色（品牌色）
+          .showTips(false) // 拖动时不显示气泡，因为我们已经在右上角显示数值了
+          .onChange((value: number, mode: SliderChangeMode) => {
+            this.value = value; // 更新 @Link
+            // 只有在移动结束或持续移动时触发回调，视需求而定
+            if (this.onChange) {
+              this.onChange(value);
+            }
+          })
+          .width('100%')
+      }
+      .width('100%')
+      .padding({ top: 8 }) // 稍微给点间距，让Slider不至于太贴文字
+    }
+    .width('100%')
+    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+    .borderRadius(20)
+    .margin({ top: 2, bottom: 2, start: LengthMetrics.vp(2), end: LengthMetrics.vp(2) })
+    .backgroundColor(Color.Transparent)
+    .animation({ duration: 200 })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        this.isPressed = true;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false;
+      }
+    })
+  }
+}
