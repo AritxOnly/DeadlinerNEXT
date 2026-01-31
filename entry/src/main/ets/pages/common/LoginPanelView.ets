@@ -1,12 +1,15 @@
 import { LoginWithHuaweiIDButton, loginComponentManager } from '@kit.AccountKit';
 import { promptAction } from '@kit.ArkUI';
-import { HuaweiAccountController, HuaweiAccountUtils } from '../../utils/account/HuaweiAccountUtils'; // 假设你的路径
+import { HuaweiAccountController, HuaweiAccountUtils } from '../../utils/account/HuaweiAccountUtils';
 import { BusinessError } from '@kit.BasicServicesKit';
 import auth from '@hw-agconnect/auth';
 import { hilog } from '@kit.PerformanceAnalysisKit';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @Component
 export struct LoginPanelView {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @State isPrivacyChecked: boolean = false;
 
   private accountUtils: HuaweiAccountUtils = new HuaweiAccountUtils();
@@ -131,7 +134,7 @@ export struct LoginPanelView {
       Row() {
         Checkbox({ name: 'privacy', group: 'login' })
           .select(this.isPrivacyChecked)
-          .selectedColor($r('app.color.brand')) // 匹配华为红
+          .selectedColor(this.theme.brand) // 匹配华为红
           .onChange((value: boolean) => {
             this.updateAgreementStatus(value);
           })

@@ -16,13 +16,13 @@ export const ThemeMap: Record<string, ITheme> = {
   // 'vibrant': {
   //   brand: $r('app.color.brand_vibrant'),
   //   accent: $r('app.color.accent_vibrant'),
-  //   bgPrimary: $r('app.color.background_primary')
+  //   bgPrimary: this.theme.bgPrimary
   // },
 
   'harmony': {
     brand: $r('sys.color.ohos_id_color_emphasize'),
     brand50: $r('sys.color.ohos_id_color_secondary'),
-    accent: $r('sys.color.ohos_id_color_warning'),
-    bgPrimary: $r('sys.color.ohos_id_color_background')
+    accent: $r('sys.color.ohos_id_color_activated'),
+    bgPrimary: $r('app.color.background_primary')
   }
 };

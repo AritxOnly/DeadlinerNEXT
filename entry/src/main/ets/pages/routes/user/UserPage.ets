@@ -17,6 +17,7 @@ import { ArchivePanelView } from "../../common/ArchivePanelView";
 import { AIPanelView } from "../../common/AIPanelView";
 import { SupportPanelView } from "../../common/SupportPanelView";
 import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
+import { ITheme } from "../../../common/theme/ThemeModel";
 
 const USER_ROUTE_WHITELIST: string[] = [
   'settingsAppearance',
@@ -33,6 +34,8 @@ const PLACEHOLDER_ROUTE_NAME = 'placeholder';
 
 @Component
 export struct UserPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Consume('appPathStack') appPathStack: NavPathStack;
   @Provide('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
@@ -139,7 +142,7 @@ export struct UserPage {
         action: () => {
           this.isBasicMode = false;
         },
-        fontColor: $r('app.color.brand')
+        fontColor: this.theme.brand
       },
       secondaryButton: {
         value: '确认开启',
@@ -237,7 +240,7 @@ export struct UserPage {
               SettingsGridItem({
                 title: "归档管理",
                 icon: $r('sys.symbol.archivebox_fill'),
-                iconColor: $r('app.color.brand'),
+                iconColor: this.theme.brand,
                 onItemClick: () => {
                   this.isArchiveSheetShow = true;
                 }

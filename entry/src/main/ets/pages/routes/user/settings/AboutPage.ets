@@ -9,6 +9,7 @@ import { WebParams } from "../../../common/WebBrowserPage";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 import { MarkdownView } from "../../../components/MarkdownView";
 import { LETTER_CONTENT } from "./LetterPage";
+import { ITheme } from "../../../../common/theme/ThemeModel";
 
 @Builder
 export function AboutPageBuilder() {
@@ -17,6 +18,8 @@ export function AboutPageBuilder() {
 
 @Component
 export struct AboutPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
   @Consume('appPathStack') appPathStack: NavPathStack;
 
@@ -49,7 +52,7 @@ export struct AboutPage {
         value: '取消',
         action: () => {
         },
-        fontColor: $r('app.color.brand')
+        fontColor: this.theme.brand
       },
       secondaryButton: {
         value: '确定撤回',
@@ -97,7 +100,7 @@ export struct AboutPage {
     Column() {
       MarkdownView({
         content: LETTER_CONTENT,
-        baseColor: $r('app.color.brand')
+        baseColor: this.theme.brand
       })
     }
     .width('100%')

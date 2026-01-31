@@ -1,5 +1,7 @@
-export class DateTimeUtils {
+import { ThemeManager } from "../common/theme/ThemeManager";
+import { ITheme } from "../common/theme/ThemeModel";
 
+export class DateTimeUtils {
   /**
    * 联动选择器：先选日期，再选时间
    * @param currentModel 当前绑定的时间对象 (Date)
@@ -35,16 +37,16 @@ export class DateTimeUtils {
           },
           // 统一样式
           backgroundBlurStyle: BlurStyle.Regular,
-          selectedTextStyle: { color: $r('app.color.brand') },
-          acceptButtonStyle: { fontColor: $r('app.color.brand') },
-          cancelButtonStyle: { fontColor: $r('app.color.brand') }
+          selectedTextStyle: { color: ThemeManager.getCurrentTheme().brand },
+          acceptButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand },
+          cancelButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand }
         })
       },
       // 统一样式
       backgroundBlurStyle: BlurStyle.Regular,
-      selectedTextStyle: { color: $r('app.color.brand') },
-      acceptButtonStyle: { fontColor: $r('app.color.brand') },
-      cancelButtonStyle: { fontColor: $r('app.color.brand') }
+      selectedTextStyle: { color: ThemeManager.getCurrentTheme().brand },
+      acceptButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand },
+      cancelButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand }
     })
   }
 

@@ -3,6 +3,7 @@ import { LengthMetrics, promptAction } from "@kit.ArkUI";
 import { LoginPanelView } from "../common/LoginPanelView";
 import { authentication } from "@kit.AccountKit";
 import { HuaweiAccountUtils } from "../../utils/account/HuaweiAccountUtils";
+import { ITheme } from "../../common/theme/ThemeModel";
 
 /**
  * SettingsSection: 类似 Android 的 Surface 容器
@@ -128,7 +129,7 @@ export struct SettingsGridItem {
       if (this.icon) {
         SymbolGlyph(this.icon)
           .fontSize(28) // 图标稍微大一点
-          .fontColor([this.iconColor]) // 或者用 brand 颜色高亮：$r('app.color.brand')
+          .fontColor([this.iconColor]) // 或者用 brand 颜色高亮：this.theme.brand
           .margin({ bottom: 8 }) // 图标和文字的间距
       }
 
@@ -163,6 +164,8 @@ export struct SettingsGridItem {
  */
 @Component
 export struct SettingsSwitch {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 基础信息
   title: string | Resource = '';
   subtitle?: string | Resource;
@@ -211,7 +214,7 @@ export struct SettingsSwitch {
 
       // 3. 右侧开关
       Toggle({ type: ToggleType.Switch, isOn: this.isOn })
-        .selectedColor($r('app.color.brand')) // 选中时的品牌色
+        .selectedColor(this.theme.brand) // 选中时的品牌色
         .switchPointColor('#FFFFFF') // 滑块颜色
         .height(24) // 限制高度，使其与图标协调
         .hitTestBehavior(HitTestMode.None) // [关键点]：让 Toggle 不拦截点击，事件交给 Row 统一处理
@@ -289,6 +292,7 @@ export struct SettingsVerticalDivider {
 
 @Component
 export struct SettingsUserProfile {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
   @StorageProp('userProfileRefreshTrigger') @Watch('onTriggerRefresh') refreshTrigger: number = 0;
 
@@ -368,7 +372,7 @@ export struct SettingsUserProfile {
       message: '确定要退出当前账号吗？',
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'),
+        fontColor: this.theme.brand,
         action: () => {}
       },
       secondaryButton: {
@@ -454,6 +458,7 @@ export struct SettingsUserProfile {
 
 @Component
 export struct SubSettingsSwitch {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   title: string | Resource = '';
   subtitle?: string | Resource = '';
 
@@ -499,7 +504,7 @@ export struct SubSettingsSwitch {
             this.onChange(isOn);
           }
         })
-        .selectedColor($r('app.color.brand')) // 品牌色
+        .selectedColor(this.theme.brand) // 品牌色
         .hitTestBehavior(HitTestMode.Block) // 确保开关点击优先响应
     }
     .width('100%')
@@ -530,6 +535,8 @@ export struct SubSettingsSwitch {
  */
 @Component
 export struct SettingsCheckItem {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   title: string | Resource = '';
   icon?: Resource;
   @Prop isSelected: boolean = false;
@@ -558,7 +565,7 @@ export struct SettingsCheckItem {
       // hitTestBehavior(HitTestMode.None) 让点击事件穿透给 Row，体验更好
       Checkbox({ name: 'checkbox', group: 'group' })
         .select(this.isSelected)
-        .selectedColor($r('app.color.brand'))
+        .selectedColor(this.theme.brand)
         .hitTestBehavior(HitTestMode.None)
         .width(24)
         .height(24)
@@ -591,6 +598,8 @@ export struct SettingsCheckItem {
  */
 @Component
 export struct SettingsSlider {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 基础信息
   title: string | Resource = '';
   icon?: Resource;
@@ -662,7 +671,7 @@ export struct SettingsSlider {
           .showSteps(this.showSteps && (this.step ?? 0) > 0) // 是否显示刻度点
           // .blockColor('#FFFFFF') // 滑块颜色
           .trackColor($r('sys.color.ohos_id_color_list_separator')) // 轨道背景色
-          .selectedColor($r('app.color.brand')) // 选中轨道颜色（品牌色）
+          .selectedColor(this.theme.brand) // 选中轨道颜色（品牌色）
           .showTips(false) // 拖动时不显示气泡，因为我们已经在右上角显示数值了
           .onChange((value: number, mode: SliderChangeMode) => {
             this.value = value; // 更新 @Link

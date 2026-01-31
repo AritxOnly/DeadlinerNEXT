@@ -1,4 +1,5 @@
 import { Context } from '@kit.AbilityKit';
+import { ThemeManager } from '../common/theme/ThemeManager';
 
 export class ColorUtils {
   /**

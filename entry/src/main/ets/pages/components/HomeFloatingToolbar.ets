@@ -1,9 +1,12 @@
 import { HdsActionBar, ActionBarButton, ActionBarStyle, BlurStrategy } from '@kit.UIDesignKit'
 import { ColorMetrics, SymbolGlyphModifier } from '@kit.ArkUI'
 import { SettingsConstants as C } from '../../common/local/SettingsConstants'
+import { ITheme } from '../../common/theme/ThemeModel'
 
 @Component
 export struct HomeFloatingToolbar {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Require onClickAdd: () => void
   @Require handleBatchComplete: () => void
   @Require handleBatchArchive: () => void
@@ -56,7 +59,7 @@ export struct HomeFloatingToolbar {
             $r('sys.symbol.xmark'),
             this.addSymbolWeight
           ),
-          backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
+          backgroundColor: ColorMetrics.resourceColor(this.theme.accent),
           onClick: () => {
             this.onClickAdd()
           }
@@ -109,7 +112,7 @@ export struct HomeFloatingToolbar {
             $r('sys.symbol.xmark'),
             this.addSymbolWeight
           ),
-          backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
+          backgroundColor: ColorMetrics.resourceColor(this.theme.accent),
           onClick: () => {
             this.onClickAdd()
           }

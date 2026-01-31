@@ -5,6 +5,7 @@ import { AIService } from "../../../../ai/AIServcice";
 import { Theme } from '@kit.ArkUI';
 import { ManualDataManager } from "../../../../common/manual/ManualModel";
 import { HelpDetailSheet } from "../manual/HelpDetailSheet";
+import { ITheme } from "../../../../common/theme/ThemeModel";
 
 @Builder
 export function SettingsAIBuilder(name: string, param: Object) {
@@ -13,6 +14,8 @@ export function SettingsAIBuilder(name: string, param: Object) {
 
 @Component
 export struct DeadlinerAISettingsPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   pageStack: NavPathStack = new NavPathStack();
 
   @StorageLink(SettingsConstants.KEY_AI_PROVIDER) provider: string = 'deepseek';
@@ -224,7 +227,7 @@ export struct DeadlinerAISettingsPage {
         action: () => { this.isHelpSheetShow = true }
       }
     ])
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.theme.bgPrimary)
     .bindSheet($$this.isHelpSheetShow, this.helpSheet(), {
       title: { title: '如何配置 DeepSeek API？' },
       detents: [

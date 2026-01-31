@@ -1,9 +1,12 @@
 import { DDLStatus } from "../../model/DDLStatus";
 import { ColorUtils } from "../../utils/ColorUtils";
 import { common } from "@kit.AbilityKit";
+import { ITheme } from "../../common/theme/ThemeModel";
 
 @Component
 export struct ArchivedDDLItemCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop title: string;
   @Prop startTime: string;   // 起始时间
   @Prop completeTime: string; // 完成时间
@@ -297,6 +300,8 @@ struct SelectionOverlay {
 
 @Component
 export struct DDLItemCardSwipeable {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 数据 Props
   @Prop title: string;
   @Prop remainingTimeAlt: string;
@@ -323,8 +328,8 @@ export struct DDLItemCardSwipeable {
   // 颜色状态
   @State deleteColor: ResourceColor = $r('app.color.chart_red'); // R.color.chart_red
   @State completeColor: ResourceColor = $r('app.color.chart_green'); // R.color.chart_green
-  @State surfaceVariant: ResourceColor = $r('app.color.background_primary');
-  @State fontColor: ResourceColor = $r('app.color.background_primary')
+  @State surfaceVariant: ResourceColor = this.theme.bgPrimary;
+  @State fontColor: ResourceColor = this.theme.bgPrimary
 
   build() {
     Stack() {

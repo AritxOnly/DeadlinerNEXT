@@ -12,12 +12,15 @@ import { HabitEditSheet } from "./modify/HabitEditSheet";
 import { HabitReminderDialog } from "../../components/HabitReminderDialog";
 import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
+import { ITheme } from "../../../common/theme/ThemeModel";
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
 
 @Component
 export struct HabitListSection {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop topAvoidHeight: number = 0;
 
   scroller: Scroller = new Scroller();
@@ -354,7 +357,7 @@ export struct HabitListSection {
       backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'),
+        fontColor: this.theme.brand,
         action: () => {
           // 点击取消，不做任何事，或者可以退出选择模式
         }

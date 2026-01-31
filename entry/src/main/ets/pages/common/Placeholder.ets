@@ -1,5 +1,6 @@
 import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { getImmersiveTitleBarStyle } from '../../common/style/NavStyles';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @Builder
 export function PlaceholderBuilder() {
@@ -8,6 +9,8 @@ export function PlaceholderBuilder() {
 
 @Component
 export struct PlaceHolder {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 引入 isWideScreen 用于获取正确的背景色样式
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
@@ -35,7 +38,7 @@ export struct PlaceHolder {
       .justifyContent(FlexAlign.Center)
       .alignItems(HorizontalAlign.Center)
       // 背景色设在这里
-      .backgroundColor($r('app.color.background_primary'))
+      .backgroundColor(this.theme.bgPrimary)
     }
     // 配置标题栏（即使隐藏也要配置，为了统一沉浸式行为）
     .titleBar({

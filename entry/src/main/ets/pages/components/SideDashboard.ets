@@ -4,9 +4,12 @@ import { common } from '@kit.AbilityKit';
 import { TaskRepository } from '../../common/repository/TaskRepository';
 import { HabitRepository } from '../../common/repository/HabitRepository';
 import { SettingsConstants as C } from '../../common/local/SettingsConstants';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @Component
 export struct SideDashboard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @State currentDate: Date = new Date();
 
   // 改为 @State，由内部逻辑驱动
@@ -18,16 +21,16 @@ export struct SideDashboard {
   @State hasNextDue: boolean = false; // 控制是否显示 Next Due 的样式
 
   // 配色变量
-  @State colorMonth: ResourceColor = $r('app.color.accent')
+  @State colorMonth: ResourceColor = this.theme.accent
   @State colorDay: ResourceColor = $r('app.color.font_primary')
   @State colorWeek: ResourceColor = $r('app.color.font_secondary')
 
-  @State colorRing: ResourceColor = $r('app.color.brand')
+  @State colorRing: ResourceColor = this.theme.brand
   @State colorYearBar: ResourceColor = $r('app.color.func_manual')
   @State colorNextDue: ResourceColor = $r('app.color.chart_red')
 
   @State cardBg: ResourceColor = $r('app.color.background_secondary')
-  @State dashboardBg: ResourceColor = $r('app.color.background_primary')
+  @State dashboardBg: ResourceColor = this.theme.bgPrimary
 
   @StorageProp(C.KEY_ENGLISH_SOMEWHERE) @Watch('onLangModeChange') englishEnable: boolean = true;
   @StorageProp('IsAppDataReady') @Watch('onLangModeChange') _initialized: boolean = false;

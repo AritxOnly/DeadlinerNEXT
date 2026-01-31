@@ -3,9 +3,12 @@ import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { SettingsSection, SettingsItem, SettingsDivider } from '../../../components/SettingsComponents';
 import { ManualSection, ManualItem, ManualDataManager } from '../../../../common/manual/ManualModel';
 import { common } from '@kit.AbilityKit';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 @Component
 export struct HelpCenterPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Consume('appPathStack') appPathStack: NavPathStack;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
@@ -30,7 +33,7 @@ export struct HelpCenterPage {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
         if (this.isLoading) {
           Column() {
-            LoadingProgress().width(40).height(40).color($r('app.color.brand'))
+            LoadingProgress().width(40).height(40).color(this.theme.brand)
           }
           .width('100%').height('100%').justifyContent(FlexAlign.Center)
         } else {
@@ -43,8 +46,8 @@ export struct HelpCenterPage {
                 .linearGradient({
                   angle: 135,
                   colors: [
-                    [$r('app.color.brand'), 0.0],
-                    [$r('app.color.brand_50'), 0.6],
+                    [this.theme.brand, 0.0],
+                    [this.theme.brand50, 0.6],
                     ['#803A6EA5', 1.0]
                   ]
                 })

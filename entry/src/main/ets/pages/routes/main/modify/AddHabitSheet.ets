@@ -8,6 +8,7 @@ import { AITextInput } from '../../../components/AITextInput';
 import { AIService } from '../../../../ai/AIServcice';
 import { i18n } from '@kit.LocalizationKit';
 import { LoadingMask } from '../../../components/LoadingMask';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24;
@@ -15,6 +16,8 @@ const ITEM_HEIGHT = 56;
 
 @Component
 export struct AddHabitSheet {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 回调函数：完成或取消时调用
   onDone: () => void = () => {}
 
@@ -234,7 +237,7 @@ export struct AddHabitSheet {
                 size: ChipSize.NORMAL,
                 backgroundColor: this.inputBgColor,
                 fontColor: $r('app.color.font_secondary'),
-                selectedBackgroundColor: $r('app.color.accent'),
+                selectedBackgroundColor: this.theme.accent,
                 selectedFontColor: Color.White
               },
               selectedIndexes: this.selectedPeriodIndex,
@@ -281,7 +284,7 @@ export struct AddHabitSheet {
                   size: ChipSize.NORMAL,
                   backgroundColor: this.inputBgColor,
                   fontColor: $r('app.color.font_secondary'),
-                  selectedBackgroundColor: $r('app.color.accent'),
+                  selectedBackgroundColor: this.theme.accent,
                   selectedFontColor: Color.White
                 },
                 selectedIndexes: this.selectedGoalTypeIndex,

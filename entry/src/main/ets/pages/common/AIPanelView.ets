@@ -2,6 +2,7 @@ import { LengthMetrics } from '@kit.ArkUI'
 import { i18n } from '@kit.LocalizationKit'
 import { AIService } from '../../ai/AIServcice'
 import { AITask } from '../../ai/model/AIModels'
+import { ITheme } from '../../common/theme/ThemeModel'
 import { AddTaskParams } from '../routes/main/modify/AddTaskPage'
 import { LoginPanelView } from './LoginPanelView'
 
@@ -15,6 +16,8 @@ export interface AIChatMessage {
 
 @Component
 export struct AIPanelView {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Consume('appPathStack') appPathStack: NavPathStack;
 
   @State inputText: string = ''
@@ -141,7 +144,7 @@ export struct AIPanelView {
         .width(40)
         .height(40)
         .margin({ left: 12 })
-        .backgroundColor(this.inputText.length > 0 ? $r('app.color.brand') : $r('sys.color.comp_background_tertiary')) // 有文字时高亮
+        .backgroundColor(this.inputText.length > 0 ? this.theme.brand : $r('sys.color.comp_background_tertiary')) // 有文字时高亮
         .enabled(!this.isLoading && this.inputText.length > 0)
         .onClick(() => {
           this.sendMessage()
@@ -169,7 +172,7 @@ export struct AIPanelView {
         // AI 消息样式 (左侧)
         SymbolGlyph($r('sys.symbol.AI')) // 请确保你有这个 Symbol，或者是 sys.symbol.sparkles
           .fontSize(24)
-          .fontColor([$r('app.color.brand')])
+          .fontColor([this.theme.brand])
           .margin({ right: 8, top: 4 })
           .alignSelf(ItemAlign.Start)
 
@@ -202,7 +205,7 @@ export struct AIPanelView {
         Text(msg.content)
           .fontSize(16)
           .fontColor($r('sys.color.font_on_primary'))
-          .backgroundColor($r('app.color.brand'))
+          .backgroundColor(this.theme.brand)
           .padding(12)
           .borderRadius({
             topLeft: 16,
@@ -259,7 +262,7 @@ export struct AIPanelView {
         Button('去创建')
           .type(ButtonType.Capsule)
           .controlSize(ControlSize.SMALL)
-          .backgroundColor($r('app.color.brand'))
+          .backgroundColor(this.theme.brand)
           .height(28)
           .fontSize(12)
           .onClick(() => {

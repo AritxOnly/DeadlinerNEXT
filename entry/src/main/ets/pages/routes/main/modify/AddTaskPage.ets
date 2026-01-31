@@ -8,6 +8,7 @@ import { DateTimePicker } from '../../../components/DateTimePicker';
 import { TimeInputButton } from '../../../components/TimeInputButton';
 import { i18n } from '@kit.LocalizationKit';
 import { LoadingMask } from '../../../components/LoadingMask';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 // 统一的样式常量
 const COMMON_RADIUS = 24; // 需求1：圆角 24
@@ -26,6 +27,8 @@ export function AddTaskBuilder(name: string, param: Object) {
 
 @Component
 export struct AddTaskPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   pageStack: NavPathStack = new NavPathStack();
 
   saveMenuItem: NavigationMenuItem = {
@@ -226,6 +229,6 @@ export struct AddTaskPage {
     .menus([
       this.saveMenuItem
     ])
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.theme.bgPrimary)
   }
 }

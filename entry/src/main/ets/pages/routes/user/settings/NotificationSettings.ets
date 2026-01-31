@@ -14,6 +14,7 @@ import { common } from '@kit.AbilityKit';
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 @Builder
 export function NotificationSettingsBuilder() {
@@ -22,6 +23,8 @@ export function NotificationSettingsBuilder() {
 
 @Component
 struct NotificationSettings {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
@@ -147,9 +150,9 @@ struct NotificationSettings {
                     TimePickerDialog.show({
                       selected: this.getSelectedDate(),
                       useMilitaryTime: true,
-                      selectedTextStyle: { color: $r('app.color.brand') },
-                      acceptButtonStyle: { fontColor: $r('app.color.brand') },
-                      cancelButtonStyle: { fontColor: $r('app.color.brand') },
+                      selectedTextStyle: { color: this.theme.brand },
+                      acceptButtonStyle: { fontColor: this.theme.brand },
+                      cancelButtonStyle: { fontColor: this.theme.brand },
                       onAccept: (value: TimePickerResult) => {
                         const hour = value.hour.toString().padStart(2, '0');
                         const minute = value.minute.toString().padStart(2, '0');

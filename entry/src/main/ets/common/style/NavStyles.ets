@@ -1,5 +1,6 @@
 import { LengthMetrics } from '@kit.ArkUI';
 import { HdsNavigationTitleBarStyle, ScrollEffectType, TitleBarStyleOptions } from '@kit.UIDesignKit';
+import { ThemeManager } from '../theme/ThemeManager';
 
 /**
  * 获取统一的沉浸式标题栏样式配置
@@ -21,7 +22,7 @@ export function getImmersiveTitleBarStyle(isWideScreen: boolean): TitleBarStyleO
     originalStyle: {
       backgroundStyle: {
         backgroundColor: isWideScreen ?
-          $r('app.color.background_primary') :
+          ThemeManager.getCurrentTheme().bgPrimary :
           $r('sys.color.ohos_id_color_background_transparent'),
       },
     },
@@ -31,7 +32,7 @@ export function getImmersiveTitleBarStyle(isWideScreen: boolean): TitleBarStyleO
     scrollEffectStyle: {
       backgroundStyle: {
         backgroundColor: isWideScreen ?
-          $r('app.color.background_primary') :
+          ThemeManager.getCurrentTheme().bgPrimary :
           $r('sys.color.ohos_id_color_navigation_background_blur'),
       },
     },

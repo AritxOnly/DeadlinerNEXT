@@ -12,6 +12,7 @@ import { HuaweiAccountUtils } from '../utils/account/HuaweiAccountUtils';
 import { MainHomePageTablet } from './routes/main/MainHomePageTablet';
 import { OverviewPageTablet } from './routes/overview/OverviewPageTablet';
 import { SettingsConstants as C } from '../common/local/SettingsConstants';
+import { ITheme } from '../common/theme/ThemeModel';
 
 interface TabData {
   title: string,
@@ -24,6 +25,8 @@ const TAB_VERTICAL_PADDING = 86;
 @Entry
 @Component
 struct Index {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 全局路由栈
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
   @Provide('isAiFlowShown') isAiFlowShown: boolean = false;
@@ -211,7 +214,7 @@ struct Index {
     );
 
     style.labelStyle({
-      selectedColor: $r('app.color.brand'),
+      selectedColor: this.theme.brand,
       unselectedColor: $r('app.color.font_secondary')
     })
 
@@ -227,7 +230,7 @@ struct Index {
 
       selected: new SymbolGlyphModifier(icon)
         .fontSize(24)
-        .fontColor([$r('app.color.brand')])
+        .fontColor([this.theme.brand])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .symbolEffect(
           new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN)
@@ -269,7 +272,7 @@ struct Index {
             }
             .tabBar(this.getTabBarStyle(this.tabs[0]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-            .backgroundColor($r('app.color.background_primary'))
+            .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 2: 概览 ---
             TabContent() {
@@ -292,7 +295,7 @@ struct Index {
             }
             .tabBar(this.getTabBarStyle(this.tabs[1]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-            .backgroundColor($r('app.color.background_primary'))
+            .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 3: 我的 ---
             TabContent() {
@@ -306,13 +309,13 @@ struct Index {
             }
             .tabBar(this.getTabBarStyle(this.tabs[2]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-            .backgroundColor($r('app.color.background_primary'))
+            .backgroundColor(this.theme.bgPrimary)
           }
           .vertical(this.isWideScreen && this.tabletUi)
           .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .barMode(BarMode.Fixed)
           .barOverlap(true)
-          .background($r('app.color.background_primary'))
+          .background(this.theme.bgPrimary)
           .animationDuration(300)
           .scrollable(false)
           .height('100%')

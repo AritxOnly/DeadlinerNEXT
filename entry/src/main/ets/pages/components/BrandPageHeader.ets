@@ -1,5 +1,9 @@
+import { ITheme } from "../../common/theme/ThemeModel";
+
 @Component
 export struct BrandPageHeader {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop icon: Resource;
   @Prop title: string;
   @Prop gradientColors: [ResourceColor, number][] = [];
@@ -34,8 +38,8 @@ export struct BrandPageHeader {
         .linearGradient({
           angle: 135,
           colors: [
-            [$r('app.color.brand'), 0.0],
-            [$r('app.color.brand_50'), 0.6],
+            [this.theme.brand, 0.0],
+            [this.theme.brand50, 0.6],
             ['#803A6EA5', 1.0]
           ]
         })

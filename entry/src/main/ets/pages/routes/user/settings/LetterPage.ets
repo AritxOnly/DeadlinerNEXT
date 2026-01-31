@@ -1,4 +1,5 @@
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 import { MarkdownView } from '../../../components/MarkdownView';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 
@@ -69,6 +70,8 @@ export function LetterPageBuilder() {
 
 @Component
 export struct LetterPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
@@ -79,7 +82,7 @@ export struct LetterPage {
           // 使用你现有的 MarkdownView 组件
           MarkdownView({
             content: LETTER_CONTENT,
-            baseColor: $r('app.color.brand') // 传入品牌色，让引用块和链接更好看
+            baseColor: this.theme.brand // 传入品牌色，让引用块和链接更好看
           })
         }
         .padding({

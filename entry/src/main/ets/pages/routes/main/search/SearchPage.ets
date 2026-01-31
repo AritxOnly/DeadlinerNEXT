@@ -14,6 +14,7 @@ import { VibrationUtils } from '../../../../utils/VibrationUtils';
 import { ConfettiController } from '../../../components/confetti/ConfettiController';
 import { SearchUtils, TaskUIModel, ArchivedSearchModel } from '../../../../utils/SearchUtils';
 import { DDLItem, Habit } from '../../../../model/DDLModels';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 @Builder
 export function SearchPageBuilder() {
@@ -22,10 +23,12 @@ export function SearchPageBuilder() {
 
 @Component
 export struct SearchPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Consume('appPathStack') appPathStack: NavPathStack;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
-  @State bgColor: Resource | Color = $r('app.color.background_primary');
+  @State bgColor: Resource | Color | ResourceColor = this.theme.bgPrimary;
   backAction?: () => void
 
   @State searchText: string = '';
@@ -126,7 +129,7 @@ export struct SearchPage {
       message: '确定要永久删除此归档记录吗？',
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'),
+        fontColor: this.theme.brand,
         action: () => {}
       },
       secondaryButton: {
@@ -153,7 +156,7 @@ export struct SearchPage {
   @Builder searchBuilder() {
     Row() {
       Search({ value: this.searchText, placeholder: '搜索任务或习惯...' })
-        .searchButton('搜索', { fontColor: $r('app.color.brand') })
+        .searchButton('搜索', { fontColor: this.theme.brand })
         .id('search_input')
         .defaultFocus(true)
         .width('100%')

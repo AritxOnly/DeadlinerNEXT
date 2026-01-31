@@ -1,4 +1,5 @@
 import { SettingsConstants as C } from '../../common/local/SettingsConstants';
+import { ITheme } from '../../common/theme/ThemeModel';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus } from '../../model/DDLModels';
 import { ColorUtils } from '../../utils/ColorUtils';
 
@@ -47,6 +48,8 @@ export struct HabitProgress {
 
 @Component
 struct HabitRingProgress {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop progress: number;
 
   build() {
@@ -54,7 +57,7 @@ struct HabitRingProgress {
       Progress({ value: this.progress * 100, total: 100, type: ProgressType.Ring })
         .width(84)
         .height(84)
-        .color($r('app.color.brand')) // 进度条颜色
+        .color(this.theme.brand) // 进度条颜色
         // .backgroundColor($r('app.color.brand_10')) // 可选：底轨颜色
         .style({ strokeWidth: 8 }) // 环的粗细
         .animation({ duration: 800, curve: Curve.Smooth })
@@ -71,6 +74,8 @@ struct HabitRingProgress {
 
 @Component
 struct HabitLinearProgress {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop progress: number;
 
   build() {
@@ -95,7 +100,7 @@ struct HabitLinearProgress {
       Progress({ value: this.progress * 100, total: 100, type: ProgressType.Linear })
         .width('100%') // 撑满宽度
         .height(12)    // 稍微加粗一点
-        .color($r('app.color.brand'))
+        .color(this.theme.brand)
         // .backgroundColor($r('app.color.background_secondary'))
         .style({ strokeWidth: 12, enableSmoothEffect: true })
         .animation({ duration: 800, curve: Curve.Smooth })
@@ -108,6 +113,8 @@ struct HabitLinearProgress {
 
 @Component
 export struct HabitEllipseProgress {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop progress: number;
 
   build() {
@@ -116,7 +123,7 @@ export struct HabitEllipseProgress {
       Progress({ value: this.progress * 100, total: 100, type: ProgressType.Eclipse })
         .width(84)
         .height(84)
-        .color($r('app.color.brand_50'))
+        .color(this.theme.brand50)
         .animation({ duration: 800, curve: Curve.Smooth })
 
       Text(`${(this.progress * 100).toFixed(0)}%`)
@@ -129,6 +136,8 @@ export struct HabitEllipseProgress {
 
 @Component
 export struct WeekRow {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 数据源
   @Prop weekOverview: DayOverview[];
   @Prop selectedDate: Date;
@@ -146,8 +155,8 @@ export struct WeekRow {
   @State animOpacity: number = 1; // 透明度
 
   // 颜色定义
-  private primaryColor: ResourceColor = $r('app.color.brand');
-  private bgColor: ResourceColor = $r('app.color.brand_50');
+  private primaryColor: ResourceColor = this.theme.brand;
+  private bgColor: ResourceColor = this.theme.brand50;
   private secondaryColor: ResourceColor = $r('app.color.font_secondary');
   private primaryFontColor: ResourceColor = $r('app.color.font_primary');
 
@@ -210,7 +219,7 @@ export struct WeekRow {
       Text(' / ')
         .fontSize('16vp')
         .fontWeight(FontWeight.Bold)
-        .fontColor($r('app.color.brand'))
+        .fontColor(this.theme.brand)
         .textAlign(TextAlign.Center)
         .opacity(this.animOpacity)
         .animation({ duration: 200 })
@@ -366,8 +375,10 @@ export struct WeekRow {
 
 @Component
 struct HabitSelectionOverlay {
-  @State primaryColor: ResourceColor = $r('app.color.brand'); // 默认值，实际会由 theme 覆盖
-  @State containerColor: ResourceColor = $r('app.color.background_primary');
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
+  @State primaryColor: ResourceColor = this.theme.brand; // 默认值，实际会由 theme 覆盖
+  @State containerColor: ResourceColor = this.theme.bgPrimary;
   @State onPrimaryColor: ResourceColor = Color.White;
 
   build() {

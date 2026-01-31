@@ -8,6 +8,7 @@ import { SettingsSection, SubSettingsSwitch } from "../../../components/Settings
 import { HelpDetailPage } from "../manual/HelpDetailPage";
 import { ManualDataManager, ManualItem } from "../../../../common/manual/ManualModel";
 import { HelpDetailSheet } from "../manual/HelpDetailSheet";
+import { ITheme } from "../../../../common/theme/ThemeModel";
 
 @Builder
 export function SettingsWebDavBuilder(name: string, param: Object) {
@@ -16,6 +17,8 @@ export function SettingsWebDavBuilder(name: string, param: Object) {
 
 @Component
 export struct SettingsWebDavPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // Navigation 路由栈引用
   pageStack: NavPathStack = new NavPathStack();
 
@@ -142,7 +145,7 @@ export struct SettingsWebDavPage {
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.theme.bgPrimary)
     .bindSheet($$this.isHelpSheetShow, this.helpSheet(), {
       title: { title: '如何配置 WebDAV 云同步？' },
       detents: [

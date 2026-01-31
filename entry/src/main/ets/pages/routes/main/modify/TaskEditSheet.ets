@@ -1,4 +1,5 @@
 import { promptAction } from '@kit.ArkUI';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 import { DDLItem } from '../../../../model/DDLModels';
 import { DateTimeUtils } from '../../../../utils/DateTimeUtils';
 import { DateTimePicker } from '../../../components/DateTimePicker';
@@ -10,6 +11,8 @@ const ITEM_HEIGHT = 56;
 
 @Component
 export struct TaskEditSheet {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Link @Watch('onShowChange') isShow: boolean;
 
   @Prop editingTask: DDLItem | null;
@@ -134,7 +137,7 @@ export struct TaskEditSheet {
             this.saveEdit();
           })
           .width('100%')
-          .backgroundColor($r('app.color.accent'))
+          .backgroundColor(this.theme.accent)
 
         Blank().height(60)
       }

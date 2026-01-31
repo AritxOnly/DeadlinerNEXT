@@ -14,6 +14,7 @@ import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
 import { TaskEditSheet } from "./modify/TaskEditSheet";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
+import { ITheme } from "../../../common/theme/ThemeModel";
 
 export interface TaskUIModel {
   title: string;
@@ -27,6 +28,7 @@ export interface TaskUIModel {
 
 @Component
 export struct TaskListSection {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
@@ -257,7 +259,7 @@ export struct TaskListSection {
         action: () => {
           this.loadData();
         },
-        fontColor: $r('app.color.brand')
+        fontColor: this.theme.brand
       },
       secondaryButton: {
         value: '删除',
@@ -391,7 +393,7 @@ export struct TaskListSection {
       offset: { dx: 0, dy: -20 },
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'),
+        fontColor: this.theme.brand,
         action: () => {}
       },
       secondaryButton: {

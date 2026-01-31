@@ -1,5 +1,9 @@
+import { ITheme } from "../../common/theme/ThemeModel";
+
 @CustomDialog
 export struct AddDialogTablet {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 控制器，用于关闭弹窗
   controller: CustomDialogController;
 
@@ -53,7 +57,7 @@ export struct AddDialogTablet {
           this.SelectionCard(
             '任务',
             $r('sys.symbol.list_checkmark'),
-            $r('app.color.brand'),
+            this.theme.brand,
             this.onAddTask
           )
         }.layoutWeight(1) // 均分宽度
@@ -75,7 +79,7 @@ export struct AddDialogTablet {
         .width('100%')
         .margin({ top: 24 })
         .backgroundColor(Color.Transparent) // 透明背景
-        .fontColor($r('app.color.accent'))  // 品牌色字体
+        .fontColor(this.theme.accent)  // 品牌色字体
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .onClick(() => {

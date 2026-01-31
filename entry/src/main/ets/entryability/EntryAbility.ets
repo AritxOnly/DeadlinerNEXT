@@ -1,7 +1,6 @@
 import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { display, ThemeControl, window } from '@kit.ArkUI';
-import { gDeadlinerTheme } from '../AppTheme';
 import { LocalValues } from '../common/local/LocalValues';
 import { DatabaseHelper } from '../common/data/DatabaseHelper';
 import { TaskRepository } from '../common/repository/TaskRepository';
@@ -14,6 +13,7 @@ import { deviceInfo } from '@kit.BasicServicesKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { ManualDataManager } from '../common/manual/ManualModel';
 import { SettingsConstants as C } from '../common/local/SettingsConstants';
+import { ThemeManager } from '../common/theme/ThemeManager';
 
 const DOMAIN = 0x0000;
 
@@ -74,7 +74,8 @@ export default class EntryAbility extends UIAbility {
         return;
       }
 
-      ThemeControl.setDefaultTheme(gDeadlinerTheme);
+      ThemeManager.init();
+
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
 
       this.handleResponsiveImmersive(windowStage);

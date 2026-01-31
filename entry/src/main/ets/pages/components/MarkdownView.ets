@@ -1,9 +1,12 @@
 import { MarkdownParser, MdNode, MdType } from '../../utils/markdown/MarkdownParser';
 import { ManualDataManager, ManualItem } from '../../common/manual/ManualModel';
 import { LinkParser, LinkSegment, LinkType } from '../../utils/markdown/LinkParser';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @Component
 export struct MarkdownView {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Consume('appPathStack') appPathStack: NavPathStack;
 
   @Prop content: string = '';
@@ -25,8 +28,8 @@ export struct MarkdownView {
           Span(segment.text)
             .fontSize(fontSize)
             .fontWeight(FontWeight.Bold) // 粗体
-            .fontColor(this.baseColor || $r('app.color.brand')) // 主题色
-            .decoration({ type: TextDecorationType.Underline, color: this.baseColor || $r('app.color.brand') }) // 下划线
+            .fontColor(this.baseColor || this.theme.brand) // 主题色
+            .decoration({ type: TextDecorationType.Underline, color: this.baseColor || this.theme.brand }) // 下划线
             .onClick(() => {
               if (segment.type === LinkType.HELP_LINK) {
                 const targetId = segment.target;
@@ -153,7 +156,7 @@ export struct MarkdownView {
               .constraintSize({ maxHeight: '280vp' })
               .borderRadius(20)
               .objectFit(ImageFit.Contain)
-              .backgroundColor($r('app.color.background_primary'))
+              .backgroundColor(this.theme.bgPrimary)
 
             if (node.alt) {
               Text(node.alt)
@@ -176,7 +179,7 @@ export struct MarkdownView {
           .borderRadius(20)
           .border({
             width: { left: 4 },
-            color: { left: this.baseColor || $r('app.color.brand_50') },
+            color: { left: this.baseColor || this.theme.brand50 },
             style: { left: BorderStyle.Solid }
           })
           .padding({ left: 12, top: 12, bottom: 12, right: 12 })

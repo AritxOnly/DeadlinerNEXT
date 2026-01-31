@@ -1,11 +1,15 @@
+import { ITheme } from "../../common/theme/ThemeModel";
+
 @CustomDialog
 export struct OverviewSettingsDialog {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   controller: CustomDialogController;
   // 用于在 Slider 拖动时临时更新 UI显示
   @State tempMonthlyCount: number = 12;
   @State tempShowOverdue: boolean = true;
 
-  @State buttonBgColor: ResourceColor = $r('app.color.brand')
+  @State buttonBgColor: ResourceColor = this.theme.brand
 
   build() {
     Column() {

@@ -1,4 +1,5 @@
 import { ChipGroup, ChipGroupItemOptions, ChipSize, promptAction } from '@kit.ArkUI';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 import { Habit, HabitGoalType, HabitPeriod, HabitStatus } from '../../../../model/DDLModels';
 
 // 常量定义
@@ -7,6 +8,8 @@ const ITEM_HEIGHT = 56;
 
 @Component
 export struct HabitEditSheet {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Link @Watch('onShowChange') isShow: boolean;
 
   @Prop editingHabit: Habit | undefined;
@@ -175,7 +178,7 @@ export struct HabitEditSheet {
               size: ChipSize.NORMAL,
               backgroundColor: this.inputBgColor,
               fontColor: Color.Gray,
-              selectedBackgroundColor: $r('app.color.accent'),
+              selectedBackgroundColor: this.theme.accent,
               selectedFontColor: Color.White
             },
             selectedIndexes: this.editingPeriodIndex,
@@ -223,7 +226,7 @@ export struct HabitEditSheet {
                 size: ChipSize.NORMAL,
                 backgroundColor: this.inputBgColor,
                 fontColor: Color.Gray,
-                selectedBackgroundColor: $r('app.color.accent'),
+                selectedBackgroundColor: this.theme.accent,
                 selectedFontColor: Color.White
               },
               selectedIndexes: this.editingGoalTypeIndex,
@@ -266,7 +269,7 @@ export struct HabitEditSheet {
             this.saveHabitEdit();
           })
           .width('100%')
-          .backgroundColor($r('app.color.accent'))
+          .backgroundColor(this.theme.accent)
 
         Blank().height(60)
       }

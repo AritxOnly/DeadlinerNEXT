@@ -5,6 +5,7 @@ import { reminderAgentManager } from "@kit.BackgroundTasksKit";
 import { BusinessError } from "@kit.BasicServicesKit";
 import { ReminderUtils } from "../../../../utils/notification/ReminderUtils";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
+import { ITheme } from "../../../../common/theme/ThemeModel";
 
 @Builder
 export function DevOptionsBuilder(name: string, param: Object) {
@@ -13,6 +14,7 @@ export function DevOptionsBuilder(name: string, param: Object) {
 
 @Component
 export struct DevOptionsPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
@@ -179,6 +181,6 @@ export struct DevOptionsPage {
         }
       }
     })
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.theme.bgPrimary)
   }
 }

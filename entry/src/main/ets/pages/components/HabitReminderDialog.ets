@@ -1,5 +1,8 @@
+import { ITheme } from "../../common/theme/ThemeModel";
+
 @CustomDialog
 export struct HabitReminderDialog {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   controller: CustomDialogController;
   habitName: string = "";
 
@@ -37,7 +40,7 @@ export struct HabitReminderDialog {
         .layoutWeight(1)
 
         Toggle({ type: ToggleType.Switch, isOn: this.isEnabled })
-          .selectedColor($r('app.color.brand'))
+          .selectedColor(this.theme.brand)
           .onChange((isOn) => {
             animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
               this.isEnabled = isOn;
@@ -56,7 +59,7 @@ export struct HabitReminderDialog {
           })
             .useMilitaryTime(true) // 24小时制
             .textStyle({ color: $r('sys.color.ohos_id_color_text_secondary'), font: { size: '14fp', weight: FontWeight.Normal } })
-            .selectedTextStyle({ color: $r('app.color.brand'), font: { size: '18fp', weight: FontWeight.Bold } })
+            .selectedTextStyle({ color: this.theme.brand, font: { size: '18fp', weight: FontWeight.Bold } })
             .onChange((value: TimePickerResult) => {
               // 实时更新时间
               const newDate = new Date();
@@ -81,7 +84,7 @@ export struct HabitReminderDialog {
         Divider().vertical(true).height(24).color($r('sys.color.ohos_id_color_list_separator'))
 
         Button("保存")
-          .fontColor($r('app.color.brand'))
+          .fontColor(this.theme.brand)
           .backgroundColor(Color.Transparent)
           .layoutWeight(1)
           .onClick(() => {

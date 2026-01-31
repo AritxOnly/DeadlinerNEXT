@@ -9,6 +9,7 @@ import { AITextInput } from '../../../components/AITextInput';
 import { LoadingMask } from '../../../components/LoadingMask';
 import { AIService } from '../../../../ai/AIServcice';
 import { i18n } from '@kit.LocalizationKit';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 const COMMON_RADIUS = 24;
 const ITEM_HEIGHT = 56;
@@ -20,6 +21,8 @@ export function AddHabitBuilder(name: string, param: Object) {
 
 @Component
 export struct AddHabitPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   pageStack: NavPathStack = new NavPathStack();
 
   saveMenuItem: NavigationMenuItem = {
@@ -239,7 +242,7 @@ export struct AddHabitPage {
                 size: ChipSize.NORMAL,
                 backgroundColor: this.inputBgColor,
                 fontColor: $r('app.color.font_secondary'),
-                selectedBackgroundColor: $r('app.color.accent'),
+                selectedBackgroundColor: this.theme.accent,
                 selectedFontColor: Color.White
               },
               // 修改点 1：直接传值
@@ -288,7 +291,7 @@ export struct AddHabitPage {
                   size: ChipSize.NORMAL,
                   backgroundColor: this.inputBgColor,
                   fontColor: $r('app.color.font_secondary'),
-                  selectedBackgroundColor: $r('app.color.accent'),
+                  selectedBackgroundColor: this.theme.accent,
                   selectedFontColor: Color.White
                 },
                 // 修改点 1：直接传值
@@ -343,6 +346,6 @@ export struct AddHabitPage {
     .menus([
       this.saveMenuItem
     ])
-    .backgroundColor($r('app.color.background_primary'))
+    .backgroundColor(this.theme.bgPrimary)
   }
 }

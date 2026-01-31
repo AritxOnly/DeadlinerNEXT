@@ -6,9 +6,12 @@ import { MarkdownView } from '../../../components/MarkdownView';
 import { common } from '@kit.AbilityKit';
 import { BrandPageHeader } from '../../../components/BrandPageHeader';
 import { SettingsSection } from '../../../components/SettingsComponents';
+import { ITheme } from '../../../../common/theme/ThemeModel';
 
 @Component
 export struct HelpDetailPage {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // 接收上一个页面传来的数据
   @State item: ManualItem | null = null;
   @State markdownContent: string = '';
@@ -45,7 +48,7 @@ export struct HelpDetailPage {
                 } else {
                   // 加载中占位
                   Row() {
-                    LoadingProgress().width(32).height(32).color($r('app.color.brand'))
+                    LoadingProgress().width(32).height(32).color(this.theme.brand)
                   }
                   .width('100%')
                   .justifyContent(FlexAlign.Center)

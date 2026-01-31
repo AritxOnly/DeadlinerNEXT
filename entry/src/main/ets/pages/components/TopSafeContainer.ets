@@ -1,4 +1,5 @@
 import { LengthMetrics } from '@kit.ArkUI'
+import { ITheme } from '../../common/theme/ThemeModel';
 
 /**
  * 顶部安全避让容器
@@ -9,9 +10,11 @@ import { LengthMetrics } from '@kit.ArkUI'
  */
 @Component
 export struct TopSafeContainer {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @BuilderParam content: () => void;
 
-  @State bgColor: Resource | Color = $r('app.color.background_primary');
+  @State bgColor: Resource | Color | ResourceColor = this.theme.bgPrimary;
 
   // 顶部需要避让的高度（通常是 状态栏高度 + 标题栏高度）
   @Prop topAvoidHeight: number = 0;

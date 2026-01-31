@@ -1,7 +1,10 @@
 import { common } from '@kit.AbilityKit';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @CustomDialog
 export struct PrivacyDialog {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   controller: CustomDialogController;
   context: common.UIAbilityContext = getContext(this) as common.UIAbilityContext;
 
@@ -18,7 +21,7 @@ export struct PrivacyDialog {
         .width(64)
         .height(64)
         .fontSize(64)
-        .fontColor([$r('app.color.brand')])
+        .fontColor([this.theme.brand])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .margin({ top: 24, bottom: 8 })
 
@@ -37,7 +40,7 @@ export struct PrivacyDialog {
         // 可点击的链接部分
         Span('《隐私协议》')
           .fontSize(16)
-          .fontColor($r('app.color.brand'))
+          .fontColor(this.theme.brand)
           .fontWeight(FontWeight.Medium)
           .onClick(() => {
             this.controller.close();
@@ -56,7 +59,7 @@ export struct PrivacyDialog {
       Row() {
         Checkbox({ name: 'privacy_checkbox' })
           .select(this.isChecked)
-          .selectedColor($r('app.color.brand')) // 选中颜色跟随主题
+          .selectedColor(this.theme.brand) // 选中颜色跟随主题
           .width(20)
           .height(20)
           .margin({ right: 8 })
@@ -92,7 +95,7 @@ export struct PrivacyDialog {
         // 同意/进入按钮
         Button('进入') // [修改] 按钮文字
           .fontColor(Color.White) // 建议：实心按钮通常文字为白色
-          .backgroundColor($r('app.color.brand')) // 建议：实心按钮背景
+          .backgroundColor(this.theme.brand) // 建议：实心按钮背景
           .layoutWeight(1)
           .margin({ left: 12 })
           // [新增] 状态控制

@@ -4,9 +4,12 @@ import { TaskRepository } from '../../common/repository/TaskRepository';
 import { HabitRepository } from '../../common/repository/HabitRepository';
 import { DDLItem, Habit, HabitStatus, HabitPeriod, HabitGoalType } from '../../model/DDLModels';
 import { ArchivedDDLItemCard } from '../components/TaskItemCard';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 @Component
 export struct ArchivePanelView {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   // [修改点 1] 添加 @Watch 监听器，一旦选中项改变，自动触发 onTabChange
   @State @Watch('onTabChange') selectedIndexes: number[] = [0];
 
@@ -98,7 +101,7 @@ export struct ArchivePanelView {
       backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
-        fontColor: $r('app.color.brand'),
+        fontColor: this.theme.brand,
         action: () => {}
       },
       secondaryButton: {

@@ -1,4 +1,5 @@
 import { ComponentContent, promptAction } from '@kit.ArkUI';
+import { ITheme } from '../../common/theme/ThemeModel';
 
 class DateTimeDialogParams {
   selectedDate: Date = new Date();
@@ -8,6 +9,8 @@ class DateTimeDialogParams {
 
 @Component
 struct DateTimeContent {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   params: DateTimeDialogParams = new DateTimeDialogParams();
 
   // 内部状态，用于驱动标题和选择器联动
@@ -57,7 +60,7 @@ struct DateTimeContent {
           .layoutWeight(3)
           .height(220)
           .selectedTextStyle({
-            color: $r('app.color.accent'),
+            color: this.theme.accent,
             font: { weight: FontWeight.Medium, size: 18 }
           })
 
@@ -74,7 +77,7 @@ struct DateTimeContent {
           .layoutWeight(2)
           .height(220)
           .selectedTextStyle({
-            color: $r('app.color.accent'),
+            color: this.theme.accent,
             font: { weight: FontWeight.Medium, size: 18 }
           })
       }
@@ -85,7 +88,7 @@ struct DateTimeContent {
       Row() {
         Button("取消")
           .backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.accent')) // 按钮也保持 accent 颜色
+          .fontColor(this.theme.accent) // 按钮也保持 accent 颜色
           .onClick(() => {
             this.params.close();
           })
@@ -95,7 +98,7 @@ struct DateTimeContent {
 
         Button("确定")
           .backgroundColor(Color.Transparent)
-          .fontColor($r('app.color.accent')) // 按钮也保持 accent 颜色
+          .fontColor(this.theme.accent) // 按钮也保持 accent 颜色
           .onClick(() => {
             this.params.onAccept(this.currentDate);
             this.params.close();

@@ -1,12 +1,15 @@
-import type { CustomColors, CustomTheme } from '@kit.ArkUI'
+import { CustomColors, CustomTheme } from '@kit.ArkUI'
+import { ITheme } from './common/theme/ThemeModel'
 
 export class DeadlinerColors implements CustomColors {
-  // 品牌色
-  brand: ResourceColor = $r('app.color.brand')
+  // 移除内部直接获取 ThemeManager 的逻辑，改为外部传入
 
-  // 告警/确认色先复用品牌色，有需要再拆
+  // 品牌色
+  brand: ResourceColor
+
+  // 告警/确认
   warning: ResourceColor = $r('app.color.warning')
-  alert: ResourceColor = $r('app.color.brand')
+  alert: ResourceColor
   confirm: ResourceColor = $r('app.color.confirm')
 
   // 文本
@@ -20,7 +23,7 @@ export class DeadlinerColors implements CustomColors {
   iconEmphasize: ResourceColor = $r('app.color.icon_emphasize')
 
   // 背景
-  backgroundPrimary: ResourceColor = $r('app.color.background_primary')
+  backgroundPrimary: ResourceColor
   backgroundSecondary: ResourceColor = $r('app.color.background_secondary')
   backgroundTertiary: ResourceColor = $r('app.color.background_tertiary')
   backgroundEmphasize: ResourceColor = $r('app.color.background_emphasize')
@@ -32,10 +35,19 @@ export class DeadlinerColors implements CustomColors {
   interactiveActive: ResourceColor = $r('app.color.interactive_active')
   interactiveSelect: ResourceColor = $r('app.color.interactive_select')
   interactivePressed: ResourceColor = $r('app.color.interactive_pressed')
+
+  // 构造函数：接收当前的 ITheme 配置
+  constructor(theme: ITheme) {
+    this.brand = theme.brand
+    this.alert = theme.brand // 复用 brand
+    this.backgroundPrimary = theme.bgPrimary
+  }
 }
 
 export class DeadlinerTheme implements CustomTheme {
-  public colors: DeadlinerColors = new DeadlinerColors()
-}
+  public colors: DeadlinerColors
 
-export const gDeadlinerTheme: CustomTheme = new DeadlinerTheme()
+  constructor(theme: ITheme) {
+    this.colors = new DeadlinerColors(theme)
+  }
+}
