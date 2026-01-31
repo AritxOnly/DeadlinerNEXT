@@ -12,6 +12,7 @@ import { ReminderDataManager } from '../utils/notification/ReminderDataManager';
 import { HabitRepository } from '../common/repository/HabitRepository';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { notificationManager } from '@kit.NotificationKit';
+import { ManualDataManager } from '../common/manual/ManualModel';
 
 const DOMAIN = 0x0000;
 
@@ -34,6 +35,7 @@ export default class EntryAbility extends UIAbility {
 
     console.info('[EntryAbility] Initializing ReminderDataManager...');
     await ReminderDataManager.getInstance().init(this.context);
+    await ManualDataManager.getInstance().loadMenu(this.context)
 
     await TaskRepository.getInstance().initialReminderCheck();
     await HabitRepository.getInstance().initialReminderCheck();

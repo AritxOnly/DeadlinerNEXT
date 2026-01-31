@@ -27,6 +27,9 @@ export interface TaskUIModel {
 
 @Component
 export struct TaskListSection {
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
   scroller: Scroller = new Scroller();
 
   @State taskList: Array<TaskUIModel> = [];
@@ -547,7 +550,7 @@ export struct TaskListSection {
                     this.EmptyPlaceholder()
                   }
                   .width('100%')
-                  .height('100%')
+                  .height(this.isWideScreen ? '100%' : '60%')
                 }
               }
               .width("100%")

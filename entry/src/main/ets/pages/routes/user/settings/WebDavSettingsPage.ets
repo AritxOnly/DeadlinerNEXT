@@ -1,10 +1,13 @@
 import { SettingsConstants } from "../../../../common/local/SettingsConstants";
 import { LocalValues } from "../../../../common/local/LocalValues";
-import { promptAction } from '@kit.ArkUI'; // 用于显示 Toast
+import { promptAction, SymbolGlyphModifier } from '@kit.ArkUI'; // 用于显示 Toast
 import { WebUtils } from '../../../../common/network/WebUtils'; // 引用我们之前写的网络工具
 import { DatabaseHelper } from '../../../../common/data/DatabaseHelper'; // 引用数据库工具
 import { SyncService } from "../../../../common/sync/SyncService";
 import { SettingsSection, SubSettingsSwitch } from "../../../components/SettingsComponents";
+import { HelpDetailPage } from "../manual/HelpDetailPage";
+import { ManualDataManager, ManualItem } from "../../../../common/manual/ManualModel";
+import { HelpDetailSheet } from "../manual/HelpDetailSheet";
 
 @Builder
 export function SettingsWebDavBuilder(name: string, param: Object) {
@@ -27,6 +30,14 @@ export struct SettingsWebDavPage {
 
   onWillApplyTheme(theme: Theme): void {
     this.buttonBg = theme.colors.brand
+  }
+
+  @State isHelpSheetShow: boolean = false;
+  @Builder
+  helpSheet() {
+    HelpDetailSheet({
+      item: ManualDataManager.getInstance().getItemById("webdav_config")
+    })
   }
 
   build() {
@@ -121,9 +132,30 @@ export struct SettingsWebDavPage {
       .padding(16)
     }
     .title("WebDAV设置")
+    .menus([
+      {
+        value: '帮助',
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.questionmark_circle')),
+        action: () => { this.isHelpSheetShow = true }
+      }
+    ])
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
     .backgroundColor($r('app.color.background_primary'))
+    .bindSheet($$this.isHelpSheetShow, this.helpSheet(), {
+      title: { title: '如何配置 WebDAV 云同步？' },
+      detents: [
+        SheetSize.FIT_CONTENT,
+        SheetSize.MEDIUM,
+        SheetSize.LARGE
+      ],
+      height: SheetSize.FIT_CONTENT,
+      enableOutsideInteractive: false,
+      dragBar: true,
+      backgroundColor: Color.Transparent,
+      blurStyle: BlurStyle.Regular,
+      onDisappear: () => { this.isHelpSheetShow = false },
+    })
   }
 }

@@ -1,8 +1,10 @@
 import { SettingsConstants } from "../../../../common/local/SettingsConstants";
 import { LocalValues } from "../../../../common/local/LocalValues";
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, SymbolGlyphModifier } from '@kit.ArkUI';
 import { AIService } from "../../../../ai/AIServcice";
 import { Theme } from '@kit.ArkUI';
+import { ManualDataManager } from "../../../../common/manual/ManualModel";
+import { HelpDetailSheet } from "../manual/HelpDetailSheet";
 
 @Builder
 export function SettingsAIBuilder(name: string, param: Object) {
@@ -32,6 +34,14 @@ export struct DeadlinerAISettingsPage {
     if (this.apiKey && this.apiKey.length > 10) {
       this.isVerified = true;
     }
+  }
+
+  @State isHelpSheetShow: boolean = false;
+  @Builder
+  helpSheet() {
+    HelpDetailSheet({
+      item: ManualDataManager.getInstance().getItemById("ai_config")
+    })
   }
 
   build() {
@@ -207,6 +217,27 @@ export struct DeadlinerAISettingsPage {
     .onReady((context: NavDestinationContext) => {
       this.pageStack = context.pathStack;
     })
+    .menus([
+      {
+        value: '帮助',
+        symbolIcon: new SymbolGlyphModifier($r('sys.symbol.questionmark_circle')),
+        action: () => { this.isHelpSheetShow = true }
+      }
+    ])
     .backgroundColor($r('app.color.background_primary'))
+    .bindSheet($$this.isHelpSheetShow, this.helpSheet(), {
+      title: { title: '如何配置 DeepSeek API？' },
+      detents: [
+        SheetSize.FIT_CONTENT,
+        SheetSize.MEDIUM,
+        SheetSize.LARGE
+      ],
+      height: SheetSize.FIT_CONTENT,
+      enableOutsideInteractive: false,
+      dragBar: true,
+      backgroundColor: Color.Transparent,
+      blurStyle: BlurStyle.Regular,
+      onDisappear: () => { this.isHelpSheetShow = false },
+    })
   }
 }

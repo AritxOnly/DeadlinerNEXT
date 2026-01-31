@@ -1,5 +1,5 @@
 import { HdsActionBar, ActionBarButton, ActionBarStyle, BlurStrategy } from '@kit.UIDesignKit'
-import { ColorMetrics } from '@kit.ArkUI'
+import { ColorMetrics, SymbolGlyphModifier } from '@kit.ArkUI'
 
 @Component
 export struct HomeFloatingToolbar {
@@ -29,6 +29,10 @@ export struct HomeFloatingToolbar {
     }
   }
 
+  getIconButtonWeighed(res: Resource, weight: number) {
+    return new SymbolGlyphModifier(res).fontWeight(weight)
+  }
+
   build() {
     if (this.isHorizontal) {
       HdsActionBar({
@@ -41,8 +45,14 @@ export struct HomeFloatingToolbar {
           }),
         ],
         primaryButton: new ActionBarButton({
-          baseIcon: $r('sys.symbol.plus'),
-          altIcon: $r('sys.symbol.xmark'),
+          baseIconSymbolGlyphModifier: this.getIconButtonWeighed(
+            $r('sys.symbol.plus'),
+            500
+          ),
+          altIconSymbolGlyphModifier: this.getIconButtonWeighed(
+            $r('sys.symbol.xmark'),
+            500
+          ),
           backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
           onClick: () => {
             this.onClickAdd()
@@ -88,8 +98,14 @@ export struct HomeFloatingToolbar {
           }),
         ],
         primaryButton: new ActionBarButton({
-          baseIcon: $r('sys.symbol.plus'),
-          altIcon: $r('sys.symbol.xmark'),
+          baseIconSymbolGlyphModifier: this.getIconButtonWeighed(
+            $r('sys.symbol.plus'),
+            500
+          ),
+          altIconSymbolGlyphModifier: this.getIconButtonWeighed(
+            $r('sys.symbol.xmark'),
+            500
+          ),
           backgroundColor: ColorMetrics.resourceColor($r('app.color.accent')),
           onClick: () => {
             this.onClickAdd()

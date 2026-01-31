@@ -382,6 +382,7 @@ export struct UserPage {
           Blank().height(50)
             .bindSheet($$this.isSupportSheetShow, this.supportSheet(), {
               height: SheetSize.FIT_CONTENT,
+              enableOutsideInteractive: false,
               dragBar: true,
               onDisappear: () => {
                 this.isSupportSheetShow = false;
@@ -398,6 +399,7 @@ export struct UserPage {
         .bindSheet($$this.isArchiveSheetShow, this.archiveSheet(), {
           height: SheetSize.FIT_CONTENT,
           dragBar: true,
+          enableOutsideInteractive: false,
           onDisappear: () => {
             this.isArchiveSheetShow = false;
           },
@@ -424,6 +426,7 @@ export struct UserPage {
     .bindSheet($$this.isAISheetShow, this.aiSheet(), {
       height: SheetSize.LARGE,
       dragBar: true,
+      enableOutsideInteractive: false,
       onDisappear: () => {
         this.closeAiPanel();
       },

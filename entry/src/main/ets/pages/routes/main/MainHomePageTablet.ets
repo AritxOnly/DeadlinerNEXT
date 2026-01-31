@@ -309,6 +309,7 @@ export struct MainHomePageTablet {
           .height('100%')
           .bindSheet($$this.isAddTaskShow, this.addTaskSheetBuilder(), {
             height: SheetSize.FIT_CONTENT,
+            enableOutsideInteractive: false,
             onDisappear: () => { this.isAddTaskShow = false; },
             blurStyle: BlurStyle.Regular,
             backgroundColor: Color.Transparent,
@@ -344,6 +345,7 @@ export struct MainHomePageTablet {
           // [绑定位置] 保持不变
           .bindSheet($$this.isAddHabitShow, this.addHabitSheetBuilder(), {
             height: SheetSize.FIT_CONTENT,
+            enableOutsideInteractive: false,
             onDisappear: () => { this.isAddHabitShow = false; },
             blurStyle: BlurStyle.Regular,
             backgroundColor: Color.Transparent,
@@ -367,6 +369,7 @@ export struct MainHomePageTablet {
         .padding({ top: this.statusBarHeight + this.topContentHeight })
         .bindSheet($$this.isSearchShow, this.searchSheet(), {
           height: SheetSize.FIT_CONTENT,
+          enableOutsideInteractive: false,
           onDisappear: () => { this.isSearchShow = false; },
           blurStyle: BlurStyle.Regular,
           showClose: false
@@ -417,6 +420,7 @@ export struct MainHomePageTablet {
       }
       .bindSheet($$this.isArchiveSheetShow, this.archiveSheet(), {
         height: SheetSize.FIT_CONTENT,
+        enableOutsideInteractive: false,
         dragBar: true,
         onDisappear: () => { this.isArchiveSheetShow = false; },
         blurStyle: BlurStyle.Regular,
@@ -459,6 +463,7 @@ export struct MainHomePageTablet {
     .bindSheet($$this.isAISheetShow, this.aiSheet(), {
       height: SheetSize.LARGE,
       dragBar: true,
+      enableOutsideInteractive: false,
       onDisappear: () => { this.closeAiPanel(); },
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
