@@ -52,7 +52,7 @@ interface IndicatorSet {
   bgCompleted40: Resource;
 }
 
-const INDICATORS_MORANDI: IndicatorSet = {
+export const INDICATORS_MORANDI: IndicatorSet = {
   indicatorUndergo: $r('app.color.indicator_morandi_undergo'),
   indicatorUndergo50: $r('app.color.indicator_morandi_undergo_50'),
   indicatorUndergo70: $r('app.color.indicator_morandi_undergo_70'),
@@ -78,7 +78,7 @@ const INDICATORS_MORANDI: IndicatorSet = {
   bgCompleted40: $r('app.color.bg_morandi_completed_40'),
 };
 
-const INDICATORS_VIBRANT: IndicatorSet = {
+export const INDICATORS_VIBRANT: IndicatorSet = {
   indicatorUndergo: $r('app.color.indicator_vibrant_undergo'),
   indicatorUndergo50: $r('app.color.indicator_vibrant_undergo_50'),
   indicatorUndergo70: $r('app.color.indicator_vibrant_undergo_70'),
@@ -104,7 +104,7 @@ const INDICATORS_VIBRANT: IndicatorSet = {
   bgCompleted40: $r('app.color.bg_vibrant_completed_40'),
 };
 
-function createTheme(
+export function createTheme(
   brand: ResourceColor,
   brand50: ResourceColor,
   accent: ResourceColor,

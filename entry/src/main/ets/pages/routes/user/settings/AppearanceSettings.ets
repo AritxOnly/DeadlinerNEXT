@@ -9,7 +9,7 @@ import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { window } from '@kit.ArkUI';
-import { ThemeSelectSheet } from './ThemeSelectSheet';
+import { ThemeSelectSheet } from './components/ThemeSelectSheet';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -46,7 +46,9 @@ struct AppearanceSettings {
   @State isThemeSelectSheetShow: boolean = false;
   @Builder
   themeSheet() {
-    ThemeSelectSheet()
+    ThemeSelectSheet({
+      onDone: () => { this.isThemeSelectSheetShow = false }
+    })
   }
 
   build() {
@@ -174,22 +176,18 @@ struct AppearanceSettings {
       content: { title: { mainTitle: "显示与个性化" } }
     })
     .bindSheet($$this.isThemeSelectSheetShow, this.themeSheet(), {
-      detents: [
-        SheetSize.FIT_CONTENT,
-        SheetSize.MEDIUM,
-        SheetSize.LARGE
-      ],
-      height: SheetSize.FIT_CONTENT,
+      detents: [ 550, 900 ],
+      height: 550,
       dragBar: true,
+      enableFloatingDragBar: true,
       enableOutsideInteractive: false,
+      scrollSizeMode: ScrollSizeMode.CONTINUOUS,
       onDisappear: () => {
         this.isThemeSelectSheetShow = false;
       },
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
-      title: {
-        title: '选择主题',
-      }
+      showClose: false
     })
   }
 }

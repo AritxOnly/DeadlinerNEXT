@@ -1,47 +1,93 @@
-import { ITheme, ThemeMap } from "./ThemeModel";
+import { createTheme, INDICATORS_MORANDI, INDICATORS_VIBRANT, ITheme, ThemeMap } from "./ThemeModel";
 import { ThemeControl } from "@kit.ArkUI";
 import { DeadlinerTheme } from "../../AppTheme";
-import { LocalValues } from "../local/LocalValues";
-import { preferences } from '@kit.ArkData'; // 👈 必须引用
+import { preferences } from '@kit.ArkData';
+import { ColorGenerator, ThemePalette } from "../../utils/ColorGenerator";
 
 export class ThemeManager {
   private static pref: preferences.Preferences | undefined = undefined;
   private static readonly STORE_NAME = 'deadliner_theme_config';
   private static readonly KEY_THEME = 'key_current_theme';
+  private static readonly KEY_CUSTOM_HUE = 'key_custom_hue';
+  private static readonly KEY_CUSTOM_TYPE = 'key_custom_type'; // 'vibrant' | 'morandi'
 
-  /**
-   * 初始化
-   */
   static async init(context: Context) {
     try {
       ThemeManager.pref = await preferences.getPreferences(context, ThemeManager.STORE_NAME);
-
-      // 读取 Key
       const key = await ThemeManager.pref.get(ThemeManager.KEY_THEME, 'classic') as string;
 
-      console.info('[ThemeManager]', `Loaded from disk: ${key}`);
-
-      let validKey = key;
-      if (!ThemeMap[validKey]) {
-        validKey = 'classic';
+      if (key === 'custom') {
+        const hue = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_HUE, 210) as number;
+        const type = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_TYPE, 'vibrant') as string;
+        ThemeManager.applyCustomTheme(hue, type);
+      } else {
+        let validKey = ThemeMap[key] ? key : 'classic';
+        ThemeManager.updateAppState(validKey, ThemeMap[validKey]);
       }
-
-      AppStorage.setOrCreate('currentThemeKey', validKey);
-      AppStorage.setOrCreate('currentTheme', ThemeMap[validKey]);
-
-      ThemeManager.applySystemTheme(ThemeMap[validKey]);
-
     } catch (err) {
-      console.error('[ThemeManager]', 'Init failed', JSON.stringify(err));
-      AppStorage.setOrCreate('currentThemeKey', 'classic');
-      AppStorage.setOrCreate('currentTheme', ThemeMap['classic']);
-      ThemeManager.applySystemTheme(ThemeMap['classic']);
+      ThemeManager.updateAppState('classic', ThemeMap['classic']);
     }
   }
 
   /**
-   * 切换主题
+   * 应用自定义主题
    */
+  static async applyCustomTheme(hue: number, type: string) {
+    let palette: ThemePalette;
+    if (type === 'morandi') {
+      palette = ColorGenerator.generateMorandi(hue);
+    } else {
+      palette = ColorGenerator.generateVibrant(hue);
+    }
+
+    const customTheme = ThemeManager.createCustomTheme(palette, type);
+
+    // 1. 更新内存状态
+    ThemeManager.updateAppState('currentTheme', customTheme);
+
+    if (ThemeManager.pref) {
+      await ThemeManager.pref.put(ThemeManager.KEY_THEME, 'custom');
+      await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_HUE, hue);
+      await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_TYPE, type);
+      await ThemeManager.pref.flush();
+    }
+  }
+
+  /**
+   * 核心方法：将 Palette 映射到全套 ITheme
+   */
+  static createCustomTheme(palette: ThemePalette, type: string): ITheme {
+    const withAlpha = (hex: string, alpha: string) => {
+      return hex.replace('#', '#' + alpha);
+    };
+
+    return createTheme(
+      palette.primary,
+      withAlpha(palette.primary, "80"),
+      palette.tertiary,
+      $r('app.color.background_primary'),
+      (type === 'vibrant') ? INDICATORS_VIBRANT : INDICATORS_MORANDI
+    )
+  }
+
+  private static updateAppState(key: string, theme: ITheme) {
+    AppStorage.setOrCreate('currentThemeKey', key);
+    AppStorage.setOrCreate('currentTheme', theme);
+    ThemeManager.applySystemTheme(theme);
+  }
+
+  private static applySystemTheme(theme: ITheme) {
+    try {
+      ThemeControl.setDefaultTheme(new DeadlinerTheme(theme));
+    } catch (error) {
+      console.error('[ThemeManager]', 'Failed to apply system theme', error);
+    }
+  }
+
+  static getCurrentTheme(): ITheme {
+    return AppStorage.get<ITheme>('currentTheme') || ThemeMap['classic'];
+  }
+
   static async switchTheme(name: string) {
     if (ThemeMap[name]) {
       console.info('[ThemeManager]', `Switching to: ${name}`);
@@ -62,25 +108,4 @@ export class ThemeManager {
       }
     }
   }
-
-  private static applySystemTheme(theme: ITheme) {
-    try {
-      ThemeControl.setDefaultTheme(new DeadlinerTheme(theme));
-    } catch (error) {
-      console.error('[ThemeManager]', 'Failed to apply system theme', error);
-    }
-  }
-
-  static getCurrentTheme(): ITheme {
-    return AppStorage.get<ITheme>('currentTheme') || ThemeMap['classic'];
-  }
-
-  // static createCustomTheme(seedColor: string): ITheme {
-  //   return {
-  //     brand: seedColor,
-  //     brand50: seedColor, // 这里的逻辑后续需要完善
-  //     accent: seedColor,
-  //     bgPrimary: '#F2F3F5'
-  //   };
-  // }
 }
