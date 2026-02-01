@@ -214,7 +214,7 @@ export struct ArchivePanelView {
             }
             .width('100%')
             .layoutWeight(1)
-            .padding({ left: 16, right: 16, bottom: 24 })
+            .padding({ left: 16, right: 16 })
             .scrollBar(BarState.Auto)
           }
         } else {
@@ -239,7 +239,7 @@ export struct ArchivePanelView {
             }
             .width('100%')
             .layoutWeight(1)
-            .padding({ left: 16, right: 16, bottom: 24 })
+            .padding({ left: 16, right: 16 })
             .scrollBar(BarState.Auto)
           }
         }

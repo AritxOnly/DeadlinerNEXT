@@ -12,11 +12,14 @@ interface ThemeOption {
 
 const THEME_OPTIONS: ThemeOption[] = [
   { key: 'classic', name: '莫兰迪 (默认)', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'time', name: '时光', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'vibrant', name: '生动', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'nature', name: '清新', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'sunset', name: '暖阳', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'lavender', name: '极光', previewBg: $r('sys.color.search_container_focus_color') },
-  { key: 'harmony', name: '星河 (鸿蒙OS)', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'harmony', name: '鸿蒙', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'galaxy', name: '星河', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'cold', name: '冷调', previewBg: $r('sys.color.search_container_focus_color') }
 ];
 
 @Component
@@ -60,12 +63,12 @@ export struct ThemeSelectSheet {
   build() {
     HdsNavigation(this.navStack) {
       Column() {
-        Blank().height(72)
-
-        this.ThemePresetList()
+        TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
+          this.ThemePresetList()
+        }
       }
       .width('100%')
-      .padding({ left: 20, right: 20, bottom: 20 })
+      .padding({ left: 20, right: 20 })
     }
     .titleBar({
       content: {
@@ -82,6 +85,7 @@ export struct ThemeSelectSheet {
         }
       },
     })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .titleMode(HdsNavigationTitleMode.MODAL)
     .navDestination(this.navDestination)
     .hideBackButton(true)
@@ -114,8 +118,7 @@ export struct ThemeSelectSheet {
       Column() {
         Stack({ alignContent: Alignment.Center }) {
           Circle({ width: 48, height: 48 })
-            .fill(Color.Transparent)
-            .border({ width: 2, color: $r('app.color.icon_secondary'), style: BorderStyle.Dashed })
+            .fill($r('sys.color.container_modal_background'))
 
           SymbolGlyph($r('sys.symbol.plus'))
             .fontSize(24)
@@ -143,53 +146,95 @@ export struct ThemeSelectSheet {
   // === 组件：主题卡片 ===
   @Builder
   ThemeItemBuilder(item: ThemeOption) {
-    Stack({ alignContent: Alignment.TopStart }) {
+    Stack({ alignContent: Alignment.TopEnd }) {
+      // 1. 卡片主体内容
       Column() {
-        Stack({ alignContent: Alignment.BottomEnd }) {
-          Circle({ width: 48, height: 48 })
-            .fill(ThemeMap[item.key].brand)
+        // --- A. 预览区域 (占据主要空间) ---
+        // 这里使用 Column + Row 构成正三角形布局
+        Column() {
+          // 顶点：开关
+          Row() {
+            Toggle({ type: ToggleType.Switch, isOn: true })
+              .selectedColor(ThemeMap[item.key].brand)
+              .height(20) // 视觉调整，稍微小一点更精致
+              .hitTestBehavior(HitTestMode.None) // 禁用交互
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.Center) // 居中
+          .margin({ bottom: 8 })
 
-          Circle({ width: 24, height: 24 })
-            .fill(ThemeMap[item.key].accent)
-            .stroke(item.previewBg)
-            .strokeWidth(2)
-            .margin({ right: -4, bottom: -4 })
+          // 底边：按钮 + 图标
+          Row() {
+            // 左下角：+号按钮
+            Button({ type: ButtonType.Circle }) {
+              SymbolGlyph($r('sys.symbol.plus'))
+                .fontSize(24) // 尺寸适中
+                .fontWeight(FontWeight.Normal) // ✅ 改回正常粗细
+                .fontColor([Color.White])
+            }
+            .width(44)
+            .height(44)
+            .backgroundColor(ThemeMap[item.key].accent)
+            .shadow({ radius: 6, color: '#33000000', offsetY: 3 }) // 增加阴影提升质感
+            .hitTestBehavior(HitTestMode.None)
+
+            // 右下角：Tab图标
+            SymbolGlyph($r('sys.symbol.house_fill_1')) // 使用实心图标更有分量
+              .fontSize(36) // ✅ 加大图标
+              .fontColor([ThemeMap[item.key].tabIcon]) // ✅ 使用 tabIcon 颜色
+              .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
+              .symbolEffect(new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN))
+          }
+          .width('100%')
+          .justifyContent(FlexAlign.SpaceAround) // 在行内均匀分布，形成三角形底边
+          .alignItems(VerticalAlign.Center)
+        }
+        .layoutWeight(1) // 让预览区自动撑开高度
+        .width('100%')
+        .justifyContent(FlexAlign.Center) // 垂直居中内容
+        .padding({ top: 8 })
+
+        // --- B. 文字区域 (独立，不重叠) ---
+        Column() {
+          Text(item.name)
+            .fontSize(14)
+            .fontColor($r('app.color.font_primary'))
+            .fontWeight(FontWeight.Medium)
+            .maxLines(1)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
         }
         .width('100%')
-        .height(80)
-        .alignContent(Alignment.Center)
-
-        Text(item.name)
-          .fontSize(14)
-          .fontColor($r('app.color.font_primary'))
-          .fontWeight(FontWeight.Medium)
-          .margin({ top: 12 })
+        .height(32) // 给文字固定高度区域
+        .justifyContent(FlexAlign.Center)
       }
       .width('100%')
-      .padding(12)
+      .height(140)
+      .padding({ top: 8, bottom: 4, left: 12, right: 12 })
       .borderRadius(20)
       .backgroundColor(item.previewBg)
       .border({
         width: 2,
+        // 选中时边框变色，未选中透明
         color: this.currentKey === item.key ? ThemeMap[item.key].brand : Color.Transparent
       })
       .onClick(() => {
         ThemeManager.switchTheme(item.key);
       })
 
+      // 2. 选中态：右上角悬浮旗标 (Floating Circle)
       if (this.currentKey === item.key) {
-        Row() {
+        Stack({ alignContent: Alignment.Center }) {
+          Circle({ width: 24, height: 24 })
+            .fill(ThemeMap[item.key].brand)
+
           SymbolGlyph($r('sys.symbol.checkmark'))
             .fontColor([Color.White])
-            .fontSize(10)
+            .fontSize(12)
+            .fontWeight(FontWeight.Bold)
         }
-        .width(20)
-        .height(20)
-        .borderRadius(10)
-        .backgroundColor(ThemeMap[item.key].brand)
-        .justifyContent(FlexAlign.Center)
-        .margin({ top: 8, left: 8 })
+        .margin({ top: 8, right: 8 }) // ✅ 距离边框有间距，形成“悬浮”感
       }
     }
+    .animation({ duration: 250, curve: Curve.FastOutSlowIn })
   }
 }

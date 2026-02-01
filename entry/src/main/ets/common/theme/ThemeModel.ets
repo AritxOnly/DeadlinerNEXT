@@ -4,6 +4,8 @@ export interface ITheme {
   accent: ResourceColor;
   bgPrimary: ResourceColor;
 
+  tabIcon: ResourceColor;
+
   indicatorUndergo: ResourceColor;
   indicatorUndergo50: ResourceColor;
   indicatorUndergo70: ResourceColor;
@@ -109,13 +111,15 @@ export function createTheme(
   brand50: ResourceColor,
   accent: ResourceColor,
   bgPrimary: ResourceColor,
-  indicators: IndicatorSet
+  indicators: IndicatorSet,
+  tabIcon?: ResourceColor
 ): ITheme {
   return {
     brand: brand,
     brand50: brand50,
     accent: accent,
     bgPrimary: bgPrimary,
+    tabIcon: tabIcon ? tabIcon : brand,
 
     indicatorUndergo: indicators.indicatorUndergo,
     indicatorUndergo50: indicators.indicatorUndergo50,
@@ -151,6 +155,14 @@ export const ThemeMap: Record<string, ITheme> = {
     $r('app.color.background_primary'),
     INDICATORS_MORANDI
   ),
+  'time': createTheme(
+    $r('app.color.brand'),
+    $r('app.color.brand_50'),
+    $r('app.color.accent'),
+    $r('app.color.background_primary'),
+    INDICATORS_MORANDI,
+    $r('app.color.cold')
+  ),
   'vibrant': createTheme(
     $r('app.color.brand_vibrant'),
     $r('app.color.brand_vibrant_50'),
@@ -185,5 +197,21 @@ export const ThemeMap: Record<string, ITheme> = {
     $r('sys.color.ohos_id_color_emphasize_contrary'),
     $r('app.color.background_primary'),
     INDICATORS_VIBRANT
-  )
+  ),
+  'galaxy': createTheme(
+    $r('sys.color.ohos_id_color_emphasize'),
+    '#800A59F7',
+    $r('sys.color.ohos_id_color_emphasize_contrary'),
+    $r('app.color.background_primary'),
+    INDICATORS_VIBRANT,
+    $r('app.color.cold')
+  ),
+  'cold': createTheme(
+    $r('app.color.cold'),
+    $r('app.color.cold_50'),
+    $r('app.color.cold'),
+    $r('app.color.background_primary'),
+    INDICATORS_MORANDI,
+    $r('app.color.cold')
+  ),
 };

@@ -2,6 +2,9 @@
   "color": [
     { "name": "start_window_background", "value": "#000000"},
 
+    { "name": "cold", "value": "#DDDDDD" },
+    { "name": "cold_50", "value": "#80DDDDDD" },
+
     { "name": "brand", "value": "#FF7CA6D6"},
     { "name": "brand_50", "value": "#807CA6D6"},
 

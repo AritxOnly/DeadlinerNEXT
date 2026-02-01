@@ -214,7 +214,7 @@ struct Index {
     );
 
     style.labelStyle({
-      selectedColor: this.theme.brand,
+      selectedColor: this.theme.tabIcon,
       unselectedColor: $r('app.color.font_secondary')
     })
 
@@ -230,7 +230,7 @@ struct Index {
 
       selected: new SymbolGlyphModifier(icon)
         .fontSize(24)
-        .fontColor([this.theme.brand])
+        .fontColor([this.theme.tabIcon])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
         .symbolEffect(
           new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN)
