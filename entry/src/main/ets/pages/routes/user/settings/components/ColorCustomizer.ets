@@ -1,195 +1,208 @@
-import { ColorGenerator, ColorSwatch } from '../../../../../utils/ColorGenerator';
+import { ColorGenerator, AccentOption } from '../../../../../utils/ColorGenerator';
 import { ThemeManager } from '../../../../../common/theme/ThemeManager';
+import { SettingsSection, SubSettingsSwitch } from '../../../../components/SettingsComponents';
+import { promptAction } from '@kit.ArkUI';
 
 @Component
 export struct ColorCustomizer {
-  // 核心状态
-  @State hue: number = 210;
-  // 自动根据Hue生成的一组色板（包含不同饱和度、明度）
-  @State generatedSwatches: ColorSwatch[] = [];
+  // === 状态管理 ===
+  @State hue: number = 210; // 初始蓝色
+  @State styleStrength: number = 50; // 0=莫兰迪, 100=生动
 
-  // 选中的索引
-  @State selectedBrandIndex: number = 4; // 默认选中中间某个比较好看的颜色
-  @State selectedAccentIndex: number = 4;
-  @State isAccentFollowBrand: boolean = true;
+  // 计算出的当前颜色
+  @State currentBrand: string = '#FF000000';
+  @State currentAccent: string = '#FF000000';
 
-  // 初始化
-  aboutToAppear() {
-    this.updateSwatches();
+  @State enableColdTab: boolean = false;
+
+  // Accent 策略
+  @State accentStrategies: AccentOption[] = [];
+  @State selectedAccentKey: string = 'mono';
+
+  async aboutToAppear() {
+    await this.restoreSavedState();
+    this.updateColors();
   }
 
-  // 重新生成颜色数据
-  private updateSwatches() {
-    this.generatedSwatches = ColorGenerator.generateGradientSwatches(this.hue);
+  private async restoreSavedState() {
+    const config = await ThemeManager.getCustomConfig();
+
+    // 只有当当前确认为自定义主题时，才覆盖默认值
+    if (config.isCustom) {
+      this.hue = config.hue;
+      this.styleStrength = config.styleStrength;
+
+      // 如果你想让之前的 accent 选择也大概恢复
+      // (虽然 accentStrategies 是重新生成的，但可以尝试匹配颜色)
+      this.currentBrand = config.brand; // 先赋个初值防止闪烁
+    }
   }
 
-  // 获取当前选中的颜色值（防崩溃）
-  private getSafeColor(index: number): string {
-    return (this.generatedSwatches[index]) ? this.generatedSwatches[index].color : '#808080';
+  // 核心刷新逻辑
+  private updateColors() {
+    if (!ColorGenerator) return;
+
+    // 1. 生成 Brand
+    const brandSwatch = ColorGenerator.generateBrand(this.hue, this.styleStrength);
+    this.currentBrand = brandSwatch.color;
+
+    // 2. 生成推荐的 Accents
+    // 计算当前近似的饱和度传给生成器，保证 Accent 风格一致
+    const estimatedSat = 15 + (this.styleStrength / 100) * (90 - 15);
+    this.accentStrategies = ColorGenerator.generateAccentStrategies(this.hue, estimatedSat);
+
+    // 3. 更新当前选中的 Accent
+    const activeStrategy = this.accentStrategies.find(s => s.key === this.selectedAccentKey);
+    this.currentAccent = activeStrategy ? activeStrategy.color : this.currentBrand;
   }
 
   build() {
-    Column({ space: 24 }) {
+    Column({ space: 16 }) {
 
-      // === 1. 色相控制 (Hue) ===
-      Column({ space: 12 }) {
-        Text("1. 调整基调 (Hue)")
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('sys.color.font_secondary'))
-          .width('100%')
-
-        // 滑动条组件
-        HueSlider({
-          hue: this.hue,
-          onHueChange: (val) => {
-            this.hue = val;
-            this.updateSwatches(); // 滑动实时更新色板
-          }
-        })
-      }
-      .width('100%')
-
-      // === 2. 品牌色选择 (3列网格) ===
-      Column({ space: 12 }) {
-        Text("2. 选择品牌色 (Brand)")
-          .fontSize(14)
-          .fontWeight(FontWeight.Bold)
-          .fontColor($r('sys.color.font_secondary'))
-          .width('100%')
-
-        // 提取为独立组件，彻底解决状态不更新问题
-        ColorGridSelector({
-          swatches: this.generatedSwatches,
-          selectedIndex: $selectedBrandIndex,
-          onSelect: (index) => {
-            this.selectedBrandIndex = index;
-            // 如果开启了联动，Accent自动跟随
-            if (this.isAccentFollowBrand) {
-              this.selectedAccentIndex = index;
-            }
-          }
-        })
-      }
-
-      // === 3. 强调色选择 (Accent) ===
-      Column({ space: 12 }) {
-        Row() {
-          Text("3. 选择强调色 (Accent)")
-            .fontSize(14)
-            .fontWeight(FontWeight.Bold)
-            .fontColor($r('sys.color.font_secondary'))
-
-          Blank()
-
-          Row({ space: 8 }) {
-            Text("跟随品牌色")
-              .fontSize(12)
-              .fontColor($r('sys.color.font_tertiary'))
-
-            Toggle({ type: ToggleType.Switch, isOn: this.isAccentFollowBrand })
-              .onChange((isOn) => {
-                this.isAccentFollowBrand = isOn;
-                if (isOn) this.selectedAccentIndex = this.selectedBrandIndex;
-              })
-              .height(20)
-          }
-        }
-        .width('100%')
-
-        // 只有当不跟随的时候才显示选择器
-        if (!this.isAccentFollowBrand) {
-          ColorGridSelector({
-            swatches: this.generatedSwatches,
-            selectedIndex: $selectedAccentIndex,
-            onSelect: (index) => {
-              this.selectedAccentIndex = index;
-            }
-          })
-            .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
-        }
-      }
-
-      // === 4. 预览与应用 ===
-      Column({ space: 16 }) {
-        // 简单的预览卡片
+      SettingsSection() {
+        // === 1. 核心预览区 (复用三角形布局) ===
         ThemePreviewCard({
-          brandColor: this.getSafeColor(this.selectedBrandIndex),
-          accentColor: this.getSafeColor(this.selectedAccentIndex)
+          brandColor: this.currentBrand,
+          accentColor: this.currentAccent,
+          tabColor: this.enableColdTab ? $r('app.color.cold') : this.currentBrand
         })
-
-        Button("应用主题")
-          .width('100%')
-          .height(48)
-          .backgroundColor(this.getSafeColor(this.selectedBrandIndex))
-          .onClick(() => {
-            const brand = this.getSafeColor(this.selectedBrandIndex);
-            const accent = this.getSafeColor(this.selectedAccentIndex);
-            // 这里调用你的 ThemeManager
-            // ThemeManager.applyCustomColors(brand, accent);
-          })
+          .margin({ top: 10 })
       }
-      .margin({ top: 12, bottom: 30 })
 
-    }
-    .padding(20)
-    .height('100%')
-  }
-}
+      // === 2. 调色控制区 ===
+      Column({ space: 16 }) {
+        // A. 色相调节
+        SettingsSection() {
+          Column({ space: 10 }) {
+            Row() {
+              Text("色调 (Hue)").fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('sys.color.font_secondary'))
+              Blank()
+              Text(`${this.hue.toFixed(0)}°`).fontSize(12).fontColor($r('sys.color.font_tertiary'))
+            }.width('100%')
 
-// =========================================
-// 子组件：颜色网格选择器 (关键修复：组件化)
-// =========================================
-@Component
-struct ColorGridSelector {
-  @Prop swatches: ColorSwatch[];
-  @Link selectedIndex: number;
-  onSelect?: (index: number) => void;
-
-  build() {
-    Grid() {
-      ForEach(this.swatches, (item: ColorSwatch, index: number) => {
-        GridItem() {
-          // 单个颜色块
-          Stack({ alignContent: Alignment.Center }) {
-            // 颜色圆球
-            Circle({ width: 56, height: 56 })
-              .fill(item.color)
-
-            // 选中状态：外圈边框 + 对勾
-            if (this.selectedIndex === index) {
-              // 选中外圈
-              Circle({ width: 64, height: 64 })
-                .fill(Color.Transparent)
-                .stroke(item.color)
-                .strokeWidth(3)
-                .opacity(0.5)
-
-              // 对勾图标
-              SymbolGlyph($r('sys.symbol.checkmark'))
-                .fontSize(24)
-                .fontColor([item.isLight ? Color.Black : Color.White])
-            }
+            HueSlider({
+              hue: $hue, onHueChange: (val) => {
+                this.hue = val;
+                this.updateColors();
+              }
+            })
           }
-          .width('100%')
-          .height(72)
-          .animation({ duration: 200, curve: Curve.FastOutSlowIn }) // 添加动画
-          .scale({ x: this.selectedIndex === index ? 1.05 : 1, y: this.selectedIndex === index ? 1.05 : 1 })
-          .onClick(() => {
-            // 显式更新 Link 状态
-            this.selectedIndex = index;
-            if (this.onSelect) this.onSelect(index);
-          })
+          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
         }
-      })
+
+        // B. 风格调节 (莫兰迪 -> 生动)
+        SettingsSection() {
+          Column({ space: 10 }) {
+            Row() {
+              Text("风格 (Style)").fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('sys.color.font_secondary'))
+              Blank()
+              Text(this.styleStrength < 40 ? "莫兰迪" : (this.styleStrength > 70 ? "生动" : "标准"))
+                .fontSize(12).fontColor($r('sys.color.font_tertiary'))
+            }.width('100%')
+
+            // 使用系统 Slider，自定义轨道颜色体现渐变
+            Slider({
+              value: this.styleStrength,
+              min: 0,
+              max: 100,
+              style: SliderStyle.OutSet,
+            })
+              .selectedColor(this.currentBrand) // 滑块颜色跟随品牌色
+              .showSteps(false)
+              .onChange((val) => {
+                this.styleStrength = val;
+                this.updateColors();
+              })
+          }
+          .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+        }
+      }
+
+      SettingsSection() {
+        SubSettingsSwitch({
+          title: '灰度菜单栏颜色',
+          subtitle: '底部 (平板模式下为侧边) 页签栏的图标会以黑白形式显示',
+          isOn: this.enableColdTab,
+          onChange: (isOn) => { this.enableColdTab = isOn; }
+        })
+      }
+
+      // === 3. 强调色推荐 (Accent) ===
+      SettingsSection() {
+        Column({ space: 10 }) {
+          Text("搭配强调色 (Accent)")
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.font_secondary'))
+            .width('100%')
+
+          List({ space: 12 }) {
+            ForEach(this.accentStrategies, (item: AccentOption) => {
+              ListItem() {
+                Column({ space: 8 }) {
+                  // 颜色圈
+                  Stack({ alignContent: Alignment.Center }) {
+                    Circle({ width: 56, height: 56 })
+                      .fill(item.color)
+
+                    // 选中态外圈
+                    if (this.selectedAccentKey === item.key) {
+                      Circle({ width: 62, height: 62 })
+                        .fill(Color.Transparent)
+                        .stroke(item.color)
+                        .strokeWidth(2)
+
+                      SymbolGlyph($r('sys.symbol.checkmark'))
+                        .fontColor([Color.White])
+                        .fontSize(20)
+                    }
+                  }
+                  .animation({ duration: 200 })
+
+                  Text(item.name)
+                    .fontSize(12)
+                    .fontColor(this.selectedAccentKey === item.key ? $r('app.color.font_primary') :
+                      $r('sys.color.font_tertiary'))
+                }
+                .onClick(() => {
+                  this.selectedAccentKey = item.key;
+                  this.updateColors();
+                })
+                .padding(2)
+              }
+            })
+          }
+          .listDirection(Axis.Horizontal)
+          .alignListItem(ListItemAlign.Center)
+          .width('100%')
+          .scrollBar(BarState.Off)
+          .height(96)
+        }
+        .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+      }
+
+      // === 4. 底部应用按钮 ===
+      Button('应用主题')
+        .width('90%')
+        .buttonStyle(ButtonStyleMode.EMPHASIZED)
+        .controlSize(ControlSize.NORMAL)
+        .backgroundColor(this.currentBrand)
+        .onClick(() => {
+          ThemeManager.applyCustomColors(
+            this.currentBrand, this.currentAccent,
+            this.enableColdTab ? $r('app.color.cold') : this.currentBrand,
+            (this.styleStrength <= 70),
+            this.hue, this.styleStrength
+          );
+          promptAction.showToast({
+            message: '主题设置成功！'
+          })
+        })
+        .margin({ bottom: 40 })
     }
-    .columnsTemplate('1fr 1fr 1fr') // 固定三列
-    .rowsGap(12)
-    .columnsGap(12)
-    .height(240) // 3行大概的高度
-    .width('100%')
   }
 }
+
 
 // =========================================
 // 子组件：Hue 滑动条 (UI优化版)
@@ -298,53 +311,83 @@ struct HueSlider {
   }
 }
 
-
-
-// =========================================
-// 子组件：预览卡片 (简单展示效果)
-// =========================================
 @Component
 struct ThemePreviewCard {
   @Prop brandColor: string;
   @Prop accentColor: string;
+  @Prop tabColor: string | ResourceColor;
 
   build() {
-    Column() {
-      Row() {
-        // 模拟头像
-        Circle({ width: 40, height: 40 })
-          .fill(this.brandColor)
+    Stack() {
+      Column() {
+        // --- 1. 顶部：模拟设置项 (承载 Switch) ---
+        Row() {
+          Column({ space: 4 }) {
+            Text("设置项")
+              .fontSize(16)
+              .fontWeight(FontWeight.Bold)
+              .fontColor($r('app.color.font_primary'))
+            Text("这是设置项的描述")
+              .fontSize(12)
+              .fontColor($r('app.color.font_secondary'))
+          }
+          .alignItems(HorizontalAlign.Start)
 
-        Column() {
-          Blank().width('60%').height(12).borderRadius(6).backgroundColor('#F0F0F0')
-          Blank().width('40%').height(12).borderRadius(6).backgroundColor('#F0F0F0').margin({ top: 8 })
+          Blank()
+
+          // 开关：使用品牌色
+          Toggle({ type: ToggleType.Switch, isOn: true })
+            .selectedColor(this.brandColor)
+            .hitTestBehavior(HitTestMode.None) // 仅用于展示
         }
-        .alignItems(HorizontalAlign.Start)
-        .margin({ left: 12 })
+        .width('100%')
+        .alignItems(VerticalAlign.Center)
+        .padding({ bottom: 20 })
+
+        // --- 3. 底部：操作区 (承载 FAB 和 Tab) ---
+        Row() {
+          // 左侧：FAB 悬浮按钮 (使用 Accent 强调色)
+          Button({ type: ButtonType.Circle }) {
+            SymbolGlyph($r('sys.symbol.plus'))
+              .fontSize(28)
+              .fontWeight(FontWeight.Medium)
+              .fontColor([Color.White])
+          }
+          .width(56) // 大尺寸预览
+          .height(56)
+          .backgroundColor(this.accentColor)
+          .shadow({ radius: 8, color: this.hexToRgba(this.accentColor, 0.4), offsetY: 4 }) // 带有颜色的阴影
+          .hitTestBehavior(HitTestMode.None)
+
+          // 右侧：Tab 图标 (使用 Brand 品牌色)
+          Column({ space: 4 }) {
+            SymbolGlyph($r('sys.symbol.house_fill'))
+              .fontSize(32)
+              .fontColor([this.tabColor])
+              .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)
+              .symbolEffect(new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.DOWN))
+
+            // 模拟激活的小点
+            Circle({ width: 4, height: 4 })
+              .fill(this.tabColor)
+          }
+          .justifyContent(FlexAlign.Center)
+          .padding({ right: 12, top: 8 })
+        }
+        .width('100%')
+        .justifyContent(FlexAlign.SpaceBetween) // 左右分布
+        .alignItems(VerticalAlign.Center)
       }
       .width('100%')
-      .padding(16)
-
-      // 模拟按钮
-      Row() {
-        Button("取消")
-          .backgroundColor('#F5F5F5')
-          .fontColor('#666')
-          .height(32)
-          .fontSize(12)
-          .margin({ right: 12 })
-
-        Button("确定")
-          .backgroundColor(this.accentColor) // 使用强调色
-          .height(32)
-          .fontSize(12)
-      }
-      .width('100%')
-      .justifyContent(FlexAlign.End)
-      .padding(12)
     }
-    .width('100%')
-    .backgroundColor(Color.White)
-    .borderRadius(16)
+    .padding({ top: 12, bottom: 20, left: 24, right: 24 })
+  }
+
+  // 辅助函数：简单的 Hex 转 RGBA 用于阴影
+  private hexToRgba(hex: string, alpha: number): string {
+    // 简单处理 #RRGGBB 格式，实际项目中建议用专门的 ColorUtils
+    if (!hex.startsWith('#') || hex.length < 7) return '#33000000';
+    // 这里为了演示简单返回黑色半透，如果有工具类可以用工具类生成带颜色的阴影
+    return '#40000000';
   }
 }

@@ -1,3 +1,12 @@
+export interface CustomThemeConfig {
+  hue: number;
+  styleStrength: number;
+  isCustom: boolean;
+  brand: string;
+  accent: string;
+  isMorandi: boolean;
+}
+
 export interface ITheme {
   brand: ResourceColor;
   brand50: ResourceColor;
@@ -206,10 +215,10 @@ export const ThemeMap: Record<string, ITheme> = {
     INDICATORS_VIBRANT,
     $r('app.color.cold')
   ),
-  'cold': createTheme(
-    $r('app.color.cold'),
-    $r('app.color.cold_50'),
-    $r('app.color.cold'),
+  'glacier': createTheme(
+    $r('app.color.brand_glacier'),
+    $r('app.color.brand_glacier_50'),
+    $r('app.color.accent_glacier'),
     $r('app.color.background_primary'),
     INDICATORS_MORANDI,
     $r('app.color.cold')

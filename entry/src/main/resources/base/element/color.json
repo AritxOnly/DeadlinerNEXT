@@ -2,8 +2,8 @@
   "color": [
     { "name": "start_window_background", "value": "#F2F3F5" },
 
-    { "name": "cold", "value": "#222222" },
-    { "name": "cold_50", "value": "#80222222" },
+    { "name": "cold", "value": "#111111" },
+    { "name": "cold_50", "value": "#80111111" },
 
     { "name": "brand", "value": "#FF507EC2" },
     { "name": "brand_50", "value": "#80507EC2" },
@@ -17,13 +17,17 @@
     { "name": "brand_nature_50", "value": "#805DA893" },
     { "name": "accent_nature", "value": "#FF2D7061" },
 
-    { "name": "brand_sunset", "value": "#FFFF9F78" },
-    { "name": "brand_sunset_50", "value": "#80FF9F78" },
+    { "name": "brand_sunset", "value": "#FFFFAB8B" },
+    { "name": "brand_sunset_50", "value": "#80FFAB8B" },
     { "name": "accent_sunset", "value": "#FF00897B" },
 
     { "name": "brand_lavender", "value": "#FF9D7AD2" },
     { "name": "brand_lavender_50", "value": "#809D7AD2" },
     { "name": "accent_lavender", "value": "#FF26C6DA" },
+
+    { "name": "brand_glacier", "value": "#2D8CC8" },
+    { "name": "brand_glacier_50", "value": "#802D8CC8" },
+    { "name": "accent_glacier", "value": "#0B5D88" },
 
     { "name": "func_archive", "value": "#FF507EC2" },
     { "name": "func_ai", "value": "#9D7AD2" },

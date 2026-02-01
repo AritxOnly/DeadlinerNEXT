@@ -19,7 +19,7 @@ const THEME_OPTIONS: ThemeOption[] = [
   { key: 'lavender', name: '极光', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'harmony', name: '鸿蒙', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'galaxy', name: '星河', previewBg: $r('sys.color.search_container_focus_color') },
-  { key: 'cold', name: '冷调', previewBg: $r('sys.color.search_container_focus_color') }
+  { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') }
 ];
 
 @Component
@@ -34,7 +34,7 @@ export struct ThemeSelectSheet {
     if (name === 'ColorCustomizer') {
       HdsNavDestination() {
         Column() {
-          TopSafeContainer({ topAvoidHeight: 72 }) {
+          TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
             ColorCustomizer()
               .padding({ left: 16, right: 16, bottom: 20 })
           }
@@ -106,6 +106,10 @@ export struct ThemeSelectSheet {
       // 自定义入口卡片
       GridCol() {
         this.CustomEntryCardBuilder()
+      }
+
+      GridCol() {
+        Column() { Blank() }.height(70)
       }
     }
     .width('100%')
@@ -179,7 +183,7 @@ export struct ThemeSelectSheet {
             .hitTestBehavior(HitTestMode.None)
 
             // 右下角：Tab图标
-            SymbolGlyph($r('sys.symbol.house_fill_1')) // 使用实心图标更有分量
+            SymbolGlyph($r('sys.symbol.house_fill')) // 使用实心图标更有分量
               .fontSize(36) // ✅ 加大图标
               .fontColor([ThemeMap[item.key].tabIcon]) // ✅ 使用 tabIcon 颜色
               .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY)

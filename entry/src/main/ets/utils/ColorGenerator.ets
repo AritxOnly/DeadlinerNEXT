@@ -1,110 +1,102 @@
-export interface ThemePalette {
-  primary: string;    // 主色 (品牌色)
-  secondary: string;  // 次要色 (低饱和，用于容器/背景)
-  tertiary: string;   // 第三色 (通常是补色或邻近色，用于强调)
-}
+// utils/ColorGenerator.ts
 
 export interface ColorSwatch {
   color: string;
-  isLight: boolean; // 用于判断文字颜色应该是黑还是白
+  isLight: boolean; // 背景是否为亮色（决定文字用黑还是白）
+}
+
+export interface AccentOption {
+  key: string;
+  name: string;
+  color: string;
 }
 
 export class ColorGenerator {
 
   /**
-   * 🎨 生成 [鲜艳/生动] 方案 (仿 Material 3 标准)
-   * @param hue 色相 (0-360)
+   * 生成品牌色
+   * @param hue 色相 0-360
+   * @param styleStrength 风格强度 0-100 (0=极度莫兰迪/灰，100=极度生动)
    */
-  static generateVibrant(hue: number): ThemePalette {
-    // 1. Primary: 高饱和，中等亮度 (M3标准 Tone=40~50)
-    // 看起来深邃、专业，不是刺眼的荧光色
-    const primary = ColorGenerator.hsvToHex(hue, 80, 80);
+  static generateBrand(hue: number, styleStrength: number): ColorSwatch {
+    // 算法微调：
+    // 莫兰迪(Low Style): 低饱和(S:15-30)，中高明度(V:85-95) -> 柔和
+    // 生动(High Style): 高饱和(S:70-90)，中等明度(V:80-90) -> 清晰
 
-    // 2. Secondary: 同色相，但极低饱和度，高亮度 (用于背景容器)
-    // M3 的 Secondary 通常是“带一点点主色调的灰”
-    const secondary = ColorGenerator.hsvToHex(hue, 20, 95);
+    // 线性插值计算 Saturation
+    const minS = 35; const maxS = 90;
+    const s = minS + (styleStrength / 100) * (maxS - minS);
 
-    // 3. Tertiary: 色相偏移 60度 (邻近色) 或 120度 (对比色)
-    // M3 默认偏移 60 度，饱和度适中
-    let tertiaryHue = (hue + 60) % 360;
-    const tertiary = ColorGenerator.hsvToHex(tertiaryHue, 70, 85);
+    // 线性插值计算 Value (生动色通常稍微压一点亮度，显得不刺眼)
+    const minV = 72; const maxV = 82;
+    const v = minV + (styleStrength / 100) * (maxV - minV);
 
-    return { primary, secondary, tertiary };
+    const hex = ColorGenerator.hsvToHex(hue, s, v);
+
+    // 简单判断亮度：S低V高通常是浅色
+    const isLight = (v > 80 && s < 40);
+
+    return { color: hex, isLight: isLight };
   }
 
   /**
-   * 🌫️ 生成 [莫兰迪/经典] 方案 (低饱和，高级灰)
-   * @param hue 色相 (0-360)
+   * 生成强调色方案策略 (严格模式：禁止浅色)
    */
-  static generateMorandi(hue: number): ThemePalette {
-    // 莫兰迪的核心：降低饱和度 (S)，并控制亮度 (V) 不太高也不太低，
-    // 营造出一种“蒙了一层灰”的质感。
+  static generateAccentStrategies(brandHue: number, brandSat: number): AccentOption[] {
+    const strategies: AccentOption[] = [];
 
-    // 1. Primary: 饱和度砍到 25% 左右，亮度降低，变得柔和
-    const primary = ColorGenerator.hsvToHex(hue, 25, 75);
+    // 1. 基础饱和度 (S)：Accent 通常比 Brand 更鲜艳一点
+    // 但为了不发白，我们取 brandSat 和 60 的最大值，封顶 95
+    const baseS = Math.min(Math.max(brandSat, 60), 95);
 
-    // 2. Secondary: 饱和度极低 (10%)，亮度拉高，接近米白色/灰白色
-    const secondary = ColorGenerator.hsvToHex(hue, 10, 92);
+    // 2. 基础亮度 (V)：限制在深色区间，保证白字可见
+    // 之前的 90 太亮了，改为 80 (或者跟 Brand 保持一致的逻辑)
+    const baseV = 80;
 
-    // 3. Tertiary: 同样偏移色相，但饱和度也压低
-    let tertiaryHue = (hue + 60) % 360;
-    const tertiary = ColorGenerator.hsvToHex(tertiaryHue, 20, 80);
+    // 辅助函数：针对特定色相压暗亮度 (解决黄色/青色太亮的问题)
+    const getSafeV = (h: number): number => {
+      // 黄色(40-70) 和 青色(160-200) 视觉亮度极高，必须压暗
+      if ((h > 40 && h < 70) || (h > 160 && h < 190)) {
+        return 65;
+      }
+      return baseV;
+    };
 
-    return { primary, secondary, tertiary };
+    // 1. 同色系 (Monochromatic)
+    strategies.push({
+      key: 'mono', name: '同频',
+      color: ColorGenerator.hsvToHex(brandHue, baseS, getSafeV(brandHue))
+    });
+
+    // 2. 邻近色 (Analogous) - 偏移 30度
+    const analogHue = (brandHue + 30) % 360;
+    strategies.push({
+      key: 'analog', name: '邻近',
+      color: ColorGenerator.hsvToHex(analogHue, baseS, getSafeV(analogHue))
+    });
+
+    // 3. 互补色 (Complementary) - 偏移 180度 (强对比)
+    const compHue = (brandHue + 180) % 360;
+    strategies.push({
+      key: 'comp', name: '撞色',
+      color: ColorGenerator.hsvToHex(compHue, baseS, getSafeV(compHue))
+    });
+
+    // 4. 分裂互补 (Split) - 偏移 150度 (活跃)
+    const splitHue = (brandHue + 150) % 360;
+    strategies.push({
+      key: 'split', name: '活跃',
+      color: ColorGenerator.hsvToHex(splitHue, baseS, getSafeV(splitHue))
+    });
+
+    return strategies;
   }
 
-  static generateSwatches(hue: number, type: 'morandi' | 'vibrant'): ColorSwatch[] {
-    const swatches: ColorSwatch[] = [];
-    const saturations = type === 'morandi' ? [20, 25, 30, 35, 40] : [60, 70, 80, 90, 100];
-    const values = [85, 75, 65, 55, 45]; // 不同明度
-
-    for (let i = 0; i < 5; i++) {
-      swatches.push({
-        color: ColorGenerator.hsvToHex(hue, saturations[i], values[i]),
-        isLight: values[i] > 65 // 简单的亮度判断
-      });
-    }
-    return swatches;
-  }
-
-  /**
-   * 生成 9 个颜色，用于 Grid 展示
-   * 包含：淡雅(Morandi)、标准(Standard)、浓郁(Deep)
-   */
-  static generateGradientSwatches(hue: number): ColorSwatch[] {
-    const swatches: ColorSwatch[] = [];
-
-    // 这里的参数你可以微调，凑够9个好看的颜色
-    // 格式: [Saturation, Value]
-    const configs = [
-      [15, 95], [25, 90], [35, 85], // 第一行：非常浅/莫兰迪
-      [50, 90], [60, 85], [70, 80], // 第二行：鲜艳/生动
-      [70, 60], [80, 50], [90, 40]  // 第三行：深沉/专业
-    ];
-
-    for (let conf of configs) {
-      swatches.push({
-        color: ColorGenerator.hsvToHex(hue, conf[0], conf[1]),
-        isLight: conf[1] > 65 // 亮度高则文字黑，反之白
-      });
-    }
-    return swatches;
-  }
-
-  /**
-   * HSV 转 Hex 辅助函数
-   * @param h Hue 0-360
-   * @param s Saturation 0-100
-   * @param v Value 0-100
-   */
   static hsvToHex(h: number, s: number, v: number): string {
-    s /= 100;
-    v /= 100;
-
+    s /= 100; v /= 100;
     let c = v * s;
     let x = c * (1 - Math.abs(((h / 60) % 2) - 1));
     let m = v - c;
-
     let r = 0, g = 0, b = 0;
 
     if (0 <= h && h < 60) { r = c; g = x; b = 0; }
@@ -114,12 +106,10 @@ export class ColorGenerator {
     else if (240 <= h && h < 300) { r = x; g = 0; b = c; }
     else if (300 <= h && h < 360) { r = c; g = 0; b = x; }
 
-    // 转 0-255 并转 Hex
     const toHex = (n: number) => {
       const hex = Math.round((n + m) * 255).toString(16);
       return hex.length === 1 ? '0' + hex : hex;
     };
-
     return `#FF${toHex(r)}${toHex(g)}${toHex(b)}`.toUpperCase();
   }
 }

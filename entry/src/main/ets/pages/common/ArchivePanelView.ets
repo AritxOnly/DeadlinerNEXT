@@ -211,6 +211,10 @@ export struct ArchivePanelView {
                   })
                 }
               }, (item: DDLItem) => item.id.toString())
+
+              ListItem() {
+                Column() { Blank() }.height(70)
+              }
             }
             .width('100%')
             .layoutWeight(1)
@@ -236,6 +240,10 @@ export struct ArchivePanelView {
                   })
                 }
               }, (item: Habit) => item.id.toString())
+
+              ListItem() {
+                Column() { Blank() }.height(70)
+              }
             }
             .width('100%')
             .layoutWeight(1)

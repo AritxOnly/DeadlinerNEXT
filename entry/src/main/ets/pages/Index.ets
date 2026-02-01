@@ -201,7 +201,7 @@ struct Index {
 
   // 定义 Tab 数据
   private tabs: Array<TabData> = [
-    { title: '主页', icon: $r('sys.symbol.house_fill_1'), index: 0 },
+    { title: '主页', icon: $r('sys.symbol.house_fill'), index: 0 },
     // { title: '概览', icon: $r('sys.symbol.square_fill_grid_2x2'), index: 1 },
     { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 1 },
     { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
