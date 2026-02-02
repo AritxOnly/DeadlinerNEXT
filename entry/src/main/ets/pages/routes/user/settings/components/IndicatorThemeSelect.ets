@@ -35,8 +35,8 @@ export struct IndicatorThemeSheet {
       ListItem().height(40)
     }
     .width('100%')
+    .height('100%')
     .scrollBar(BarState.Off)
-    // 整体左右边距减少一点，让卡片更宽
     .padding({ left: 16, right: 16 })
   }
 

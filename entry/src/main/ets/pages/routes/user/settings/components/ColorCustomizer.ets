@@ -2,6 +2,13 @@ import { ColorGenerator, AccentOption } from '../../../../../utils/ColorGenerato
 import { ThemeManager } from '../../../../../common/theme/ThemeManager';
 import { SettingsSection, SubSettingsSwitch } from '../../../../components/SettingsComponents';
 import { promptAction } from '@kit.ArkUI';
+import { IndicatorMap, IndicatorSet } from '../../../../../common/theme/ThemeModel';
+
+interface ChartOption {
+  key: string;
+  name: string;
+  colors: IndicatorSet;
+}
 
 @Component
 export struct ColorCustomizer {
@@ -12,6 +19,15 @@ export struct ColorCustomizer {
   // 计算出的当前颜色
   @State currentBrand: string = '#FF000000';
   @State currentAccent: string = '#FF000000';
+
+  @State selectedChartKey: string = 'morandi';
+  private chartOptions: ChartOption[] = [
+    { key: 'morandi', name: '莫兰迪', colors: IndicatorMap['morandi'] },
+    { key: 'vibrant', name: '生动', colors: IndicatorMap['vibrant'] },
+    { key: 'nature', name: '森系', colors: IndicatorMap['nature'] },
+    { key: 'ocean', name: '深海', colors: IndicatorMap['ocean'] },
+    { key: 'retro', name: '复古', colors: IndicatorMap['retro'] }
+  ];
 
   @State enableColdTab: boolean = false;
 
@@ -35,6 +51,7 @@ export struct ColorCustomizer {
       // 如果你想让之前的 accent 选择也大概恢复
       // (虽然 accentStrategies 是重新生成的，但可以尝试匹配颜色)
       this.currentBrand = config.brand; // 先赋个初值防止闪烁
+      this.selectedChartKey = config.indicatorKey;
     }
   }
 
@@ -181,6 +198,78 @@ export struct ColorCustomizer {
         .padding({ left: 12, right: 12, top: 12, bottom: 12 })
       }
 
+      SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
+        Column({ space: 10 }) {
+          Text("图表配色 (Charts)")
+            .fontSize(14)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.font_secondary'))
+            .width('100%')
+
+          List({ space: 12 }) {
+            ForEach(this.chartOptions, (item: ChartOption) => {
+              ListItem() {
+                Column({ space: 8 }) {
+                  // 1. 颜色预览条 (模拟图表)
+                  Stack({ alignContent: Alignment.Center }) {
+                    // 背景容器
+                    Row({ space: 2 }) {
+                      // 展示 4 个核心色
+                      this.ColorBar(item.colors.chartInfo, 14)
+                      this.ColorBar(item.colors.chartCompleted, 24)
+                      this.ColorBar(item.colors.chartTodo, 18)
+                      this.ColorBar(item.colors.chartOverdue, 10)
+                    }
+                    .height(56)
+                    .width(56)
+                    .justifyContent(FlexAlign.Center)
+                    .alignItems(VerticalAlign.Bottom)
+                    .backgroundColor($r('sys.color.comp_background_tertiary')) // 浅灰底
+                    .borderRadius(12)
+                    .border({
+                      width: 2,
+                      // 选中时高亮边框
+                      color: this.selectedChartKey === item.key ? this.currentBrand : Color.Transparent
+                    })
+                    .animation({ duration: 200 })
+
+                    // 选中对勾
+                    if (this.selectedChartKey === item.key) {
+                      Stack() {
+                        Circle({ width: 18, height: 18 })
+                          .fill(this.currentBrand)
+                        SymbolGlyph($r('sys.symbol.checkmark'))
+                          .fontSize(10)
+                          .fontColor([Color.White])
+                          .fontWeight(FontWeight.Bold)
+                      }
+                      .position({ x: 42, y: -4 }) // 右上角角标
+                    }
+                  }
+
+                  Text(item.name)
+                    .fontSize(12)
+                    .fontColor(this.selectedChartKey === item.key ? $r('app.color.font_primary') :
+                      $r('sys.color.font_tertiary'))
+                }
+                .onClick(() => {
+                  this.selectedChartKey = item.key;
+                  // 这里不需要调用 updateColors，因为它不影响 Brand 计算
+                  // 但如果你的 ThemePreviewCard 里将来要展示图表色，就需要刷新
+                })
+                .padding(2)
+              }
+            })
+          }
+          .listDirection(Axis.Horizontal)
+          .alignListItem(ListItemAlign.Center)
+          .width('100%')
+          .scrollBar(BarState.Off)
+          .height(96)
+        }
+        .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+      }
+
       // === 4. 底部应用按钮 ===
       Button('应用主题')
         .width('90%')
@@ -191,7 +280,7 @@ export struct ColorCustomizer {
           ThemeManager.applyCustomColors(
             this.currentBrand, this.currentAccent,
             this.enableColdTab ? $r('app.color.cold') : this.currentBrand,
-            (this.styleStrength <= 70),
+            this.selectedChartKey,
             this.hue, this.styleStrength
           );
           promptAction.showToast({
@@ -200,6 +289,15 @@ export struct ColorCustomizer {
         })
         .margin({ bottom: 40 })
     }
+  }
+
+  @Builder
+  ColorBar(color: ResourceColor, height: number) {
+    Column()
+      .width(8)
+      .height(height)
+      .backgroundColor(color)
+      .borderRadius(4)
   }
 }
 

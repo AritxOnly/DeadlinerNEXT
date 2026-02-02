@@ -10,7 +10,7 @@ export interface CustomThemeConfig {
   isCustom: boolean;
   brand: string;
   accent: string;
-  isMorandi: boolean;
+  indicatorKey: string;
 }
 
 export class ThemeManager {
@@ -80,16 +80,14 @@ export class ThemeManager {
   static async applyCustomColors(
     brand: string, accent: string,
     tabIcon: string | ResourceColor | undefined,
-    isMorandi: boolean,
+    indicatorKey: string,
     hue: number, styleStrength: number,
     saveToDisk: boolean = true
   ) {
     // 1. 创建 UI 部分 (内存中)
     const customUI = ThemeManager.createCustomUITheme(brand, accent, tabIcon);
 
-    // 2. 决定 Indicator 部分
-    // 自定义模式下，直接由 isMorandi 参数决定 indicatorKey
-    const targetIndicatorKey = isMorandi ? 'morandi' : 'vibrant';
+    const targetIndicatorKey = indicatorKey;
     const indicatorSet = IndicatorMap[targetIndicatorKey];
 
     // 3. 合并
@@ -104,7 +102,7 @@ export class ThemeManager {
     if (saveToDisk && ThemeManager.pref) {
       try {
         await ThemeManager.pref.put(ThemeManager.KEY_THEME_UI, 'custom');
-        // ✅ 关键：把用户的 isMorandi 选择保存为 indicatorKey
+
         await ThemeManager.pref.put(ThemeManager.KEY_THEME_INDICATOR, targetIndicatorKey);
 
         await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_BRAND, brand);
@@ -125,7 +123,7 @@ export class ThemeManager {
    * 获取自定义配置回显 (供 ColorCustomizer 初始化)
    */
   static async getCustomConfig(): Promise<CustomThemeConfig> {
-    if (!ThemeManager.pref) return { hue: 210, styleStrength: 50, isCustom: false, brand: '', accent: '', isMorandi: true };
+    if (!ThemeManager.pref) return { hue: 210, styleStrength: 50, isCustom: false, brand: '', accent: '', indicatorKey: 'morandi' };
 
     const uiKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_UI, 'classic') as string;
     const indKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_INDICATOR, 'morandi') as string; // 读取当前指示器
@@ -141,7 +139,7 @@ export class ThemeManager {
       isCustom: uiKey === 'custom',
       brand: brand,
       accent: accent,
-      isMorandi: indKey === 'morandi'
+      indicatorKey: indKey
     };
   }
 
