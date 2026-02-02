@@ -17,13 +17,13 @@
     { "name": "brand_nature_50", "value": "#805DA893" },
     { "name": "accent_nature", "value": "#FF2D7061" },
 
-    { "name": "brand_sunset", "value": "#FFFFAB8B" },
+    { "name": "brand_sunset", "value": "#FFEC9778" },
     { "name": "brand_sunset_50", "value": "#80FFAB8B" },
     { "name": "accent_sunset", "value": "#FF00897B" },
 
     { "name": "brand_lavender", "value": "#FF9D7AD2" },
     { "name": "brand_lavender_50", "value": "#809D7AD2" },
-    { "name": "accent_lavender", "value": "#FF26C6DA" },
+    { "name": "accent_lavender", "value": "#FF24B8CA" },
 
     { "name": "brand_glacier", "value": "#2D8CC8" },
     { "name": "brand_glacier_50", "value": "#802D8CC8" },

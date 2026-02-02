@@ -147,6 +147,14 @@
     {
       "name": "widget_capsule_desc",
       "value": "展示剩余任务与状态"
+    },
+    {
+      "name": "hud_clock_display_name",
+      "value": "任务速览卡片"
+    },
+    {
+      "name": "hud_clock_desc",
+      "value": "任务信息时钟透明组件"
     }
   ]
 }
