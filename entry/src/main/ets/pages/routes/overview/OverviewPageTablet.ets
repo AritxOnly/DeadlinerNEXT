@@ -226,7 +226,8 @@ export struct OverviewPageTablet {
                   TrendAnalysisSection({
                     dailyStats: this.viewModel.dailyStats,
                     monthlyStats: this.viewModel.monthlyStats,
-                    weeklyStats: this.viewModel.weeklyStats
+                    weeklyStats: this.viewModel.weeklyStats,
+                    cardOrder: this.viewModel.trendCardOrder
                   })
                 }
                 .padding({ bottom: 24 })

@@ -237,7 +237,8 @@ export struct OverviewPage {
               TrendAnalysisSection({
                 dailyStats: this.viewModel.dailyStats,
                 monthlyStats: this.viewModel.monthlyStats,
-                weeklyStats: this.viewModel.weeklyStats
+                weeklyStats: this.viewModel.weeklyStats,
+                cardOrder: this.viewModel.trendCardOrder
               })
             } else if (this.selectedIndexes[0] === 2) {
               DashboardSection({

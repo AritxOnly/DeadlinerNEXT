@@ -261,11 +261,9 @@ struct HueSlider {
       .gesture(
         PanGesture({ fingers: 1 })
           .onActionStart(() => {
-            // ✅ 开始滑动时记录当前色相
             this.startHue = this.hue;
           })
           .onActionUpdate((event: GestureEvent) => {
-            // ✅ 使用 offsetX 计算色相增量
             this.updateHueByOffset(event.offsetX);
           })
       )

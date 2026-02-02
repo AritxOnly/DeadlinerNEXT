@@ -154,7 +154,7 @@ export struct AboutPage {
           }) {
             SettingsItem({
               title: "开源许可证",
-              subtitle: "了解 Deadliner 使用的 MIT 开源协议",
+              subtitle: "了解 Deadliner 使用的 GPL-3.0 开源协议",
               icon: $r('sys.symbol.doc_text'),
               onItemClick: () => {
                 const params: CodeTextParams = {
@@ -192,7 +192,7 @@ export struct AboutPage {
             })
           }
 
-          Text('Designed & Developed by AritxOnly\nCopyright © 2026. All rights reserved.')
+          Text('Designed & Developed by AritxOnly\nCopyright © 2026. All rights reserved.\nLicensed under GPL-3.0-or-later. No warranty.')
             .fontSize(12)
             .fontColor($r('sys.color.font_tertiary'))
             .width('100%')

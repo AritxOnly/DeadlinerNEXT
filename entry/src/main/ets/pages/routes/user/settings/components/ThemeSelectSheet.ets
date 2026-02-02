@@ -3,6 +3,7 @@ import { ThemeMap, ITheme } from '../../../../../common/theme/ThemeModel';
 import { ColorCustomizer } from './ColorCustomizer';
 import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavigation, HdsNavigationTitleMode, HdsNavigationAttribute, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../../components/TopSafeContainer';
+import { FloatUpModifier } from '../../../../../utils/animation/FloatUpModifier';
 
 interface ThemeOption {
   key: string;
@@ -97,16 +98,18 @@ export struct ThemeSelectSheet {
   @Builder
   ThemePresetList() {
     GridRow({ columns: 2, gutter: 12 }) {
-      ForEach(THEME_OPTIONS, (item: ThemeOption) => {
+      ForEach(THEME_OPTIONS, (item: ThemeOption, idx) => {
         GridCol() {
           this.ThemeItemBuilder(item)
         }
+        .attributeModifier(new FloatUpModifier(idx))
       })
 
       // 自定义入口卡片
       GridCol() {
         this.CustomEntryCardBuilder()
       }
+      .attributeModifier(new FloatUpModifier(THEME_OPTIONS.length + 1))
 
       GridCol() {
         Column() { Blank() }.height(70)

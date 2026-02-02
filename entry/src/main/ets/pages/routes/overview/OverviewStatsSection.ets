@@ -60,21 +60,20 @@ export struct OverviewStatsSection {
 
   build() {
     Column({ space: 8 }) {
-      ForEach(this.cardOrder, (cardId: OverviewCard) => {
+      ForEach(this.cardOrder, (cardId: OverviewCard, idx) => {
         if (cardId === OverviewCard.ACTIVE_STATS) {
           ActiveStatsCard({
             completed: this.todayCompleted,
             todo: this.todayTodo,
             overdue: this.todayOverdue
           })
-          // 加个简单的入场动画，看起来更生动
-            .attributeModifier(new FloatUpModifier(0))
+            .attributeModifier(new FloatUpModifier(idx))
         } else if (cardId === OverviewCard.COMPLETION_TIME) {
           CompletionTimeCard({ completionTimeStats: $completionTimeStats })
-            .attributeModifier(new FloatUpModifier(1))
+            .attributeModifier(new FloatUpModifier(idx))
         } else if (cardId === OverviewCard.HISTORY_STATS) {
           HistoryStatsCard({ historyStats: $historyStats })
-            .attributeModifier(new FloatUpModifier(2))
+            .attributeModifier(new FloatUpModifier(idx))
         }
       }, (item: string) => item)
 
