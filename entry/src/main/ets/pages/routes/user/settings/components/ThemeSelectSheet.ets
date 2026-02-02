@@ -5,6 +5,7 @@ import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavigation, HdsNaviga
 import { TopSafeContainer } from '../../../../components/TopSafeContainer';
 import { FloatUpModifier } from '../../../../../utils/animation/FloatUpModifier';
 import { SettingsItem, SettingsSection } from '../../../../components/SettingsComponents';
+import { IndicatorThemeSheet } from './IndicatorThemeSelect';
 
 interface ThemeOption {
   key: string;
@@ -66,6 +67,38 @@ export struct ThemeSelectSheet {
       })
       .mode(NavDestinationMode.DIALOG)
       .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
+    } else if (name === 'ChartCustomizer') {
+      HdsNavDestination() {
+        Column() {
+          TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
+            IndicatorThemeSheet()
+          }
+        }
+        .backgroundBlurStyle(BlurStyle.Regular)
+      }
+      .titleBar({
+        content: {
+          title: { mainTitle: "自定义颜色" },
+          menu: {
+            value: [
+              {
+                content: {
+                  icon: $r('sys.symbol.xmark'),
+                  action: () => { if (this.onDone) this.onDone(); }
+                }
+              }
+            ]
+          }
+        },
+      })
+      .titleMode(HdsNavDestinationTitleMode.MODAL)
+      .backgroundColor(Color.Transparent)
+      .onBackPressed(() => {
+        this.navStack.pop();
+        return true;
+      })
+      .mode(NavDestinationMode.DIALOG)
+      .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     }
   }
 
@@ -79,7 +112,7 @@ export struct ThemeSelectSheet {
               subtitle: '自定义概览统计图表颜色',
               icon: $r('sys.symbol.data_proportion'),
               onItemClick: () => {
-                // this.navStack.pushPath()
+                this.navStack.pushPath({ name: 'ChartCustomizer' })
               }
             })
           }
@@ -247,7 +280,7 @@ export struct ThemeSelectSheet {
         color: this.currentKey === item.key ? ThemeMap[item.key].brand : Color.Transparent
       })
       .onClick(() => {
-        ThemeManager.switchTheme(item.key);
+        ThemeManager.switchUITheme(item.key);
       })
 
       // 2. 选中态：右上角悬浮旗标 (Floating Circle)

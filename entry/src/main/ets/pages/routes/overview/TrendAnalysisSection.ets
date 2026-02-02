@@ -25,22 +25,12 @@ import {
   LegendForm,
   ChartColorStop,
 } from '@ohos/mpchart';
-import { ColorUtils } from '../../../utils/ColorUtils';
+import { ColorUtils, getHexColorSync } from '../../../utils/ColorUtils';
 import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
 import { CustomMarkerView } from './utils/CustomMarkerView';
 import { FloatUpModifier } from '../../../utils/animation/FloatUpModifier';
 import { TrendCard } from './OverviewViewModel';
-
-function getHexColorSync(context: Context, resource: Resource): string {
-  try {
-    const colorVal = context.resourceManager.getColorSync(resource);
-    let hex = (colorVal & 0xFFFFFF).toString(16).toUpperCase();
-    while (hex.length < 6) hex = "0" + hex;
-    return "#" + hex;
-  } catch (e) {
-    return "#000000";
-  }
-}
+import { ITheme } from '../../../common/theme/ThemeModel';
 
 // --- 3. 主组件 ---
 @Component
@@ -78,6 +68,7 @@ export struct TrendAnalysisSection {
 
 @Component
 struct DailyCompletedCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @Link @Watch('updateChart') dailyStats: DailyStat[];
 
   // 【新增】控制是否显示逾期数据
@@ -137,8 +128,8 @@ struct DailyCompletedCard {
 
     const ctx = getContext(this);
     // 1. 颜色准备
-    const greenColorStr = getHexColorSync(ctx, $r('app.color.chart_green'));
-    const redColorStr = getHexColorSync(ctx, $r('app.color.chart_red'));
+    const greenColorStr = getHexColorSync(ctx, this.theme.chartCompleted);
+    const redColorStr = getHexColorSync(ctx, this.theme.chartOverdue);
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     // 解析颜色为 int，用于 setColorByColor (修复图例颜色)
@@ -266,7 +257,7 @@ struct DailyCompletedCard {
         Row() {
           Checkbox({ name: 'showOverdue', group: 'stats' })
             .select(this.isOverdueShow)
-            .selectedColor($r('app.color.chart_red')) // 选中时的颜色
+            .selectedColor(this.theme.chartOverdue) // 选中时的颜色
             .onChange((value: boolean) => {
               this.isOverdueShow = value;
             })
@@ -311,6 +302,7 @@ struct DailyCompletedCard {
 
 @Component
 struct MonthlyTrendCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @Link @Watch('updateChart') monthlyStats: MonthlyStat[];
   @State @Watch('updateChart') totalMonth: number = 12;
 
@@ -379,9 +371,9 @@ struct MonthlyTrendCard {
     this.model.fitScreen();
 
     const ctx = getContext(this);
-    const blueHex = getHexColorSync(ctx, $r('app.color.chart_blue'));
-    const greenHex = getHexColorSync(ctx, $r('app.color.chart_green'));
-    const redHex = getHexColorSync(ctx, $r('app.color.chart_red'));
+    const blueHex = getHexColorSync(ctx, this.theme.chartInfo);
+    const greenHex = getHexColorSync(ctx, this.theme.chartCompleted);
+    const redHex = getHexColorSync(ctx, this.theme.chartOverdue);
 
     const blueColor = ColorUtils.parseColor(blueHex);
     const greenColor = ColorUtils.parseColor(greenHex);
@@ -515,6 +507,7 @@ struct MonthlyTrendCard {
 
 @Component
 struct PrevWeeksCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @Link @Watch('updateChart') weeklyStats: WeeklyStat[];
 
   // 【差异点】垂直图表使用 BarChartModel
@@ -562,7 +555,7 @@ struct PrevWeeksCard {
     const ctx = getContext(this);
 
     // 1. 颜色准备
-    const barColor = getHexColorSync(ctx, $r('app.color.chart_orange'));
+    const barColor = getHexColorSync(ctx, this.theme.chartTodo);
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     const categories: string[] = [];

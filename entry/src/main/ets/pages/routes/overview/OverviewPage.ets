@@ -165,21 +165,23 @@ export struct OverviewPage {
   @Builder titleMenuBuilder() {
     Stack({ alignContent: Alignment.Center }) {
       Row({ space: 10 }) {
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          SymbolGlyph($r('sys.symbol.text_and_arrow_down'))
-            .fontSize(24)
-            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
-        }
-        .width(40)
-        .height(40)
-        .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
-        .onClick(() => {
-          if (this.selectedIndexes[0] <= 1) {
-            this.isSortSheetShow = true;
-          } else {
-            promptAction.showToast({ message: '当前页面暂不支持排序' });
+        if (this.selectedIndexes.length > 0 && this.selectedIndexes[0] !== 2) {
+          Button({ type: ButtonType.Circle, stateEffect: true }) {
+            SymbolGlyph($r('sys.symbol.text_and_arrow_down'))
+              .fontSize(24)
+              .fontColor([$r('sys.color.ohos_id_color_text_primary')])
           }
-        })
+          .width(40)
+          .height(40)
+          .backgroundColor($r('sys.color.ohos_id_color_button_normal'))
+          .onClick(() => {
+            if (this.selectedIndexes[0] <= 1) {
+              this.isSortSheetShow = true;
+            } else {
+              promptAction.showToast({ message: '当前页面暂不支持排序' });
+            }
+          })
+        }
 
         Button({ type: ButtonType.Circle, stateEffect: true }) {
           SymbolGlyph($r('sys.symbol.questionmark_circle'))

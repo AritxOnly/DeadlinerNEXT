@@ -1,20 +1,29 @@
-export interface CustomThemeConfig {
-  hue: number;
-  styleStrength: number;
-  isCustom: boolean;
-  brand: string;
-  accent: string;
-  isMorandi: boolean;
-}
+import { common } from '@kit.AbilityKit';
 
-export interface ITheme {
+/**
+ * 纯 UI 皮肤配置 (Brand, Accent, Background)
+ * 负责应用整体的视觉基调
+ */
+export interface UIThemePalette {
   brand: ResourceColor;
   brand50: ResourceColor;
   accent: ResourceColor;
   bgPrimary: ResourceColor;
-
   tabIcon: ResourceColor;
+}
 
+/**
+ * 功能/指示器配置 (Undergo, Passed, Charts)
+ * 负责进度条、状态圆环、图表颜色
+ */
+export interface IndicatorSet {
+  // --- 图表配色 ---
+  chartInfo: ResourceColor;
+  chartCompleted: ResourceColor;
+  chartTodo: ResourceColor;
+  chartOverdue: ResourceColor;
+
+  // --- 状态指示色 ---
   indicatorUndergo: ResourceColor;
   indicatorUndergo50: ResourceColor;
   indicatorUndergo70: ResourceColor;
@@ -40,30 +49,18 @@ export interface ITheme {
   bgCompleted40: ResourceColor;
 }
 
-interface IndicatorSet {
-  indicatorUndergo: Resource;
-  indicatorUndergo50: Resource;
-  indicatorUndergo70: Resource;
-  bgUndergo: Resource;
-  bgUndergo40: Resource;
-  indicatorNear: Resource;
-  indicatorNear50: Resource;
-  indicatorNear70: Resource;
-  bgNear: Resource;
-  bgNear40: Resource;
-  indicatorPassed: Resource;
-  indicatorPassed50: Resource;
-  indicatorPassed70: Resource;
-  bgPassed: Resource;
-  bgPassed40: Resource;
-  indicatorCompleted: Resource;
-  indicatorCompleted50: Resource;
-  indicatorCompleted70: Resource;
-  bgCompleted: Resource;
-  bgCompleted40: Resource;
-}
+/**
+ * 最终的应用主题接口 (合并了 UI 和 Indicator)
+ * 保持这个接口不变，确保项目中 @StorageProp('currentTheme') 不会报错
+ */
+export interface ITheme extends UIThemePalette, IndicatorSet {}
 
 export const INDICATORS_MORANDI: IndicatorSet = {
+  chartInfo: $r('app.color.chart_blue'),
+  chartCompleted: $r('app.color.chart_green'),
+  chartTodo: $r('app.color.chart_orange'),
+  chartOverdue: $r('app.color.chart_red'),
+
   indicatorUndergo: $r('app.color.indicator_morandi_undergo'),
   indicatorUndergo50: $r('app.color.indicator_morandi_undergo_50'),
   indicatorUndergo70: $r('app.color.indicator_morandi_undergo_70'),
@@ -90,6 +87,11 @@ export const INDICATORS_MORANDI: IndicatorSet = {
 };
 
 export const INDICATORS_VIBRANT: IndicatorSet = {
+  chartInfo: $r('app.color.chart_vibrant_total'),
+  chartCompleted: $r('app.color.chart_vibrant_completed'),
+  chartTodo: $r('app.color.chart_vibrant_todo'),
+  chartOverdue: $r('app.color.chart_vibrant_overdue'),
+
   indicatorUndergo: $r('app.color.indicator_vibrant_undergo'),
   indicatorUndergo50: $r('app.color.indicator_vibrant_undergo_50'),
   indicatorUndergo70: $r('app.color.indicator_vibrant_undergo_70'),
@@ -115,112 +117,192 @@ export const INDICATORS_VIBRANT: IndicatorSet = {
   bgCompleted40: $r('app.color.bg_vibrant_completed_40'),
 };
 
-export function createTheme(
+export const INDICATORS_NATURE: IndicatorSet = {
+  chartInfo: $r('app.color.chart_nature_total'),
+  chartCompleted: $r('app.color.chart_nature_completed'),
+  chartTodo: $r('app.color.chart_nature_todo'),
+  chartOverdue: $r('app.color.chart_nature_overdue'),
+
+  indicatorUndergo: $r('app.color.indicator_nature_undergo'),
+  indicatorUndergo50: $r('app.color.indicator_nature_undergo_50'),
+  indicatorUndergo70: $r('app.color.indicator_nature_undergo_70'),
+  bgUndergo: $r('app.color.bg_nature_undergo'),
+  bgUndergo40: $r('app.color.bg_nature_undergo_40'),
+
+  indicatorNear: $r('app.color.indicator_nature_near'),
+  indicatorNear50: $r('app.color.indicator_nature_near_50'),
+  indicatorNear70: $r('app.color.indicator_nature_near_70'),
+  bgNear: $r('app.color.bg_nature_near'),
+  bgNear40: $r('app.color.bg_nature_near_40'),
+
+  indicatorPassed: $r('app.color.indicator_nature_passed'),
+  indicatorPassed50: $r('app.color.indicator_nature_passed_50'),
+  indicatorPassed70: $r('app.color.indicator_nature_passed_70'),
+  bgPassed: $r('app.color.bg_nature_passed'),
+  bgPassed40: $r('app.color.bg_nature_passed_40'),
+
+  indicatorCompleted: $r('app.color.indicator_nature_completed'),
+  indicatorCompleted50: $r('app.color.indicator_nature_completed_50'),
+  indicatorCompleted70: $r('app.color.indicator_nature_completed_70'),
+  bgCompleted: $r('app.color.bg_nature_completed'),
+  bgCompleted40: $r('app.color.bg_nature_completed_40'),
+};
+
+export const INDICATORS_OCEAN: IndicatorSet = {
+  chartInfo: $r('app.color.chart_ocean_total'),
+  chartCompleted: $r('app.color.chart_ocean_completed'),
+  chartTodo: $r('app.color.chart_ocean_todo'),
+  chartOverdue: $r('app.color.chart_ocean_overdue'),
+
+  indicatorUndergo: $r('app.color.indicator_ocean_undergo'),
+  indicatorUndergo50: $r('app.color.indicator_ocean_undergo_50'),
+  indicatorUndergo70: $r('app.color.indicator_ocean_undergo_70'),
+  bgUndergo: $r('app.color.bg_ocean_undergo'),
+  bgUndergo40: $r('app.color.bg_ocean_undergo_40'),
+
+  indicatorNear: $r('app.color.indicator_ocean_near'),
+  indicatorNear50: $r('app.color.indicator_ocean_near_50'),
+  indicatorNear70: $r('app.color.indicator_ocean_near_70'),
+  bgNear: $r('app.color.bg_ocean_near'),
+  bgNear40: $r('app.color.bg_ocean_near_40'),
+
+  indicatorPassed: $r('app.color.indicator_ocean_passed'),
+  indicatorPassed50: $r('app.color.indicator_ocean_passed_50'),
+  indicatorPassed70: $r('app.color.indicator_ocean_passed_70'),
+  bgPassed: $r('app.color.bg_ocean_passed'),
+  bgPassed40: $r('app.color.bg_ocean_passed_40'),
+
+  indicatorCompleted: $r('app.color.indicator_ocean_completed'),
+  indicatorCompleted50: $r('app.color.indicator_ocean_completed_50'),
+  indicatorCompleted70: $r('app.color.indicator_ocean_completed_70'),
+  bgCompleted: $r('app.color.bg_ocean_completed'),
+  bgCompleted40: $r('app.color.bg_ocean_completed_40'),
+};
+
+export const INDICATORS_RETRO: IndicatorSet = {
+  chartInfo: $r('app.color.chart_retro_total'),
+  chartCompleted: $r('app.color.chart_retro_completed'),
+  chartTodo: $r('app.color.chart_retro_todo'),
+  chartOverdue: $r('app.color.chart_retro_overdue'),
+
+  indicatorUndergo: $r('app.color.indicator_retro_undergo'),
+  indicatorUndergo50: $r('app.color.indicator_retro_undergo_50'),
+  indicatorUndergo70: $r('app.color.indicator_retro_undergo_70'),
+  bgUndergo: $r('app.color.bg_retro_undergo'),
+  bgUndergo40: $r('app.color.bg_retro_undergo_40'),
+
+  indicatorNear: $r('app.color.indicator_retro_near'),
+  indicatorNear50: $r('app.color.indicator_retro_near_50'),
+  indicatorNear70: $r('app.color.indicator_retro_near_70'),
+  bgNear: $r('app.color.bg_retro_near'),
+  bgNear40: $r('app.color.bg_retro_near_40'),
+
+  indicatorPassed: $r('app.color.indicator_retro_passed'),
+  indicatorPassed50: $r('app.color.indicator_retro_passed_50'),
+  indicatorPassed70: $r('app.color.indicator_retro_passed_70'),
+  bgPassed: $r('app.color.bg_retro_passed'),
+  bgPassed40: $r('app.color.bg_retro_passed_40'),
+
+  indicatorCompleted: $r('app.color.indicator_retro_completed'),
+  indicatorCompleted50: $r('app.color.indicator_retro_completed_50'),
+  indicatorCompleted70: $r('app.color.indicator_retro_completed_70'),
+  bgCompleted: $r('app.color.bg_retro_completed'),
+  bgCompleted40: $r('app.color.bg_retro_completed_40'),
+};
+
+
+export const IndicatorMap: Record<string, IndicatorSet> = {
+  'morandi': INDICATORS_MORANDI,
+  'vibrant': INDICATORS_VIBRANT,
+  'nature': INDICATORS_NATURE,
+  'ocean': INDICATORS_OCEAN,
+  'retro': INDICATORS_RETRO
+};
+
+export function createUITheme(
   brand: ResourceColor,
   brand50: ResourceColor,
   accent: ResourceColor,
   bgPrimary: ResourceColor,
-  indicators: IndicatorSet,
   tabIcon?: ResourceColor
-): ITheme {
+): UIThemePalette {
   return {
     brand: brand,
     brand50: brand50,
     accent: accent,
     bgPrimary: bgPrimary,
     tabIcon: tabIcon ? tabIcon : brand,
-
-    indicatorUndergo: indicators.indicatorUndergo,
-    indicatorUndergo50: indicators.indicatorUndergo50,
-    indicatorUndergo70: indicators.indicatorUndergo70,
-    bgUndergo: indicators.bgUndergo,
-    bgUndergo40: indicators.bgUndergo40,
-
-    indicatorNear: indicators.indicatorNear,
-    indicatorNear50: indicators.indicatorNear50,
-    indicatorNear70: indicators.indicatorNear70,
-    bgNear: indicators.bgNear,
-    bgNear40: indicators.bgNear40,
-
-    indicatorPassed: indicators.indicatorPassed,
-    indicatorPassed50: indicators.indicatorPassed50,
-    indicatorPassed70: indicators.indicatorPassed70,
-    bgPassed: indicators.bgPassed,
-    bgPassed40: indicators.bgPassed40,
-
-    indicatorCompleted: indicators.indicatorCompleted,
-    indicatorCompleted50: indicators.indicatorCompleted50,
-    indicatorCompleted70: indicators.indicatorCompleted70,
-    bgCompleted: indicators.bgCompleted,
-    bgCompleted40: indicators.bgCompleted40,
   };
 }
 
-export const ThemeMap: Record<string, ITheme> = {
-  'classic': createTheme(
+export const ThemeMap: Record<string, UIThemePalette> = {
+  'classic': createUITheme(
     $r('app.color.brand'),
     $r('app.color.brand_50'),
     $r('app.color.accent'),
-    $r('app.color.background_primary'),
-    INDICATORS_MORANDI
+    $r('app.color.background_primary')
   ),
-  'time': createTheme(
+  'time': createUITheme(
     $r('app.color.brand'),
     $r('app.color.brand_50'),
     $r('app.color.accent'),
     $r('app.color.background_primary'),
-    INDICATORS_MORANDI,
     $r('app.color.cold')
   ),
-  'vibrant': createTheme(
+  'vibrant': createUITheme(
     $r('app.color.brand_vibrant'),
     $r('app.color.brand_vibrant_50'),
     $r('app.color.accent_vibrant'),
-    $r('app.color.background_primary'),
-    INDICATORS_VIBRANT
+    $r('app.color.background_primary')
   ),
-  'nature': createTheme(
+  'nature': createUITheme(
     $r('app.color.brand_nature'),
     $r('app.color.brand_nature_50'),
     $r('app.color.accent_nature'),
-    $r('app.color.background_primary'),
-    INDICATORS_MORANDI
+    $r('app.color.background_primary')
   ),
-  'sunset': createTheme(
+  'sunset': createUITheme(
     $r('app.color.brand_sunset'),
     $r('app.color.brand_sunset_50'),
     $r('app.color.accent_sunset'),
-    $r('app.color.background_primary'),
-    INDICATORS_MORANDI
+    $r('app.color.background_primary')
   ),
-  'lavender': createTheme(
+  'lavender': createUITheme(
     $r('app.color.brand_lavender'),
     $r('app.color.brand_lavender_50'),
     $r('app.color.accent_lavender'),
-    $r('app.color.background_primary'),
-    INDICATORS_MORANDI
+    $r('app.color.background_primary')
   ),
-  'harmony': createTheme(
+  'harmony': createUITheme(
+    $r('sys.color.ohos_id_color_emphasize'),
+    '#800A59F7',
+    $r('sys.color.ohos_id_color_emphasize_contrary'),
+    $r('app.color.background_primary')
+  ),
+  'galaxy': createUITheme(
     $r('sys.color.ohos_id_color_emphasize'),
     '#800A59F7',
     $r('sys.color.ohos_id_color_emphasize_contrary'),
     $r('app.color.background_primary'),
-    INDICATORS_VIBRANT
-  ),
-  'galaxy': createTheme(
-    $r('sys.color.ohos_id_color_emphasize'),
-    '#800A59F7',
-    $r('sys.color.ohos_id_color_emphasize_contrary'),
-    $r('app.color.background_primary'),
-    INDICATORS_VIBRANT,
     $r('app.color.cold')
   ),
-  'glacier': createTheme(
+  'glacier': createUITheme(
     $r('app.color.brand_glacier'),
     $r('app.color.brand_glacier_50'),
     $r('app.color.accent_glacier'),
     $r('app.color.background_primary'),
-    INDICATORS_MORANDI,
     $r('app.color.cold')
   ),
+};
+
+export const THEME_DEFAULT_INDICATOR_MAP: Record<string, string> = {
+  'classic': 'morandi',
+  'time': 'morandi',
+  'vibrant': 'vibrant',
+  'nature': 'nature',
+  'sunset': 'retro',
+  'lavender': 'morandi',
+  'harmony': 'vibrant',
+  'galaxy': 'vibrant',
+  'glacier': 'ocean',
 };

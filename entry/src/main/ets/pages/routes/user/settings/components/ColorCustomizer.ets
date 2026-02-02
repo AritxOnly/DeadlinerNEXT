@@ -59,7 +59,7 @@ export struct ColorCustomizer {
   build() {
     Column({ space: 16 }) {
 
-      SettingsSection() {
+      SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
         // === 1. 核心预览区 (复用三角形布局) ===
         ThemePreviewCard({
           brandColor: this.currentBrand,
