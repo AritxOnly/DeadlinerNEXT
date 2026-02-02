@@ -4,6 +4,7 @@ import { ColorCustomizer } from './ColorCustomizer';
 import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavigation, HdsNavigationTitleMode, HdsNavigationAttribute, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../../components/TopSafeContainer';
 import { FloatUpModifier } from '../../../../../utils/animation/FloatUpModifier';
+import { SettingsItem, SettingsSection } from '../../../../components/SettingsComponents';
 
 interface ThemeOption {
   key: string;
@@ -40,6 +41,7 @@ export struct ThemeSelectSheet {
               .padding({ left: 16, right: 16, bottom: 20 })
           }
         }
+        .backgroundBlurStyle(BlurStyle.Regular)
       }
       .titleBar({
         content: {
@@ -57,7 +59,13 @@ export struct ThemeSelectSheet {
         },
       })
       .titleMode(HdsNavDestinationTitleMode.MODAL)
-      .backgroundColor($r('sys.color.sheet_panel_background_color'))
+      .backgroundColor(Color.Transparent)
+      .onBackPressed(() => {
+        this.navStack.pop();
+        return true;
+      })
+      .mode(NavDestinationMode.DIALOG)
+      .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     }
   }
 
@@ -65,6 +73,19 @@ export struct ThemeSelectSheet {
     HdsNavigation(this.navStack) {
       Column() {
         TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
+          SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
+            SettingsItem({
+              title: '图表颜色',
+              subtitle: '自定义概览统计图表颜色',
+              icon: $r('sys.symbol.data_proportion'),
+              onItemClick: () => {
+                // this.navStack.pushPath()
+              }
+            })
+          }
+
+          Column().height(12)
+
           this.ThemePresetList()
         }
       }
@@ -92,6 +113,7 @@ export struct ThemeSelectSheet {
     .hideBackButton(true)
     .backgroundColor(Color.Transparent)
     .mode(NavigationMode.Stack)
+    .backgroundBlurStyle(BlurStyle.Regular)
   }
 
   // === 首页：预设列表内容 ===
@@ -142,7 +164,7 @@ export struct ThemeSelectSheet {
       }
       .width('100%')
       .padding(12)
-      .borderRadius(20)
+      .borderRadius(24)
       .backgroundColor($r('sys.color.search_container_focus_color'))
       .onClick(() => {
         this.navStack.pushPath({ name: 'ColorCustomizer' });
@@ -217,7 +239,7 @@ export struct ThemeSelectSheet {
       .width('100%')
       .height(140)
       .padding({ top: 8, bottom: 4, left: 12, right: 12 })
-      .borderRadius(20)
+      .borderRadius(24)
       .backgroundColor(item.previewBg)
       .border({
         width: 2,

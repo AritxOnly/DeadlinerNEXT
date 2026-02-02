@@ -72,7 +72,7 @@ export struct ColorCustomizer {
       // === 2. 调色控制区 ===
       Column({ space: 16 }) {
         // A. 色相调节
-        SettingsSection() {
+        SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
           Column({ space: 10 }) {
             Row() {
               Text("色调 (Hue)").fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('sys.color.font_secondary'))
@@ -91,7 +91,7 @@ export struct ColorCustomizer {
         }
 
         // B. 风格调节 (莫兰迪 -> 生动)
-        SettingsSection() {
+        SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
           Column({ space: 10 }) {
             Row() {
               Text("风格 (Style)").fontSize(14).fontWeight(FontWeight.Medium).fontColor($r('sys.color.font_secondary'))
@@ -118,7 +118,7 @@ export struct ColorCustomizer {
         }
       }
 
-      SettingsSection() {
+      SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
         SubSettingsSwitch({
           title: '灰度菜单栏颜色',
           subtitle: '底部 (平板模式下为侧边) 页签栏的图标会以黑白形式显示',
@@ -128,7 +128,7 @@ export struct ColorCustomizer {
       }
 
       // === 3. 强调色推荐 (Accent) ===
-      SettingsSection() {
+      SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
         Column({ space: 10 }) {
           Text("搭配强调色 (Accent)")
             .fontSize(14)

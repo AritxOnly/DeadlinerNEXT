@@ -14,6 +14,8 @@ export struct SettingsSection {
   title?: string | Resource;
   @BuilderParam content: () => void;
 
+  @State bgColor: ResourceColor = $r('app.color.background_secondary');
+
   build() {
     Column() {
       // Section 标题 (TopLabel)
@@ -32,7 +34,7 @@ export struct SettingsSection {
       }
       .width('100%')
       // 核心样式：背景色 + 大圆角 (24vp)
-      .backgroundColor($r('app.color.background_secondary'))
+      .backgroundColor(this.bgColor)
       .borderRadius(24)
       .padding(4) // 让内部 Item 离边缘有间隙 (对应 Android 的 container padding)
       .margin({ left: 16, right: 16 }) // 卡片离屏幕两边的距离

@@ -185,7 +185,7 @@ struct AppearanceSettings {
       onDisappear: () => {
         this.isThemeSelectSheetShow = false;
       },
-      blurStyle: BlurStyle.Regular,
+      // blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
       showClose: false
     })

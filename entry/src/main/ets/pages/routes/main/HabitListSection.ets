@@ -598,6 +598,7 @@ export struct HabitListSection {
                 }
                 .width('100%')
                 .height('100%')
+                .attributeModifier(new FloatUpModifier(2, 15))
               }
             }
             .width('100%')
