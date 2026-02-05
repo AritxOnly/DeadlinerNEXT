@@ -293,6 +293,13 @@ export const ThemeMap: Record<string, UIThemePalette> = {
     $r('app.color.background_primary'),
     $r('app.color.cold')
   ),
+  'tiktick': createUITheme(
+    $r('app.color.brand_tik'),
+    $r('app.color.brand_tik_50'),
+    $r('app.color.accent_tik'),
+    $r('app.color.background_primary'),
+    $r('app.color.cold')
+  )
 };
 
 export const THEME_DEFAULT_INDICATOR_MAP: Record<string, string> = {
@@ -305,4 +312,5 @@ export const THEME_DEFAULT_INDICATOR_MAP: Record<string, string> = {
   'harmony': 'vibrant',
   'galaxy': 'vibrant',
   'glacier': 'ocean',
+  'tiktick': 'vibrant'
 };

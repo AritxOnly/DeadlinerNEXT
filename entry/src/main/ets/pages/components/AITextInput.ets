@@ -1,4 +1,5 @@
 import { Animator, AnimatorResult, promptAction } from '@kit.ArkUI';
+import { SettingsConstants as C } from '../../common/local/SettingsConstants'
 
 @Component
 export struct AITextInput {
@@ -165,65 +166,70 @@ export struct AITextInput {
     ctx.stroke();
   }
 
+  @StorageProp(C.KEY_SHOW_AI_INPUT) showAiInput: boolean = true;
+  @StorageProp(C.KEY_BASIC_MODE) basicMode: boolean = false;
+
   build() {
-    Stack({ alignContent: Alignment.Center }) {
+    if (this.showAiInput && !this.basicMode) {
+      Stack({ alignContent: Alignment.Center }) {
 
-      // Layer 1: 内容层 (背景 + 输入框)
-      Column() {
-        Stack({ alignContent: Alignment.BottomEnd }) {
-          // 背景层
-          Column()
-            .width('100%')
-            .height('100%')
-            .borderRadius(this.borderRadiusA - 1)
-            .backgroundColor($r('sys.color.search_container_focus_color'))
+        // Layer 1: 内容层 (背景 + 输入框)
+        Column() {
+          Stack({ alignContent: Alignment.BottomEnd }) {
+            // 背景层
+            Column()
+              .width('100%')
+              .height('100%')
+              .borderRadius(this.borderRadiusA - 1)
+              .backgroundColor($r('sys.color.search_container_focus_color'))
 
-          // 输入框
-          TextArea({ text: this.text, placeholder: this.placeholder })
-            .width('100%')
-            .height('100%')
-            .backgroundColor(Color.Transparent)
-            .borderRadius(this.borderRadiusA - 1)
-            .padding(16)
-            .onChange((val) => this.text = val)
+            // 输入框
+            TextArea({ text: this.text, placeholder: this.placeholder })
+              .width('100%')
+              .height('100%')
+              .backgroundColor(Color.Transparent)
+              .borderRadius(this.borderRadiusA - 1)
+              .padding(16)
+              .onChange((val) => this.text = val)
 
-          // 按钮
-          Button({ type: ButtonType.Circle, stateEffect: true }) {
-            SymbolGlyph(this.isAiLoading ? $r('sys.symbol.arrow_clockwise') : $r('sys.symbol.wand_and_stars'))
-              .fontSize(20)
-              .effectStrategy(SymbolEffectStrategy.SCALE)
-              .fontColor([$r('app.color.font_primary')])
-              // 按钮跳动
-              .symbolEffect(new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.UP), this.isAiLoading)
+            // 按钮
+            Button({ type: ButtonType.Circle, stateEffect: true }) {
+              SymbolGlyph(this.isAiLoading ? $r('sys.symbol.arrow_clockwise') : $r('sys.symbol.wand_and_stars'))
+                .fontSize(20)
+                .effectStrategy(SymbolEffectStrategy.SCALE)
+                .fontColor([$r('app.color.font_primary')])
+                // 按钮跳动
+                .symbolEffect(new BounceSymbolEffect(EffectScope.WHOLE, EffectDirection.UP), this.isAiLoading)
+            }
+            .width(32)
+            .height(32)
+            .margin({ right: 10, bottom: 10 })
+            .backgroundColor($r('sys.color.normal_button_container_focus_color'))
+            .onClick(() => this.triggerAI())
           }
-          .width(32)
-          .height(32)
-          .margin({ right: 10, bottom: 10 })
-          .backgroundColor($r('sys.color.normal_button_container_focus_color'))
-          .onClick(() => this.triggerAI())
+          .width('100%')
+          .height('100%')
         }
         .width('100%')
         .height('100%')
+        // Padding 1vp 露出底下的 Canvas
+        .padding(1)
+
+        // Layer 2: 唯一的 Canvas 层
+        // 这里不需要 Visibility 控制，因为我们在 drawBorder 里动态改变画法
+        Canvas(this.context)
+          .width('100%')
+          .height('100%')
+          .hitTestBehavior(HitTestMode.None)
+          .onAreaChange((oldValue, newValue) => {
+            this.canvasWidth = newValue.width as number;
+            this.canvasHeight = newValue.height as number;
+            // 首次加载或尺寸变更时绘制
+            this.drawBorder();
+          })
       }
       .width('100%')
-      .height('100%')
-      // Padding 1vp 露出底下的 Canvas
-      .padding(1)
-
-      // Layer 2: 唯一的 Canvas 层
-      // 这里不需要 Visibility 控制，因为我们在 drawBorder 里动态改变画法
-      Canvas(this.context)
-        .width('100%')
-        .height('100%')
-        .hitTestBehavior(HitTestMode.None)
-        .onAreaChange((oldValue, newValue) => {
-          this.canvasWidth = newValue.width as number;
-          this.canvasHeight = newValue.height as number;
-          // 首次加载或尺寸变更时绘制
-          this.drawBorder();
-        })
+      .height(140)
     }
-    .width('100%')
-    .height(140)
   }
 }

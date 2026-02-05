@@ -28,6 +28,10 @@
     { "name": "brand_glacier_50", "value": "#8043B2E3" },
     { "name": "accent_glacier", "value": "#0288D1" },
 
+    { "name": "brand_tik", "value": "#FF8B00" },
+    { "name": "brand_tik_50", "value": "#80FF8B00" },
+    { "name": "accent_tik", "value": "#FF8B00" },
+
     { "name": "func_archive", "value": "#FF7CA6D6"},
     { "name": "func_ai", "value": "#B39DDB" },
     { "name": "func_manual", "value": "#80CBC4" },
@@ -75,9 +79,9 @@
     { "name": "bg_morandi_completed", "value": "#FF30423D" },
     { "name": "bg_morandi_completed_40", "value": "#6630423D" },
 
-    { "name": "chart_vibrant_completed", "value": "#FF4ADBA3" },
-    { "name": "chart_vibrant_overdue", "value": "#FFFF7D7D" },
-    { "name": "chart_vibrant_todo", "value": "#FFFFCA5C" },
+    { "name": "chart_vibrant_completed", "value": "#FF09CE9E" },
+    { "name": "chart_vibrant_overdue", "value": "#FFFF606A" },
+    { "name": "chart_vibrant_todo", "value": "#FFFFAF01" },
     { "name": "chart_vibrant_total", "value": "#FF70ACFA" },
 
     { "name": "indicator_vibrant_undergo", "value": "#FF70ACFA" },

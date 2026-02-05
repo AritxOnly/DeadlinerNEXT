@@ -219,8 +219,6 @@ export struct AddTaskPage {
           const parsedDate = DateTimeUtils.parseDateString(param.dueTime);
           if (parsedDate) {
             this.endTime = parsedDate;
-            // 智能设定开始时间：如果截止时间很近，开始时间设为现在；否则设为截止前1小时
-            // 这里简单处理：开始时间设为当前时间
             this.startTime = new Date();
           }
         }

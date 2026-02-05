@@ -42,6 +42,11 @@ export class SettingsConstants {
   static readonly KEY_ENABLE_TABLET_UI = 'enable_tablet_ui';
   static readonly KEY_TABLET_SIDE_DASHBOARD = 'tablet_side_dashboard';
 
+  static readonly KEY_SHOW_AI_INPUT = 'show_ai_input';
+  static readonly KEY_DIRECT_ADD_ON_AI = 'direct_add_on_ai';
+
+  static readonly KEY_AUTO_ARCHIVE_DAYS = 'auto_archive_days';
+
   static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';
   static readonly KEY_TREND_CARD_ORDER = 'trend_card_order';
 }

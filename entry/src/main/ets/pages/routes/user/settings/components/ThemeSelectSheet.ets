@@ -22,7 +22,8 @@ const THEME_OPTIONS: ThemeOption[] = [
   { key: 'lavender', name: '极光', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'harmony', name: '鸿蒙', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'galaxy', name: '星河', previewBg: $r('sys.color.search_container_focus_color') },
-  { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') }
+  { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'tiktick', name: '滴答', previewBg: $r('sys.color.search_container_focus_color') },
 ];
 
 @Component
@@ -78,7 +79,7 @@ export struct ThemeSelectSheet {
       }
       .titleBar({
         content: {
-          title: { mainTitle: "自定义颜色" },
+          title: { mainTitle: "图表颜色" },
           menu: {
             value: [
               {
@@ -165,6 +166,10 @@ export struct ThemeSelectSheet {
         this.CustomEntryCardBuilder()
       }
       .attributeModifier(new FloatUpModifier(THEME_OPTIONS.length + 1))
+
+      GridCol() {
+        Column() { Blank() }.height(70)
+      }
 
       GridCol() {
         Column() { Blank() }.height(70)
