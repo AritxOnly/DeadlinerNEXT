@@ -113,3 +113,44 @@ export class ColorUtils {
     return hex;
   }
 }
+
+export function getHexColorSync(context: Context, color: ResourceColor): string {
+  // 1. 如果是字符串 (例如 "#FF0000" 或 "#FF5B8C5A")
+  // 这是自定义主题最常见的情况
+  if (typeof color === 'string') {
+    return color;
+  }
+
+  // 2. 如果是数字 (例如 Color.Red 或 0xFF0000)
+  if (typeof color === 'number') {
+    try {
+      // & 0xFFFFFF 确保只取 RGB，忽略 Alpha，保持和你原有逻辑一致
+      let hex = ((color as number) & 0xFFFFFF).toString(16).toUpperCase();
+      while (hex.length < 6) {
+        hex = "0" + hex;
+      }
+      return "#" + hex;
+    } catch (e) {
+      return "#000000";
+    }
+  }
+
+  // 3. 如果是 Resource (例如 $r('app.color.chart_green'))
+  // 需要 Context 解析
+  if (typeof color === 'object') {
+    try {
+      const colorVal = context.resourceManager.getColorSync(color as Resource);
+      // getColorSync 返回的是 ARGB int
+      let hex = (colorVal & 0xFFFFFF).toString(16).toUpperCase();
+      while (hex.length < 6) {
+        hex = "0" + hex;
+      }
+      return "#" + hex;
+    } catch (e) {
+      console.error(`Color conversion failed: ${e}`);
+      return "#000000";
+    }
+  }
+
+  return "#000000";
+}

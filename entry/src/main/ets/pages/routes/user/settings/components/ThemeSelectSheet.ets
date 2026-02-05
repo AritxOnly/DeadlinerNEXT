@@ -3,6 +3,9 @@ import { ThemeMap, ITheme } from '../../../../../common/theme/ThemeModel';
 import { ColorCustomizer } from './ColorCustomizer';
 import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavigation, HdsNavigationTitleMode, HdsNavigationAttribute, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../../components/TopSafeContainer';
+import { FloatUpModifier } from '../../../../../utils/animation/FloatUpModifier';
+import { SettingsItem, SettingsSection } from '../../../../components/SettingsComponents';
+import { IndicatorThemeSheet } from './IndicatorThemeSelect';
 
 interface ThemeOption {
   key: string;
@@ -19,7 +22,8 @@ const THEME_OPTIONS: ThemeOption[] = [
   { key: 'lavender', name: '极光', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'harmony', name: '鸿蒙', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'galaxy', name: '星河', previewBg: $r('sys.color.search_container_focus_color') },
-  { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') }
+  { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'tiktick', name: '滴答', previewBg: $r('sys.color.search_container_focus_color') },
 ];
 
 @Component
@@ -39,6 +43,7 @@ export struct ThemeSelectSheet {
               .padding({ left: 16, right: 16, bottom: 20 })
           }
         }
+        .backgroundBlurStyle(BlurStyle.Regular)
       }
       .titleBar({
         content: {
@@ -56,7 +61,45 @@ export struct ThemeSelectSheet {
         },
       })
       .titleMode(HdsNavDestinationTitleMode.MODAL)
-      .backgroundColor($r('sys.color.sheet_panel_background_color'))
+      .backgroundColor(Color.Transparent)
+      .onBackPressed(() => {
+        this.navStack.pop();
+        return true;
+      })
+      .mode(NavDestinationMode.DIALOG)
+      .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
+    } else if (name === 'ChartCustomizer') {
+      HdsNavDestination() {
+        Column() {
+          TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
+            IndicatorThemeSheet()
+          }
+        }
+        .backgroundBlurStyle(BlurStyle.Regular)
+      }
+      .titleBar({
+        content: {
+          title: { mainTitle: "图表颜色" },
+          menu: {
+            value: [
+              {
+                content: {
+                  icon: $r('sys.symbol.xmark'),
+                  action: () => { if (this.onDone) this.onDone(); }
+                }
+              }
+            ]
+          }
+        },
+      })
+      .titleMode(HdsNavDestinationTitleMode.MODAL)
+      .backgroundColor(Color.Transparent)
+      .onBackPressed(() => {
+        this.navStack.pop();
+        return true;
+      })
+      .mode(NavDestinationMode.DIALOG)
+      .systemTransition(NavigationSystemTransitionType.SLIDE_RIGHT)
     }
   }
 
@@ -64,6 +107,19 @@ export struct ThemeSelectSheet {
     HdsNavigation(this.navStack) {
       Column() {
         TopSafeContainer({ topAvoidHeight: 72, bgColor: Color.Transparent }) {
+          SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
+            SettingsItem({
+              title: '图表颜色',
+              subtitle: '自定义概览统计图表颜色',
+              icon: $r('sys.symbol.data_proportion'),
+              onItemClick: () => {
+                this.navStack.pushPath({ name: 'ChartCustomizer' })
+              }
+            })
+          }
+
+          Column().height(12)
+
           this.ThemePresetList()
         }
       }
@@ -91,21 +147,28 @@ export struct ThemeSelectSheet {
     .hideBackButton(true)
     .backgroundColor(Color.Transparent)
     .mode(NavigationMode.Stack)
+    .backgroundBlurStyle(BlurStyle.Regular)
   }
 
   // === 首页：预设列表内容 ===
   @Builder
   ThemePresetList() {
     GridRow({ columns: 2, gutter: 12 }) {
-      ForEach(THEME_OPTIONS, (item: ThemeOption) => {
+      ForEach(THEME_OPTIONS, (item: ThemeOption, idx) => {
         GridCol() {
           this.ThemeItemBuilder(item)
         }
+        .attributeModifier(new FloatUpModifier(idx))
       })
 
       // 自定义入口卡片
       GridCol() {
         this.CustomEntryCardBuilder()
+      }
+      .attributeModifier(new FloatUpModifier(THEME_OPTIONS.length + 1))
+
+      GridCol() {
+        Column() { Blank() }.height(70)
       }
 
       GridCol() {
@@ -139,7 +202,7 @@ export struct ThemeSelectSheet {
       }
       .width('100%')
       .padding(12)
-      .borderRadius(20)
+      .borderRadius(24)
       .backgroundColor($r('sys.color.search_container_focus_color'))
       .onClick(() => {
         this.navStack.pushPath({ name: 'ColorCustomizer' });
@@ -214,7 +277,7 @@ export struct ThemeSelectSheet {
       .width('100%')
       .height(140)
       .padding({ top: 8, bottom: 4, left: 12, right: 12 })
-      .borderRadius(20)
+      .borderRadius(24)
       .backgroundColor(item.previewBg)
       .border({
         width: 2,
@@ -222,7 +285,7 @@ export struct ThemeSelectSheet {
         color: this.currentKey === item.key ? ThemeMap[item.key].brand : Color.Transparent
       })
       .onClick(() => {
-        ThemeManager.switchTheme(item.key);
+        ThemeManager.switchUITheme(item.key);
       })
 
       // 2. 选中态：右上角悬浮旗标 (Floating Circle)

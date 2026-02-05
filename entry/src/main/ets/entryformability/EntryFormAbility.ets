@@ -4,6 +4,7 @@ import { preferences } from '@kit.ArkData';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
 import { WidgetData } from '../widget/model/WidgetData';
 import { CapsuleWidgetData } from '../widget/model/CapsuleWidgetData';
+import { HudWidgetData } from '../widget/model/HudWidgetData';
 
 export default class EntryFormAbility extends FormExtensionAbility {
 
@@ -25,8 +26,13 @@ export default class EntryFormAbility extends FormExtensionAbility {
       capsuleData.summary = "加载中...";
       return formBindingData.createFormBindingData({
         'widgetData': capsuleData
-      });;
+      });
 
+    } else if (formName === 'widget_transparent_clock_card') {
+      const hudData = new HudWidgetData();
+      hudData.dateStr = "加载中...";
+      hudData.urgentTaskName = "正在同步数据...";
+      return formBindingData.createFormBindingData({ 'hudData': hudData });
     } else {
       const listData = new WidgetData();
       listData.totalCount = 0;

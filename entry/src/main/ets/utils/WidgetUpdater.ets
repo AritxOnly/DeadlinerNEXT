@@ -6,6 +6,9 @@ import { WidgetData, WidgetTaskItem } from '../widget/model/WidgetData';
 import { CapsuleWidgetData } from '../widget/model/CapsuleWidgetData';
 import { LocalValues } from '../common/local/LocalValues';
 import { fileIo as fs } from '@kit.CoreFileKit';
+import { HudWidgetData } from '../widget/model/HudWidgetData';
+import { HabitRepository } from '../common/repository/HabitRepository';
+import { Habit, HabitRecordStatus, HabitStatus } from '../model/DDLModels';
 
 export class WidgetUpdater {
 
@@ -73,6 +76,53 @@ export class WidgetUpdater {
       const bindingCapsule = formBindingData.createFormBindingData({
         'widgetData': capsuleData
       });
+
+      const hudData = new HudWidgetData();
+
+      // 1. 日期字符串
+      const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+      const dateObj = new Date();
+
+      // 2. 紧急任务逻辑 (复用 sorted validTasks，第一个就是最急的)
+      if (validTasks.length > 0) {
+        const firstTask = validTasks[0];
+        hudData.hasUrgent = true;
+        hudData.urgentTaskName = firstTask.name;
+
+        hudData.dateStr = `今日 · ${weekDays[dateObj.getDay()]} / ${dateObj.getDate()}日`;
+      } else {
+        hudData.hasUrgent = false;
+        hudData.urgentTaskName = '';
+
+        hudData.dateStr = `今日 · ${weekDays[dateObj.getDay()]} / ${dateObj.getMonth()}月${dateObj.getDate()}日`;
+      }
+
+      // 3. 习惯
+      const habitRepo = HabitRepository.getInstance();
+      const allHabits = await habitRepo.getAllHabits();
+      const activeHabits = allHabits.filter(h => h.status === HabitStatus.ACTIVE);
+
+      let pendingHabitCount = 0;
+
+      const habitChecks = activeHabits.map(async (habit) => {
+        return await WidgetUpdater.isHabitPending(habit, habitRepo, dateObj);
+      });
+
+      const habitResults = await Promise.all(habitChecks);
+      // 统计返回 true (即未达标/待打卡) 的数量
+      pendingHabitCount = habitResults.filter(isPending => isPending).length;
+
+
+      // 4. 统计数据
+      hudData.imminentCount = nearbyTasks.length; // 临近 (24h内)
+      hudData.todoCount = validTasks.length;      // 待办
+      hudData.totalCount = activeTasks.length;    // 总共 (活跃)
+      hudData.habitCount = pendingHabitCount;
+
+      console.log(`[WidgetUpdater] todoCount: ${hudData.todoCount} | totalCount: ${hudData.totalCount}`)
+
+      const bindingHud = formBindingData.createFormBindingData({ 'hudData': hudData });
+
 
       // --- B. 构建列表组件数据 (WidgetData) ---
       // 只有当存在列表组件时，才真正需要去处理图片（为了性能，其实可以先判断一下是否有 'widget' 类型的卡片，但这里为了逻辑清晰先直接构建）
@@ -156,6 +206,8 @@ export class WidgetUpdater {
           if (type === 'widget_capsule'|| type === 'widget_lock_capsule') {
             console.debug(`[WidgetUpdater] Updating CAPSULE form ${id}`);
             await formProvider.updateForm(id, bindingCapsule);
+          } else if (type === 'widget_transparent_clock_card') {
+            await formProvider.updateForm(id, bindingHud);
           } else {
             console.debug(`[WidgetUpdater] Updating LIST form ${id}`);
             await formProvider.updateForm(id, bindingList);
@@ -174,5 +226,25 @@ export class WidgetUpdater {
     } catch (e) {
       console.error(`[WidgetUpdater] Update failed: ${e}`);
     }
+  }
+
+  /**
+   * 辅助方法：判断一个习惯在当前周期内是否“待完成” (Pending)
+   * 返回 true 表示还需要打卡，false 表示已达标
+   */
+  private static async isHabitPending(habit: Habit, repo: HabitRepository, now: Date): Promise<boolean> {
+    const target = Math.max(1, habit.timesPerPeriod);
+
+    const GeneratedDestructArray_1 = repo.periodBounds(habit.period, now);
+    const startDate = GeneratedDestructArray_1[0];
+    const endDate = GeneratedDestructArray_1[1];
+
+    const records = await repo.getRecordsForHabitInRange(habit.id, startDate, endDate);
+
+    const completedCount = records
+      .filter(r => r.status === HabitRecordStatus.COMPLETED)
+      .reduce((sum, r) => sum + r.count, 0);
+
+    return completedCount < target;
   }
 }

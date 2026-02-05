@@ -21,25 +21,11 @@ import { BarData, BarDataSet, BarEntry,
   Highlight
 } from '@ohos/mpchart';
 import { IndexAxisValueFormatter } from './utils/IndexAxisValueFormatter';
-import { ColorUtils } from '../../../utils/ColorUtils';
+import { ColorUtils, getHexColorSync } from '../../../utils/ColorUtils';
 import { CustomMarkerView } from './utils/CustomMarkerView';
 import { FloatUpModifier } from '../../../utils/animation/FloatUpModifier';
 import { OverviewCard } from './OverviewViewModel';
-
-// --- 颜色转换辅助函数 (保持不变) ---
-function getHexColorSync(context: Context, resource: Resource): string {
-  try {
-    const colorVal = context.resourceManager.getColorSync(resource);
-    let hex = (colorVal & 0xFFFFFF).toString(16).toUpperCase();
-    while (hex.length < 6) {
-      hex = "0" + hex;
-    }
-    return "#" + hex;
-  } catch (e) {
-    console.error(`Color conversion failed: ${e}`);
-    return "#000000";
-  }
-}
+import { ITheme } from '../../../common/theme/ThemeModel';
 
 interface ChartSeriesItem {
   name: string;
@@ -60,21 +46,20 @@ export struct OverviewStatsSection {
 
   build() {
     Column({ space: 8 }) {
-      ForEach(this.cardOrder, (cardId: OverviewCard) => {
+      ForEach(this.cardOrder, (cardId: OverviewCard, idx) => {
         if (cardId === OverviewCard.ACTIVE_STATS) {
           ActiveStatsCard({
             completed: this.todayCompleted,
             todo: this.todayTodo,
             overdue: this.todayOverdue
           })
-          // 加个简单的入场动画，看起来更生动
-            .attributeModifier(new FloatUpModifier(0))
+            .attributeModifier(new FloatUpModifier(idx))
         } else if (cardId === OverviewCard.COMPLETION_TIME) {
           CompletionTimeCard({ completionTimeStats: $completionTimeStats })
-            .attributeModifier(new FloatUpModifier(1))
+            .attributeModifier(new FloatUpModifier(idx))
         } else if (cardId === OverviewCard.HISTORY_STATS) {
           HistoryStatsCard({ historyStats: $historyStats })
-            .attributeModifier(new FloatUpModifier(2))
+            .attributeModifier(new FloatUpModifier(idx))
         }
       }, (item: string) => item)
 
@@ -87,9 +72,10 @@ export struct OverviewStatsSection {
   }
 }
 
-// ... (ActiveStatsCard 保持不变)
 @Component
 struct ActiveStatsCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Prop completed: number;
   @Prop todo: number;
   @Prop overdue: number;
@@ -102,9 +88,9 @@ struct ActiveStatsCard {
         .width('100%')
         .margin({ bottom: 20 })
       Flex({ justifyContent: FlexAlign.SpaceAround }) {
-        this.StatItem("今日完成", this.completed, $r('app.color.chart_green'))
-        this.StatItem("待办任务", this.todo, $r('app.color.chart_orange'))
-        this.StatItem("今日逾期", this.overdue, $r('app.color.chart_red'))
+        this.StatItem("今日完成", this.completed, this.theme.chartCompleted)
+        this.StatItem("待办任务", this.todo, this.theme.chartTodo)
+        this.StatItem("今日逾期", this.overdue, this.theme.chartOverdue)
       }
     }
   }
@@ -118,6 +104,8 @@ struct ActiveStatsCard {
 
 @Component
 struct CompletionTimeCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+
   @Link @Watch('updateChart') completionTimeStats: Array<[string, number]>;
 
   private model: HorizontalBarChartModel = new HorizontalBarChartModel();
@@ -166,7 +154,7 @@ struct CompletionTimeCard {
     const ctx = getContext(this);
 
     // 1. 获取基础颜色字符串 (用于生成渐变)
-    const blueColorStr = getHexColorSync(ctx, $r('app.color.chart_blue'));
+    const blueColorStr = getHexColorSync(ctx, this.theme.chartInfo);
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     // 2. 准备数据
@@ -266,6 +254,7 @@ interface SelectedItemInfo {
 
 @Component
 struct HistoryStatsCard {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @Link @Watch('updateChart') historyStats: Map<string, number>;
 
   private model: PieChartModel = new PieChartModel();
@@ -339,9 +328,9 @@ struct HistoryStatsCard {
     if (!this.historyStats || this.historyStats.size === 0) return;
 
     const ctx = getContext(this);
-    const greenColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_green')));
-    const orangeColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_orange')));
-    const redColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.chart_red')));
+    const greenColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartCompleted));
+    const orangeColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartTodo));
+    const redColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartOverdue));
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     const completed = this.historyStats.get("累计完成") || 0;

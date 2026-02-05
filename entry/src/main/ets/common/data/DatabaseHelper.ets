@@ -611,4 +611,50 @@ export class DatabaseHelper {
     resultSet.close();
     return list;
   }
+
+  /**
+   * 自动归档 DDL
+   * @param days n天前的DDL将被归档
+   * @returns 归档的数量
+   */
+  async autoArchiveDDLs(days: number): Promise<number> {
+    if (!this.rdbStore || days < 0) return 0;
+
+    const v = await this.nextVersionUTC();
+
+    // 计算 n 天前的 ISO 时间戳边界 (假设 completeTime 存储的是类似 ISO 格式)
+    const thresholdDate = new Date();
+    thresholdDate.setDate(thresholdDate.getDate() - days);
+    const thresholdStr = thresholdDate.toISOString();
+
+    // 构建更新的数据桶
+    const bucket: relationalStore.ValuesBucket = {};
+    bucket[C.COLUMN_IS_ARCHIVED] = 1;
+    // 同步版本信息也需要更新，否则 WebDAV 不会同步归档状态
+    bucket[C.COLUMN_VER_TS] = v.ts;
+    bucket[C.COLUMN_VER_CTR] = v.ctr;
+    bucket[C.COLUMN_VER_DEV] = v.dev;
+
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_NAME);
+    predicates
+      .equalTo(C.COLUMN_DELETED, 0)      // 未删除
+      .equalTo(C.COLUMN_IS_COMPLETED, 1) // 已完成
+      .equalTo(C.COLUMN_IS_ARCHIVED, 0)  // 尚未归档
+      .and()
+      .beginWrap()
+      .notEqualTo(C.COLUMN_COMPLETE_TIME, "") // 完成时间不为空
+      .lessThanOrEqualTo(C.COLUMN_COMPLETE_TIME, thresholdStr) // 且早于阈值时间
+      .endWrap();
+
+    try {
+      const rows = await this.rdbStore.update(bucket, predicates);
+      if (rows > 0) {
+        console.info(`[DatabaseHelper] Auto-archived ${rows} items.`);
+      }
+      return rows;
+    } catch (e) {
+      console.error(`[DatabaseHelper] Auto-archive failed: ${e}`);
+      return 0;
+    }
+  }
 }

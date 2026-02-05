@@ -14,6 +14,8 @@ export struct SettingsSection {
   title?: string | Resource;
   @BuilderParam content: () => void;
 
+  @State bgColor: ResourceColor = $r('app.color.background_secondary');
+
   build() {
     Column() {
       // Section 标题 (TopLabel)
@@ -32,7 +34,7 @@ export struct SettingsSection {
       }
       .width('100%')
       // 核心样式：背景色 + 大圆角 (24vp)
-      .backgroundColor($r('app.color.background_secondary'))
+      .backgroundColor(this.bgColor)
       .borderRadius(24)
       .padding(4) // 让内部 Item 离边缘有间隙 (对应 Android 的 container padding)
       .margin({ left: 16, right: 16 }) // 卡片离屏幕两边的距离
@@ -484,7 +486,6 @@ export struct SubSettingsSwitch {
         if (this.subtitle) {
           Text(this.subtitle)
             .fontSize(12)
-            // 【统一】颜色使用 app.color
             .fontColor($r('app.color.font_secondary'))
             .margin({ top: 4 })
             .lineHeight(16) // 优化多行阅读体验
@@ -506,6 +507,7 @@ export struct SubSettingsSwitch {
         })
         .selectedColor(this.theme.brand) // 品牌色
         .hitTestBehavior(HitTestMode.Block) // 确保开关点击优先响应
+        .height(21)
     }
     .width('100%')
     .alignItems(VerticalAlign.Center)
@@ -669,8 +671,6 @@ export struct SettingsSlider {
           style: SliderStyle.OutSet // OutSet 风格更适合列表项，InSet 更适合媒体控制器
         })
           .showSteps(this.showSteps && (this.step ?? 0) > 0) // 是否显示刻度点
-          // .blockColor('#FFFFFF') // 滑块颜色
-          .trackColor($r('sys.color.ohos_id_color_list_separator')) // 轨道背景色
           .selectedColor(this.theme.brand) // 选中轨道颜色（品牌色）
           .showTips(false) // 拖动时不显示气泡，因为我们已经在右上角显示数值了
           .onChange((value: number, mode: SliderChangeMode) => {

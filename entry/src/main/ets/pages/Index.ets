@@ -13,6 +13,7 @@ import { MainHomePageTablet } from './routes/main/MainHomePageTablet';
 import { OverviewPageTablet } from './routes/overview/OverviewPageTablet';
 import { SettingsConstants as C } from '../common/local/SettingsConstants';
 import { ITheme } from '../common/theme/ThemeModel';
+import { TaskRepository } from '../common/repository/TaskRepository';
 
 interface TabData {
   title: string,
@@ -108,6 +109,8 @@ struct Index {
     if (this.isLoggedIn) {
       this.checkAndRepairUserProfile();
     }
+
+    TaskRepository.getInstance().checkAndAutoArchive();
 
     this.checkAndShowDialog();
   }

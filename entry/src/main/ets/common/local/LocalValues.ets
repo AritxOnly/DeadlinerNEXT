@@ -43,6 +43,9 @@ export class LocalValues {
       const username = await this.pref.get(C.KEY_WEBDAV_USERNAME, '');
       AppStorage.setOrCreate(C.KEY_WEBDAV_USERNAME, username);
 
+      const autoArchiveDays = await this.pref.get(C.KEY_AUTO_ARCHIVE_DAYS, 3);
+      AppStorage.setOrCreate(C.KEY_AUTO_ARCHIVE_DAYS, autoArchiveDays);
+
       const vibration = await this.pref.get(C.KEY_VIBRATION_ENABLE, true);
       AppStorage.setOrCreate(C.KEY_VIBRATION_ENABLE, vibration);
 
@@ -121,6 +124,12 @@ export class LocalValues {
 
       const tabletSideDashboard = await this.pref.get(C.KEY_TABLET_SIDE_DASHBOARD, true);
       AppStorage.setOrCreate(C.KEY_TABLET_SIDE_DASHBOARD, tabletSideDashboard);
+
+      const showAiInput = await this.pref.get(C.KEY_SHOW_AI_INPUT, true);
+      AppStorage.setOrCreate(C.KEY_SHOW_AI_INPUT, showAiInput);
+
+      const directAddOnAi = await this.pref.get(C.KEY_DIRECT_ADD_ON_AI, true);
+      AppStorage.setOrCreate(C.KEY_DIRECT_ADD_ON_AI, directAddOnAi);
 
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
@@ -533,5 +542,29 @@ export class LocalValues {
 
   async setSideDashboard(enable: boolean) {
     await this.setValue(C.KEY_TABLET_SIDE_DASHBOARD, enable);
+  }
+
+  getShowAiInput(): boolean {
+    return AppStorage.get<boolean>(C.KEY_SHOW_AI_INPUT) ?? true;
+  }
+
+  async setShowAiInput(enable: boolean) {
+    await this.setValue(C.KEY_SHOW_AI_INPUT, enable);
+  }
+
+  getDirectAddOnAi(): boolean {
+    return AppStorage.get(C.KEY_DIRECT_ADD_ON_AI) ?? true;
+  }
+
+  async setDirectAddOnAi(enable: boolean) {
+    await this.setValue(C.KEY_DIRECT_ADD_ON_AI, enable);
+  }
+
+  getAutoArchiveDays(): number {
+    return AppStorage.get(C.KEY_AUTO_ARCHIVE_DAYS) ?? 3;
+  }
+
+  async setAutoArchiveDays(days: number) {
+    await this.setValue(C.KEY_AUTO_ARCHIVE_DAYS, days);
   }
 }

@@ -553,6 +553,7 @@ export struct TaskListSection {
                   }
                   .width('100%')
                   .height(this.isWideScreen ? '100%' : '60%')
+                  .attributeModifier(new FloatUpModifier(2, 15))
                 }
               }
               .width("100%")

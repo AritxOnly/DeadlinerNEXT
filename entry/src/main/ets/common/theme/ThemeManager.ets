@@ -1,132 +1,207 @@
-import { createTheme, CustomThemeConfig, INDICATORS_MORANDI, INDICATORS_VIBRANT, ITheme, ThemeMap } from "./ThemeModel";
+import { UIThemePalette, IndicatorSet, createUITheme, INDICATORS_MORANDI, INDICATORS_VIBRANT, ITheme, ThemeMap, IndicatorMap,
+  THEME_DEFAULT_INDICATOR_MAP } from "./ThemeModel";
 import { ThemeControl } from "@kit.ArkUI";
 import { DeadlinerTheme } from "../../AppTheme";
 import { preferences } from '@kit.ArkData';
 
+export interface CustomThemeConfig {
+  hue: number;
+  styleStrength: number;
+  isCustom: boolean;
+  brand: string;
+  accent: string;
+  indicatorKey: string;
+}
+
 export class ThemeManager {
   private static pref: preferences.Preferences | undefined = undefined;
   private static readonly STORE_NAME = 'deadliner_theme_config';
-  private static readonly KEY_THEME = 'key_current_theme';
 
+  // 两个独立的存储 Key
+  private static readonly KEY_THEME_UI = 'key_current_theme_ui';        // 存 'classic', 'custom', 'lavender' 等
+  private static readonly KEY_THEME_INDICATOR = 'key_current_theme_indicator'; // 存 'morandi', 'vibrant'
+
+  // 自定义 UI 相关的 Key
   private static readonly KEY_CUSTOM_BRAND = 'key_custom_brand';
   private static readonly KEY_CUSTOM_ACCENT = 'key_custom_accent';
   private static readonly KEY_CUSTOM_TAB_ICON = 'key_custom_tab_icon';
-  private static readonly KEY_CUSTOM_MORANDI = 'key_custom_morandi';
-
   private static readonly KEY_PARAM_HUE = 'key_param_hue';
   private static readonly KEY_PARAM_STYLE = 'key_param_style';
+
+  // 兼容旧 Key
+  private static readonly KEY_THEME_LEGACY = 'key_current_theme';
 
   static async init(context: Context) {
     try {
       ThemeManager.pref = await preferences.getPreferences(context, ThemeManager.STORE_NAME);
-      const key = await ThemeManager.pref.get(ThemeManager.KEY_THEME, 'classic') as string;
 
-      if (key === 'custom') {
-        const brand = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_BRAND, '#FF0A59F7') as string;
-        const accent = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_ACCENT, '#FF0A59F7') as string;
-        const tabIcon = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_TAB_ICON, '') as string;
-        const morandi = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_MORANDI, false) as boolean;
+      // 1. 读取配置
+      let uiKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_UI, '') as string;
+      // 默认指示器为 morandi
+      let indicatorKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_INDICATOR, 'morandi') as string;
 
-        // 恢复主题
-        ThemeManager.applyCustomColors(brand, accent, tabIcon || undefined, morandi, 210, 50, false); // false表示初始化时不需重复存入磁盘
-      } else {
-        let validKey = ThemeMap[key] ? key : 'classic';
-        ThemeManager.updateAppState(validKey, ThemeMap[validKey]);
+      // 兼容老数据迁移
+      if (!uiKey) {
+        uiKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_LEGACY, 'classic') as string;
       }
+
+      // 2. 初始化 AppStorage
+      AppStorage.setOrCreate('currentThemeKey', uiKey);
+      AppStorage.setOrCreate('currentIndicatorKey', indicatorKey);
+
+      // 3. 合并并应用
+      await ThemeManager.combineAndApplyTheme(uiKey, indicatorKey);
+
     } catch (err) {
       console.error('[ThemeManager] Init failed:', err);
-      ThemeManager.updateAppState('classic', ThemeMap['classic']);
+      // 兜底：Classic + Morandi
+      ThemeManager.updateAppState(ThemeManager.mergeTheme(ThemeMap['classic'], INDICATORS_MORANDI));
     }
   }
 
   /**
-   * ✅ 获取当前自定义配置（供 ColorCustomizer 初始化使用）
+   * 获取当前生效的完整主题对象 (UI + Indicators)
+   * 供业务逻辑同步调用
    */
-  static async getCustomConfig(): Promise<CustomThemeConfig> {
-    if (!ThemeManager.pref) return { hue: 210, styleStrength: 50, isCustom: false, brand: '', accent: '', isMorandi: false };
-
-    const currentKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME, 'classic') as string;
-    const hue = await ThemeManager.pref.get(ThemeManager.KEY_PARAM_HUE, 210) as number;
-    const style = await ThemeManager.pref.get(ThemeManager.KEY_PARAM_STYLE, 50) as number;
-    const brand = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_BRAND, '') as string;
-    const accent = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_ACCENT, '') as string;
-    const morandi = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_MORANDI, false) as boolean;
-
-    return {
-      hue: hue,
-      styleStrength: style,
-      isCustom: currentKey === 'custom',
-      brand: brand,
-      accent: accent,
-      isMorandi: morandi
-    };
+  static getCurrentTheme(): ITheme {
+    // 优先从 AppStorage 获取合并后的对象
+    let theme = AppStorage.get<ITheme>('currentTheme');
+    if (!theme) {
+      // 如果未初始化，返回默认兜底
+      return ThemeManager.mergeTheme(ThemeMap['classic'], INDICATORS_MORANDI);
+    }
+    return theme;
   }
 
   /**
-   * ✅ 应用自定义颜色
-   * 增加了 hue 和 styleStrength 参数用于存储状态
+   * 应用自定义颜色
+   * @param isMorandi - 用户在自定义面板切换 "莫兰迪/生动" 开关时传入
    */
   static async applyCustomColors(
     brand: string, accent: string,
     tabIcon: string | ResourceColor | undefined,
-    morandi: boolean,
-    hue: number,
-    styleStrength: number,
+    indicatorKey: string,
+    hue: number, styleStrength: number,
     saveToDisk: boolean = true
   ) {
-    const customTheme = ThemeManager.createCustomTheme(brand, accent, tabIcon, morandi);
+    // 1. 创建 UI 部分 (内存中)
+    const customUI = ThemeManager.createCustomUITheme(brand, accent, tabIcon);
 
-    ThemeManager.updateAppState('currentTheme', customTheme);
+    const targetIndicatorKey = indicatorKey;
+    const indicatorSet = IndicatorMap[targetIndicatorKey];
 
+    // 3. 合并
+    const fullTheme = ThemeManager.mergeTheme(customUI, indicatorSet);
+
+    // 4. 更新内存状态
+    ThemeManager.updateAppState(fullTheme);
+    AppStorage.set('currentThemeKey', 'custom');
+    AppStorage.set('currentIndicatorKey', targetIndicatorKey); // ✅ 同步更新指示器 Key
+
+    // 5. 持久化 (保存所有参数)
     if (saveToDisk && ThemeManager.pref) {
       try {
-        await ThemeManager.pref.put(ThemeManager.KEY_THEME, 'custom');
+        await ThemeManager.pref.put(ThemeManager.KEY_THEME_UI, 'custom');
+
+        await ThemeManager.pref.put(ThemeManager.KEY_THEME_INDICATOR, targetIndicatorKey);
+
         await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_BRAND, brand);
         await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_ACCENT, accent);
         await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_TAB_ICON, tabIcon ? tabIcon.toString() : '');
-        await ThemeManager.pref.put(ThemeManager.KEY_CUSTOM_MORANDI, morandi);
 
-        // ✅ 保存滑块状态
         await ThemeManager.pref.put(ThemeManager.KEY_PARAM_HUE, hue);
         await ThemeManager.pref.put(ThemeManager.KEY_PARAM_STYLE, styleStrength);
 
         await ThemeManager.pref.flush();
       } catch (e) {
-        console.error('[ThemeManager] Failed to save custom colors', e);
+        console.error('[ThemeManager] Failed to save custom UI', e);
       }
     }
   }
 
   /**
-   * 核心方法：将颜色字符串映射到全套 ITheme
+   * 获取自定义配置回显 (供 ColorCustomizer 初始化)
    */
-  private static createCustomTheme(
-    brand: string, accent: string, tabIcon?: string | ResourceColor,
-    morandi: boolean = false
-  ): ITheme {
-    // 简单的透明度处理工具
-    const withAlpha = (hex: string, alpha: string) => {
-      // 假设传入的是 #RRGGBB 格式，直接追加 alpha
-      // 如果已经是 #AARRGGBB 则需特殊处理，这里简化处理
-      if (hex.length === 9) return hex; // 已经是8位hex
-      return hex.replace('#', '#' + alpha);
+  static async getCustomConfig(): Promise<CustomThemeConfig> {
+    if (!ThemeManager.pref) return { hue: 210, styleStrength: 50, isCustom: false, brand: '', accent: '', indicatorKey: 'morandi' };
+
+    const uiKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_UI, 'classic') as string;
+    const indKey = await ThemeManager.pref.get(ThemeManager.KEY_THEME_INDICATOR, 'morandi') as string; // 读取当前指示器
+
+    const hue = await ThemeManager.pref.get(ThemeManager.KEY_PARAM_HUE, 210) as number;
+    const style = await ThemeManager.pref.get(ThemeManager.KEY_PARAM_STYLE, 50) as number;
+    const brand = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_BRAND, '') as string;
+    const accent = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_ACCENT, '') as string;
+
+    return {
+      hue: hue,
+      styleStrength: style,
+      isCustom: uiKey === 'custom',
+      brand: brand,
+      accent: accent,
+      indicatorKey: indKey
     };
-
-    // 如果未指定 tabIcon，默认使用 accent
-    const activeTabColor = tabIcon || accent;
-
-    return createTheme(
-      brand,                          // brand
-      withAlpha(brand, "80"),         // brand50
-      accent,                         // accent
-      $r('app.color.background_primary'),
-      morandi ? INDICATORS_MORANDI : INDICATORS_VIBRANT,
-      activeTabColor,                 // tabIcon
-    )
   }
 
-  private static updateAppState(key: string, theme: ITheme) {
-    AppStorage.setOrCreate('currentThemeKey', key);
+  /**
+   * 将 UI 和 Indicator 显式合并 (解决 Spread 语法问题)
+   */
+  private static mergeTheme(ui: UIThemePalette, ind: IndicatorSet): ITheme {
+    return {
+      // UI 部分
+      brand: ui.brand,
+      brand50: ui.brand50,
+      accent: ui.accent,
+      bgPrimary: ui.bgPrimary,
+      tabIcon: ui.tabIcon,
+
+      chartInfo: ind.chartInfo,
+      chartCompleted: ind.chartCompleted,
+      chartTodo: ind.chartTodo,
+      chartOverdue: ind.chartOverdue,
+
+      indicatorUndergo: ind.indicatorUndergo,
+      indicatorUndergo50: ind.indicatorUndergo50,
+      indicatorUndergo70: ind.indicatorUndergo70,
+      bgUndergo: ind.bgUndergo,
+      bgUndergo40: ind.bgUndergo40,
+
+      indicatorNear: ind.indicatorNear,
+      indicatorNear50: ind.indicatorNear50,
+      indicatorNear70: ind.indicatorNear70,
+      bgNear: ind.bgNear,
+      bgNear40: ind.bgNear40,
+
+      indicatorPassed: ind.indicatorPassed,
+      indicatorPassed50: ind.indicatorPassed50,
+      indicatorPassed70: ind.indicatorPassed70,
+      bgPassed: ind.bgPassed,
+      bgPassed40: ind.bgPassed40,
+
+      indicatorCompleted: ind.indicatorCompleted,
+      indicatorCompleted50: ind.indicatorCompleted50,
+      indicatorCompleted70: ind.indicatorCompleted70,
+      bgCompleted: ind.bgCompleted,
+      bgCompleted40: ind.bgCompleted40
+    };
+  }
+
+  private static async combineAndApplyTheme(uiKey: string, indicatorKey: string) {
+    let uiPalette: UIThemePalette;
+
+    if (uiKey === 'custom') {
+      uiPalette = await ThemeManager.loadCustomUIFromDisk();
+    } else {
+      uiPalette = ThemeMap[uiKey] || ThemeMap['classic'];
+    }
+
+    const indicatorSet = IndicatorMap[indicatorKey] || IndicatorMap['morandi'];
+    const fullTheme = ThemeManager.mergeTheme(uiPalette, indicatorSet);
+
+    ThemeManager.updateAppState(fullTheme);
+  }
+
+  private static updateAppState(theme: ITheme) {
     AppStorage.setOrCreate('currentTheme', theme);
     ThemeManager.applySystemTheme(theme);
   }
@@ -139,27 +214,72 @@ export class ThemeManager {
     }
   }
 
-  static getCurrentTheme(): ITheme {
-    return AppStorage.get<ITheme>('currentTheme') || ThemeMap['classic'];
-  }
+  // =================================================================
+  // 公共 API (切换逻辑)
+  // =================================================================
 
-  static async switchTheme(name: string) {
-    if (ThemeMap[name]) {
-      console.info('[ThemeManager]', `Switching to preset: ${name}`);
+  static async switchUITheme(uiKey: string) {
+    console.info('[ThemeManager]', `Switching UI to: ${uiKey}`);
 
-      const newTheme = ThemeMap[name];
-      AppStorage.set('currentTheme', newTheme);
-      AppStorage.set('currentThemeKey', name);
-      ThemeManager.applySystemTheme(newTheme);
+    const defaultIndicatorKey = THEME_DEFAULT_INDICATOR_MAP[uiKey] || 'morandi';
 
-      if (ThemeManager.pref) {
-        try {
-          await ThemeManager.pref.put(ThemeManager.KEY_THEME, name);
-          await ThemeManager.pref.flush();
-        } catch (e) {
-          console.error('[ThemeManager]', 'Flush failed', e);
-        }
+    AppStorage.set('currentThemeKey', uiKey);
+    AppStorage.set('currentIndicatorKey', defaultIndicatorKey);
+
+    await ThemeManager.combineAndApplyTheme(uiKey, defaultIndicatorKey);
+
+    if (ThemeManager.pref) {
+      try {
+        await ThemeManager.pref.put(ThemeManager.KEY_THEME_UI, uiKey);
+        await ThemeManager.pref.put(ThemeManager.KEY_THEME_INDICATOR, defaultIndicatorKey);
+        await ThemeManager.pref.flush();
+      } catch (e) {
+        console.error('[ThemeManager] Switch UI save failed', e);
       }
     }
+  }
+
+  /**
+   * 切换 指示器/图表风格 (如 Morandi -> Vibrant)
+   * 行为：保持当前 UI 皮肤不变，只换图表
+   */
+  static async switchIndicatorStyle(indicatorKey: string) {
+    console.info('[ThemeManager]', `Switching Indicators to: ${indicatorKey}`);
+    AppStorage.set('currentIndicatorKey', indicatorKey);
+
+    const currentUIKey = AppStorage.get<string>('currentThemeKey') || 'classic';
+
+    await ThemeManager.combineAndApplyTheme(currentUIKey, indicatorKey);
+
+    if (ThemeManager.pref) {
+      await ThemeManager.pref.put(ThemeManager.KEY_THEME_INDICATOR, indicatorKey);
+      await ThemeManager.pref.flush();
+    }
+  }
+
+  // 辅助方法：从磁盘读取自定义 UI 配置
+  private static async loadCustomUIFromDisk(): Promise<UIThemePalette> {
+    if (!ThemeManager.pref) return ThemeMap['classic'];
+
+    const brand = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_BRAND, '#FF0A59F7') as string;
+    const accent = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_ACCENT, '#FF0A59F7') as string;
+    const tabIcon = await ThemeManager.pref.get(ThemeManager.KEY_CUSTOM_TAB_ICON, '') as string;
+
+    return ThemeManager.createCustomUITheme(brand, accent, tabIcon || undefined);
+  }
+
+  // 纯内存操作：创建 UI 部分
+  private static createCustomUITheme(brand: string, accent: string, tabIcon?: string | ResourceColor): UIThemePalette {
+    const withAlpha = (hex: string, alpha: string) => {
+      if (hex.length === 9) return hex;
+      return hex.replace('#', '#' + alpha);
+    };
+    return createUITheme(
+      brand,
+      withAlpha(brand, "80"),
+      accent,
+      $r('app.color.background_primary'),
+      tabIcon
+    );
   }
 }

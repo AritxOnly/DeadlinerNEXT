@@ -169,7 +169,7 @@ export class HabitRepository {
 
   // ================= Logic: Period Calculation =================
 
-  private periodBounds(period: HabitPeriod, date: Date): [Date, Date] {
+  periodBounds(period: HabitPeriod, date: Date): [Date, Date] {
     const d = new Date(date); // Clone
     d.setHours(0, 0, 0, 0);
 

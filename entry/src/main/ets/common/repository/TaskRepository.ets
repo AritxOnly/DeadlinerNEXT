@@ -291,4 +291,29 @@ export class TaskRepository {
 
     this.scheduleReminderRefresh();
   }
+
+  /**
+   * 检查并执行自动归档
+   */
+  public async checkAndAutoArchive() {
+    // 1. 获取用户设置的归档天数 (从 LocalValues)
+    const archiveDays = LocalValues.getInstance().getAutoArchiveDays(); // 假设你已实现此方法
+
+    if (archiveDays <= 0) return;
+
+    try {
+      await this.ensureDbReady();
+      const archivedCount = await this.db.autoArchiveDDLs(archiveDays);
+
+      if (archivedCount > 0) {
+        // 2. 如果有变更，通知 UI
+        this.notifyDataChange();
+        // 3. 触发同步和 Widget 更新
+        this.scheduleSync();
+        this.scheduleWidgetUpdate();
+      }
+    } catch (e) {
+      console.error(`[TaskRepo] checkAndAutoArchive failed: ${e}`);
+    }
+  }
 }

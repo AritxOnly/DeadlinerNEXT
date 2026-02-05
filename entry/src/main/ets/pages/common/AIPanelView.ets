@@ -1,10 +1,13 @@
-import { LengthMetrics } from '@kit.ArkUI'
 import { i18n } from '@kit.LocalizationKit'
 import { AIService } from '../../ai/AIServcice'
 import { AITask } from '../../ai/model/AIModels'
 import { ITheme } from '../../common/theme/ThemeModel'
 import { AddTaskParams } from '../routes/main/modify/AddTaskPage'
 import { LoginPanelView } from './LoginPanelView'
+import { SettingsConstants as C } from '../../common/local/SettingsConstants'
+import { TaskRepository } from '../../common/repository/TaskRepository'
+import { DateTimeUtils } from '../../utils/DateTimeUtils'
+import { DeadlineType } from '../../model/DDLModels'
 
 // 定义简单的消息模型
 export interface AIChatMessage {
@@ -19,6 +22,8 @@ export struct AIPanelView {
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @Consume('appPathStack') appPathStack: NavPathStack;
+
+  @StorageProp(C.KEY_DIRECT_ADD_ON_AI) directAdd: boolean = true;
 
   @State inputText: string = ''
   @State isLoading: boolean = false // 新增：加载状态
@@ -266,13 +271,27 @@ export struct AIPanelView {
           .height(28)
           .fontSize(12)
           .onClick(() => {
-            const params: AddTaskParams = {
-              name: task.name,
-              note: task.note,
-              dueTime: task.dueTime
-            };
-            this.appPathStack.pushPathByName('addTask', params);
-            this.onDismissPanel()
+            if (!this.directAdd) {
+              const params: AddTaskParams = {
+                name: task.name,
+                note: task.note,
+                dueTime: task.dueTime
+              };
+              this.appPathStack.pushPathByName('addTask', params);
+            } else {
+              TaskRepository.getInstance().insertDDL({
+                name: task.name,
+                note: task.note,
+                startTime: DateTimeUtils.toLocalISOString(new Date()),
+                endTime: task.dueTime,
+                isCompleted: false,
+                completeTime: "",
+                isArchived: false,
+                isStared: false,
+                type: DeadlineType.TASK,
+                calendarEventId: null
+              })
+            }
           })
       }
       .width('100%')
