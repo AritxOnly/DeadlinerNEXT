@@ -23,7 +23,7 @@ const THEME_OPTIONS: ThemeOption[] = [
   { key: 'harmony', name: '鸿蒙', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'galaxy', name: '星河', previewBg: $r('sys.color.search_container_focus_color') },
   { key: 'glacier', name: '冰川', previewBg: $r('sys.color.search_container_focus_color') },
-  { key: 'tiktick', name: '滴答', previewBg: $r('sys.color.search_container_focus_color') },
+  { key: 'tiktick', name: '活力', previewBg: $r('sys.color.search_container_focus_color') },
 ];
 
 @Component

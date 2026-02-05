@@ -60,8 +60,18 @@ export struct SupportPanelView {
 
   build() {
     Column() {
-
       Column({ space: 16 }) {
+        SettingsSection({ title: '用户反馈' }) {
+          SettingsItem({
+            title: "QQ 交流群",
+            subtitle: "群号 982247910",
+            icon: $r('sys.symbol.person_3'),
+            onItemClick: () => {
+              this.openWeb('QQ 群', 'https://qun.qq.com/universal-share/share?ac=1&authKey=35oQsBRrsd6COfRTm27CapeJl3174VURlC3QLmbs%2B33vQpv/EjOy43hEZoMW%2BBqg&busi_data=eyJncm91cENvZGUiOiI5ODIyNDc5MTAiLCJ0b2tlbiI6IkVBNndKRDd3OU4vcFBIdDZvRTllQVlYRmpwazljQmg3djVwRk12UzkyeW5mU0RIeit5NjBPUWVkQmxLYzRvSFkiLCJ1aW4iOiIxNzI5ODIwNzQ5In0=&data=zUxcoMgCie2fv9XB9NgQgAnYzMz7uRp82lt0uUKhK6oqux0X7Aog--e7DEANDZAIfPfmOiGLD7Oqx7d77ps1xhorG_4KEup7V_rj4BWPKBA&svctype=5&tempid=h5_group_info');
+            }
+          })
+        }
+
         // --- 核心共建区域 (GitHub) ---
         SettingsSection({ title: '开源共建' }) {
           SettingsItem({
