@@ -196,58 +196,81 @@ export class HabitRepository {
 
   /**
    * 切换某天某个习惯的完成状态
+   * v2.0 更新：适配 ONCE (单次) 和 EBBINGHAUS (艾宾浩斯)
    */
   async toggleRecord(habitId: number, date: Date): Promise<void> {
-    const habit = await this.getHabitById(habitId);
+    const habit = await this.db.getHabitById(habitId);
     if (!habit) return;
 
-    const target = Math.max(1, habit.timesPerPeriod);
+    const recordsToday = (await this.db.getHabitRecordsForHabitOnDate(habitId, this.formatDate(date)))
+      .filter(r => r.status === HabitRecordStatus.COMPLETED);
+    const todayCount = recordsToday.reduce((sum, r) => sum + r.count, 0);
 
-    if (habit.period === HabitPeriod.DAILY) {
-      // —— 每日习惯 ——
-      const recordsToday = (await this.getRecordsForHabitOnDate(habitId, date))
-        .filter(r => r.status === HabitRecordStatus.COMPLETED);
+    if (habit.period === HabitPeriod.DAILY ||
+      habit.period === HabitPeriod.ONCE ||
+      habit.period === HabitPeriod.EBBINGHAUS) {
 
-      const currentCount = recordsToday.reduce((sum, r) => sum + r.count, 0);
+      // === 简单模式 (0/1) ===
+      // DAILY: 每天打一次
+      // ONCE: 一次性任务，打完即止（但在 Repo 层我们只管记录状态，UI 层负责隐藏）
+      // EBBINGHAUS: 到了节点打一次
 
-      if (currentCount <= 0) {
-        // 0 -> 1
-        await this.insertRecord(habitId, date, 1, HabitRecordStatus.COMPLETED);
-      } else if (currentCount < target) {
-        // 1..target-1 -> +1
-        await this.insertRecord(habitId, date, 1, HabitRecordStatus.COMPLETED);
+      if (todayCount > 0) {
+        // 只有已经打卡了，取消打卡 (Toggle Off)
+        await this.db.deleteHabitRecordsForHabitOnDate(habitId, this.formatDate(date));
       } else {
-        // 已达标 -> 清空
-        await this.deleteRecordsForHabitOnDate(habitId, date);
+        // 还没打卡，打卡 (Toggle On)
+        await this.db.insertHabitRecord({
+          id: 0,
+          habitId: habitId,
+          date: this.formatDate(date),
+          count: 1,
+          status: HabitRecordStatus.COMPLETED,
+          createdAt: new Date().toISOString()
+        });
       }
 
     } else {
-      // —— 周/月习惯 ——
+      // === 累积模式 (Weekly/Monthly) ===
+      // 需要计算周期内的总数
+      const target = Math.max(1, habit.timesPerPeriod);
       const periodBounds = this.periodBounds(habit.period, date);
       const start = periodBounds[0];
       const endInclusive = periodBounds[1];
 
-      const recordsInPeriod = (await this.getRecordsForHabitInRange(habitId, start, endInclusive))
-        .filter(r => r.status === HabitRecordStatus.COMPLETED);
+      const recordsInPeriod = (await this.db.getHabitRecordsForHabitInRange(
+        habitId,
+        this.formatDate(start),
+        this.formatDate(endInclusive)
+      )).filter(r => r.status === HabitRecordStatus.COMPLETED);
 
       const totalInPeriod = recordsInPeriod.reduce((sum, r) => sum + r.count, 0);
 
-      // Check records strictly on *this* date
-      const dateStr = this.formatDate(date);
-      const recordsToday = recordsInPeriod.filter(r => r.date === dateStr);
-      const todayCount = recordsToday.reduce((sum, r) => sum + r.count, 0);
-
       if (todayCount > 0) {
-        // 今天有记录 -> 取消今天
-        await this.deleteRecordsForHabitOnDate(habitId, date);
-      } else if (totalInPeriod >= target) {
-        // 周期已满 -> 无操作
-        // no-op
+        // 今天打过卡 -> 撤销今天
+        await this.db.deleteHabitRecordsForHabitOnDate(habitId, this.formatDate(date));
       } else {
-        // 周期未满，且今天没打 -> 打卡
-        await this.insertRecord(habitId, date, 1, HabitRecordStatus.COMPLETED);
+        // 今天没打过卡
+        if (totalInPeriod >= target && habit.goalType === HabitGoalType.PER_PERIOD) {
+          // 目标已达标 -> 通常阻止打卡，或者允许超额打卡？
+          // 现有逻辑：如果达标了就不操作 (no-op)。或者你可以允许它继续打卡。
+          // 这里保持原逻辑：达标后若要强制打卡需改逻辑，目前是不操作。
+        } else {
+          // 未达标 -> 打卡
+          await this.db.insertHabitRecord({
+            id: 0,
+            habitId: habitId,
+            date: this.formatDate(date),
+            count: 1,
+            status: HabitRecordStatus.COMPLETED,
+            createdAt: new Date().toISOString()
+          });
+        }
       }
     }
+
+    // 触发提醒更新
+    this.scheduleReminderRefresh();
   }
 
   public async initialReminderCheck() {

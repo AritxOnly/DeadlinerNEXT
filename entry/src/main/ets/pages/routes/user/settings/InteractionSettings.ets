@@ -48,7 +48,7 @@ struct InteractionSettings {
 
   private options: StartupOption[] = [
     { text: '任务', value: 0 },
-    { text: '习惯', value: 1 }
+    { text: '待办', value: 1 }
   ];
 
   handleSelect(value: number) {

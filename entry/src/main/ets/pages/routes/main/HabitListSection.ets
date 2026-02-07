@@ -1,7 +1,7 @@
 import { TopSafeContainer } from "../../components/TopSafeContainer"
 import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from '../../../model/DDLModels';
-import { WeekRow, HabitRow, DDLStatus, HabitWithDailyStatus, DayOverview,
+import { WeekRow, HabitRow, HabitWithDailyStatus, DayOverview,
   HabitProgress } from '../../components/HabitComponents'
 import { HabitListController } from "./HabitListController";
 import { ChipGroup, ChipGroupItemOptions, ChipSize, curves, promptAction } from '@kit.ArkUI'
@@ -13,9 +13,7 @@ import { HabitReminderDialog } from "../../components/HabitReminderDialog";
 import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 import { ITheme } from "../../../common/theme/ThemeModel";
-
-const COMMON_RADIUS = 24;
-const ITEM_HEIGHT = 56;
+import { DDLStatus } from "../../../model/DDLStatus"
 
 @Component
 export struct HabitListSection {
@@ -94,11 +92,11 @@ export struct HabitListSection {
 
   /**
    * 处理设置提醒的请求
-   * 逻辑：检查当前是否选中了【唯一】的一个习惯，如果是，则弹出设置框
+   * 逻辑：检查当前是否选中了【唯一】的一个待办，如果是，则弹出设置框
    */
   async handleRequestSetAlarm() {
     if (this.selectedDdlIds.size !== 1) {
-      promptAction.showToast({ message: '请选择一个习惯来设置提醒' });
+      promptAction.showToast({ message: '请选择一个待办来设置提醒' });
       return;
     }
 
@@ -171,7 +169,8 @@ export struct HabitListSection {
     const allHabits = allHabitsRaw.filter(h => h.status !== HabitStatus.ARCHIVED);
 
     // 计算列表状态
-    const statusList = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, date)));
+    const statusListNullable = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, date)));
+    const statusList = statusListNullable.filter((item) => item !== null) as HabitWithDailyStatus[];
     this.allHabitsCache = statusList;
     this.applyFilter();
 
@@ -185,10 +184,21 @@ export struct HabitListSection {
     }
   }
 
-  private async buildStatusForDate(habit: Habit, date: Date): Promise<HabitWithDailyStatus> {
-    const GeneratedDestructArray_1 = this.getPeriodBounds(habit.period, date);
-    const start = GeneratedDestructArray_1[0];
-    const end = GeneratedDestructArray_1[1];
+  private async buildStatusForDate(habit: Habit, date: Date): Promise<HabitWithDailyStatus | null> {
+
+    // 1. === 可见性过滤 (Visibility Filter) ===
+    // 如果今天不是这个任务的“执行日”，直接返回 null，列表就不会渲染它
+    if (!this.shouldShowHabitOnDate(habit, date)) {
+      return null;
+    }
+
+    // 2. === 原有状态查询逻辑 ===
+    const bounds = this.getPeriodBounds(habit.period, date);
+    const start = bounds[0];
+    const end = bounds[1];
+
+    // 对于 TOTAL 类型，统计从开天辟地到现在的总数
+    // 对于 PER_PERIOD，统计当期（比如当天、当周）的数量
     const queryStart = habit.goalType === HabitGoalType.TOTAL ? new Date(0) : start;
     const queryEnd = habit.goalType === HabitGoalType.TOTAL ? date : end;
 
@@ -209,6 +219,47 @@ export struct HabitListSection {
       targetCount: target,
       isCompleted: habit.totalTarget ? done >= habit.totalTarget : done >= target
     };
+  }
+
+  private shouldShowHabitOnDate(habit: Habit, date: Date): boolean {
+    // 1. 每日/每周/每月：永远显示 (因为即使今天没打卡，也属于周期内)
+    if (habit.period === HabitPeriod.DAILY ||
+      habit.period === HabitPeriod.WEEKLY ||
+      habit.period === HabitPeriod.MONTHLY) {
+      return true;
+    }
+
+    // 标准化日期 (只比较 YYYY-MM-DD)
+    const targetDate = new Date(date);
+    targetDate.setHours(0, 0, 0, 0);
+
+    // 解析待办的开始时间 (Created Time / Start Time)
+    // 假设 habit.ddlId 对应的 DDLItem.startTime 是这个待办的基准时间
+    // 这里我们需要注意：Habit 模型里没有直接存 startTime，但通常逻辑上 createdAt 或者关联的 DDL startTime 是基准
+    // *假设* 你能从 Repo 获取到 startTime，或者我们在创建 Habit 时把 createdAt 当作 startTime
+    // 这里为了简单，我们使用 habit.createdAt (或者你需要从 Database 联查 DDL 的 startTime)
+    const startDate = new Date(habit.createdAt);
+    startDate.setHours(0, 0, 0, 0);
+
+    // 2. 单次待办 (ONCE)
+    if (habit.period === HabitPeriod.ONCE) {
+      // 只有日期完全一致才显示
+      return targetDate.getTime() === startDate.getTime();
+    }
+
+    // 3. 艾宾浩斯 (EBBINGHAUS)
+    if (habit.period === HabitPeriod.EBBINGHAUS) {
+      // 计算天数差
+      const diffTime = targetDate.getTime() - startDate.getTime();
+      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
+
+      // 艾宾浩斯标准曲线: 0(当天), 1, 2, 4, 7, 15, 30
+      // 也可以加上更长周期的，看你需求
+      const curve = [0, 1, 2, 4, 7, 15, 30, 60];
+      return curve.includes(diffDays);
+    }
+
+    return true;
   }
 
   private applyFilter() {
@@ -255,10 +306,14 @@ export struct HabitListSection {
       const current = new Date(monday);
       current.setDate(monday.getDate() + i);
 
-      // 简化计算：实际项目可能需要优化性能
-      const statuses = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, current)));
-      const completedCount = statuses.filter(s => s.isCompleted).length;
-      const totalCount = allHabits.length;
+      // 获取当天的所有状态 (包含 null)
+      const statusesNullable = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, current)));
+
+      // 过滤出当天可见的待办
+      const activeStatuses = statusesNullable.filter((s) => s !== null) as HabitWithDailyStatus[];
+
+      const completedCount = activeStatuses.filter(s => s.isCompleted).length;
+      const totalCount = activeStatuses.length; // 分母是当天实际需要展示的数量
 
       week.push({
         date: current,
@@ -323,7 +378,7 @@ export struct HabitListSection {
     );
 
     if (targets.length === 0) {
-      promptAction.showToast({ message: '选中的习惯已全部完成' });
+      promptAction.showToast({ message: '选中的待办已全部完成' });
       this.exitSelectionMode();
       return;
     }
@@ -333,7 +388,7 @@ export struct HabitListSection {
         return this.repo.insertRecord(item.habit.id, this.selectedDate, 1);
       }));
 
-      promptAction.showToast({ message: `已打卡 ${targets.length} 个习惯` });
+      promptAction.showToast({ message: `已打卡 ${targets.length} 个待办` });
       this.refreshAll(this.selectedDate);
       this.exitSelectionMode();
     } catch (e) {
@@ -348,8 +403,8 @@ export struct HabitListSection {
     VibrationUtils.vibrateMedium();
 
     AlertDialog.show({
-      title: '删除习惯',
-      message: `确定要删除选中的 ${this.selectedDdlIds.size} 个习惯吗？此操作不可恢复。`,
+      title: '删除待办',
+      message: `确定要删除选中的 ${this.selectedDdlIds.size} 个待办吗？此操作不可恢复。`,
       autoCancel: true,
       alignment: DialogAlignment.Bottom,
       offset: { dx: 0, dy: -20 },
@@ -398,7 +453,7 @@ export struct HabitListSection {
         return this.repo.updateHabit(updatedHabit);
       }));
 
-      promptAction.showToast({ message: `已归档 ${targets.length} 个习惯` });
+      promptAction.showToast({ message: `已归档 ${targets.length} 个待办` });
       this.refreshAll(this.selectedDate);
       this.exitSelectionMode();
     } catch (e) {
@@ -409,7 +464,7 @@ export struct HabitListSection {
 
   handleBatchEdit() {
     if (this.selectedDdlIds.size === 0) {
-      promptAction.showToast({ message: '未选中任何习惯' });
+      promptAction.showToast({ message: '未选中任何待办' });
       return;
     }
 
@@ -418,7 +473,7 @@ export struct HabitListSection {
     const targetItem = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
 
     if (!targetItem) {
-      promptAction.showToast({ message: '未找到习惯数据' });
+      promptAction.showToast({ message: '未找到待办数据' });
       return;
     }
 
@@ -463,17 +518,6 @@ export struct HabitListSection {
   @State isEditSheetShow: boolean = false
   @State currentEditingHabit: Habit | undefined = undefined;
 
-  // —— 辅助函数 ——
-  private getGoalTypeFromIndex(index: number): HabitGoalType {
-    const map = [HabitGoalType.PER_PERIOD, HabitGoalType.TOTAL];
-    return map[index] || HabitGoalType.PER_PERIOD;
-  }
-
-  private getPeriodFromIndex(index: number): HabitPeriod {
-    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
-    return map[index] || HabitPeriod.DAILY;
-  }
-
   @Builder
   habitEditSheet() {
     HabitEditSheet({
@@ -503,7 +547,7 @@ export struct HabitListSection {
         .renderingStrategy(SymbolRenderingStrategy.SINGLE)
         .opacity(0.5)
 
-      Text("暂无待打卡习惯")
+      Text("暂无待打卡待办")
         .fontSize(16)
         .fontWeight(FontWeight.Medium)
         .fontColor($r('app.color.font_secondary'))
@@ -532,7 +576,7 @@ export struct HabitListSection {
     // 更新选中日期，这会自动触发 UI 重绘（因为 selectedDate 是 @State）
     this.selectedDate = newDate;
 
-    // 刷新数据（重新计算周视图数据 和 当日习惯状态）
+    // 刷新数据（重新计算周视图数据 和 当日待办状态）
     this.refreshAll(newDate);
 
     VibrationUtils.vibrateSoft();
@@ -634,8 +678,8 @@ export struct HabitListSection {
       blurStyle: BlurStyle.Regular,
       backgroundColor: Color.Transparent,
       title: {
-        title: '编辑习惯',
-        subtitle: '修改习惯信息。'
+        title: '编辑待办',
+        subtitle: '修改待办信息。'
       }
     })
     .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])

@@ -8,7 +8,9 @@ export enum DeadlineType {
 export enum HabitPeriod {
   DAILY = 'DAILY',
   WEEKLY = 'WEEKLY',
-  MONTHLY = 'MONTHLY'
+  MONTHLY = 'MONTHLY',
+  ONCE = 'ONCE',
+  EBBINGHAUS = 'EBBINGHAUS'
 }
 
 // 对应 Kotlin: HabitGoalType
@@ -82,6 +84,21 @@ export interface HabitRecord {
   count: number;
   status: HabitRecordStatus;
   createdAt: string;
+}
+
+export interface SubTask {
+  id: number;
+  ddlId: number;      // 关联父任务
+  content: string;    // 内容
+  isCompleted: boolean;
+  sortOrder: number;
+
+  // Sync fields (为了同步，子任务也需要版本控制)
+  uid?: string;
+  deleted: boolean;
+  verTs: string;
+  verCtr: number;
+  verDev: string;
 }
 
 // 对应 Kotlin: Ver (用于同步)

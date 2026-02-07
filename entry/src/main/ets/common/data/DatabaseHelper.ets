@@ -4,7 +4,8 @@ import { util } from '@kit.ArkTS';
 import { DbConstants as C } from './DbConstants';
 import {
   DDLItem, DeadlineType, Habit, HabitPeriod, HabitGoalType, HabitStatus,
-  HabitRecord, HabitRecordStatus, Ver
+  HabitRecord, HabitRecordStatus, Ver,
+  SubTask
 } from '../../model/DDLModels';
 
 export interface DDLInsertParams {
@@ -18,6 +19,13 @@ export interface DDLInsertParams {
   isStared: boolean;
   type: DeadlineType;
   calendarEventId: number | null;
+}
+
+export interface SubTaskInsertParams {
+  ddlId: number;
+  content: string;
+  isCompleted: boolean;
+  sortOrder: number;
 }
 
 export class DatabaseHelper {
@@ -67,15 +75,19 @@ export class DatabaseHelper {
 
       if (store.version === 0) {
         await this.createTables(store);
-        store.version = 13;
+        await this.createV2Tables(store);
+
+        store.version = C.VERSION_V2;
+      } else if (store.version < C.VERSION_V2) {
+        console.info(`[DatabaseHelper] Upgrading DB from ${store.version} to ${C.VERSION_V2}`);
+        await this.upgradeToV2(store);
+        store.version = C.VERSION_V2;
       }
 
       this.rdbStore = store;
       console.info('[DatabaseHelper] Init success');
     } catch (err) {
       console.error(`[DatabaseHelper] Init failed: ${err.message}`);
-      // 🔥 关键：虽然我们打印了日志，但不要 throw，否则 await init() 的地方会崩溃。
-      // 我们通过 rdbStore 是否为 null 来判断结果。
     } finally {
       this.initPromise = null;
     }
@@ -160,6 +172,159 @@ export class DatabaseHelper {
     `;
     await store.executeSql(createRecordTable);
     await store.executeSql(`CREATE INDEX IF NOT EXISTS idx_hr_habit_date ON ${C.TABLE_HABIT_RECORD}(${C.HR_HABIT_ID}, ${C.HR_DATE})`);
+  }
+
+  private async createV2Tables(store: relationalStore.RdbStore) {
+    const createSubTaskSql = `
+      CREATE TABLE IF NOT EXISTS ${C.TABLE_SUBTASK} (
+        ${C.ST_ID} INTEGER PRIMARY KEY AUTOINCREMENT,
+        ${C.ST_DDL_ID} INTEGER NOT NULL,
+        ${C.ST_CONTENT} TEXT NOT NULL,
+        ${C.ST_IS_COMPLETED} INTEGER DEFAULT 0,
+        ${C.ST_SORT_ORDER} INTEGER DEFAULT 0,
+        ${C.ST_UID} TEXT UNIQUE,
+        ${C.ST_DELETED} INTEGER NOT NULL DEFAULT 0,
+        ${C.ST_VER_TS} TEXT NOT NULL DEFAULT '1970-01-01T00:00:00Z',
+        ${C.ST_VER_CTR} INTEGER NOT NULL DEFAULT 0,
+        ${C.ST_VER_DEV} TEXT NOT NULL DEFAULT '',
+        FOREIGN KEY(${C.ST_DDL_ID}) REFERENCES ${C.TABLE_NAME}(${C.COLUMN_ID}) ON DELETE CASCADE
+      )
+    `;
+    await store.executeSql(createSubTaskSql);
+    await store.executeSql(`CREATE INDEX IF NOT EXISTS idx_st_ddl_id ON ${C.TABLE_SUBTASK}(${C.ST_DDL_ID})`);
+  }
+
+  private async upgradeToV2(store: relationalStore.RdbStore) {
+    // 1. 创建 SubTask 表
+    await this.createV2Tables(store);
+
+    // 2. 如果未来 Habit 表需要加字段（比如 ebbinghaus_state），在这里用 ALTER TABLE
+    // 目前看 Habit 表够用，不需要 ALTER
+  }
+
+  /**
+   * 在事务中执行一系列操作。
+   * v2.0 中，比如 "创建任务 + AI自动生成5个子任务" 需要原子性。
+   * @param action 一个返回 Promise 的函数，包含所有的 DB 操作
+   * @returns action 的返回值，如果失败返回 null/undefined
+   */
+  async runInTransaction<T>(action: () => Promise<T>): Promise<T | null> {
+    if (!this.rdbStore) return null;
+
+    try {
+      this.rdbStore.beginTransaction();
+      const result = await action();
+      this.rdbStore.commit();
+      return result;
+    } catch (e) {
+      console.error(`[DatabaseHelper] Transaction failed: ${e}`);
+      try {
+        this.rdbStore.rollBack();
+      } catch (rollbackError) {
+        console.error(`[DatabaseHelper] Rollback failed: ${rollbackError}`);
+      }
+      return null;
+    }
+  }
+
+  // ================= SubTask Operations (v2.0) =================
+
+  async insertSubTask(item: SubTaskInsertParams): Promise<number> {
+    if (!this.rdbStore) return -1;
+
+    // 复用版本号逻辑
+    const v = await this.nextVersionUTC();
+    const deviceId = v.dev;
+
+    const bucket: relationalStore.ValuesBucket = {};
+    bucket[C.ST_DDL_ID] = item.ddlId;
+    bucket[C.ST_CONTENT] = item.content;
+    bucket[C.ST_IS_COMPLETED] = item.isCompleted ? 1 : 0;
+    bucket[C.ST_SORT_ORDER] = item.sortOrder;
+    bucket[C.ST_DELETED] = 0;
+    // Sync
+    bucket[C.ST_VER_TS] = v.ts;
+    bucket[C.ST_VER_CTR] = v.ctr;
+    bucket[C.ST_VER_DEV] = v.dev;
+
+    try {
+      const insertId = await this.rdbStore.insert(C.TABLE_SUBTASK, bucket);
+      if (insertId > 0) {
+        // 生成 UID 并更新
+        const uid = `${deviceId}:st:${insertId}`; // 注意这里加个 st 前缀区分
+        const updateBucket: relationalStore.ValuesBucket = {};
+        updateBucket[C.ST_UID] = uid;
+
+        const predicates = new relationalStore.RdbPredicates(C.TABLE_SUBTASK);
+        predicates.equalTo(C.ST_ID, insertId);
+        await this.rdbStore.update(updateBucket, predicates);
+      }
+      return insertId;
+    } catch (e) {
+      console.error(`[DatabaseHelper] insertSubTask failed: ${e}`);
+      return -1;
+    }
+  }
+
+  async getSubTasksByDDL(ddlId: number): Promise<SubTask[]> {
+    if (!this.rdbStore) return [];
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_SUBTASK);
+    predicates.equalTo(C.ST_DDL_ID, ddlId);
+    predicates.equalTo(C.ST_DELETED, 0);
+    predicates.orderByAsc(C.ST_SORT_ORDER);
+
+    const resultSet = await this.rdbStore.query(predicates);
+    const list: SubTask[] = [];
+    while (resultSet.goToNextRow()) {
+      list.push({
+        id: resultSet.getLong(resultSet.getColumnIndex(C.ST_ID)),
+        ddlId: resultSet.getLong(resultSet.getColumnIndex(C.ST_DDL_ID)),
+        content: resultSet.getString(resultSet.getColumnIndex(C.ST_CONTENT)),
+        isCompleted: resultSet.getLong(resultSet.getColumnIndex(C.ST_IS_COMPLETED)) === 1,
+        sortOrder: resultSet.getLong(resultSet.getColumnIndex(C.ST_SORT_ORDER)),
+        uid: resultSet.getString(resultSet.getColumnIndex(C.ST_UID)),
+        deleted: resultSet.getLong(resultSet.getColumnIndex(C.ST_DELETED)) === 1,
+        verTs: resultSet.getString(resultSet.getColumnIndex(C.ST_VER_TS)),
+        verCtr: resultSet.getLong(resultSet.getColumnIndex(C.ST_VER_CTR)),
+        verDev: resultSet.getString(resultSet.getColumnIndex(C.ST_VER_DEV)),
+      });
+    }
+    resultSet.close();
+    return list;
+  }
+
+  /**
+   * 更新子任务的完成状态
+   * 包含同步版本号的更新，确保更改能被 SyncService 捕获
+   */
+  async updateSubTaskStatus(id: number, isCompleted: boolean): Promise<void> {
+    if (!this.rdbStore) return;
+
+    // 1. 获取下一个同步版本号 (关键步骤)
+    const v = await this.nextVersionUTC();
+
+    // 2. 准备更新数据
+    const bucket: relationalStore.ValuesBucket = {};
+    bucket[C.ST_IS_COMPLETED] = isCompleted ? 1 : 0;
+
+    // Sync Version Fields
+    bucket[C.ST_VER_TS] = v.ts;
+    bucket[C.ST_VER_CTR] = v.ctr;
+    bucket[C.ST_VER_DEV] = v.dev;
+
+    // 3. 定义条件
+    const predicates = new relationalStore.RdbPredicates(C.TABLE_SUBTASK);
+    predicates.equalTo(C.ST_ID, id);
+
+    try {
+      // 4. 执行更新
+      const rows = await this.rdbStore.update(bucket, predicates);
+      if (rows === 0) {
+        console.warn(`[DatabaseHelper] updateSubTaskStatus: No rows updated for id ${id}`);
+      }
+    } catch (e) {
+      console.error(`[DatabaseHelper] updateSubTaskStatus failed: ${e}`);
+    }
   }
 
   // ================= DDL Operations =================

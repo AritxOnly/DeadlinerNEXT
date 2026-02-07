@@ -39,7 +39,9 @@ export struct AddHabitSheet {
   private periodOptions: ChipGroupItemOptions[] = [
     { label: { text: "每日" } },
     { label: { text: "每周" } },
-    { label: { text: "每月" } }
+    { label: { text: "每月" } },
+    { label: { text: "单次" } },
+    { label: { text: "艾宾浩斯" } },
   ];
 
   private goalTypeOptions: ChipGroupItemOptions[] = [
@@ -49,7 +51,7 @@ export struct AddHabitSheet {
 
   // —— 辅助函数 ——
   private getPeriodFromIndex(index: number): HabitPeriod {
-    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY];
+    const map = [HabitPeriod.DAILY, HabitPeriod.WEEKLY, HabitPeriod.MONTHLY, HabitPeriod.ONCE, HabitPeriod.EBBINGHAUS];
     return map[index] || HabitPeriod.DAILY;
   }
 
@@ -58,37 +60,54 @@ export struct AddHabitSheet {
     return map[index] || HabitGoalType.PER_PERIOD;
   }
 
+  /**
+   * 判断是否为简单模式
+   * "单次" 和 "艾宾浩斯" 不需要设置频率和总目标
+   */
+  private isSimpleMode(): boolean {
+    const pIndex = this.selectedPeriodIndex.length > 0 ? this.selectedPeriodIndex[0] : 0;
+    const period = this.getPeriodFromIndex(pIndex);
+    return period === HabitPeriod.ONCE || period === HabitPeriod.EBBINGHAUS;
+  }
+
   // —— 保存逻辑 ——
   private async saveHabit() {
     if (!this.name.trim()) {
-      promptAction.showToast({ message: '请输入习惯名称' });
+      promptAction.showToast({ message: '请输入内容' });
       return;
     }
 
-    const times = parseInt(this.timesPerPeriod);
-    if (isNaN(times) || times <= 0) {
-      promptAction.showToast({ message: '请输入有效的单次目标' });
-      return;
-    }
-
-    // 防御性检查
     const pIndex = this.selectedPeriodIndex.length > 0 ? this.selectedPeriodIndex[0] : 0;
-    const gIndex = this.selectedGoalTypeIndex.length > 0 ? this.selectedGoalTypeIndex[0] : 0;
-
-    const currentGoalType = this.getGoalTypeFromIndex(gIndex);
     const currentPeriod = this.getPeriodFromIndex(pIndex);
 
+    // 默认值
+    let times = 1;
+    let currentGoalType = HabitGoalType.PER_PERIOD;
     let total: number | null = null;
-    if (currentGoalType === HabitGoalType.TOTAL) {
-      total = parseInt(this.totalTarget);
-      if (isNaN(total) || total <= 0) {
-        promptAction.showToast({ message: '请输入有效的总目标' });
+
+    // 只有非简单模式才校验复杂参数
+    if (!this.isSimpleMode()) {
+      times = parseInt(this.timesPerPeriod);
+      if (isNaN(times) || times <= 0) {
+        promptAction.showToast({ message: '请输入有效的单次目标' });
         return;
+      }
+
+      const gIndex = this.selectedGoalTypeIndex.length > 0 ? this.selectedGoalTypeIndex[0] : 0;
+      currentGoalType = this.getGoalTypeFromIndex(gIndex);
+
+      if (currentGoalType === HabitGoalType.TOTAL) {
+        total = parseInt(this.totalTarget);
+        if (isNaN(total) || total <= 0) {
+          promptAction.showToast({ message: '请输入有效的总目标' });
+          return;
+        }
       }
     }
 
     try {
       const now = new Date();
+      // 简单的 ISO 格式化 (本地时间)
       const toLocalISO = (d: Date) => {
         const offset = d.getTimezoneOffset() * 60000;
         const local = new Date(d.getTime() - offset);
@@ -96,10 +115,12 @@ export struct AddHabitSheet {
       };
 
       const dbHelper = DatabaseHelper.getInstance();
+
+      // 注意：startTime 对于艾宾浩斯来说是"第一次复习时间"（即创建时间），对于单次待办是"执行时间"
       const ddlId = await dbHelper.insertDDL({
         name: this.name,
         startTime: toLocalISO(now),
-        endTime: toLocalISO(new Date(now.getFullYear() + 100, 0, 1)),
+        endTime: toLocalISO(new Date(now.getFullYear() + 100, 0, 1)), // 习惯通常是长期的
         isCompleted: false,
         completeTime: "",
         note: "",
@@ -121,7 +142,7 @@ export struct AddHabitSheet {
         ""
       );
 
-      promptAction.showToast({ message: '习惯创建成功' });
+      promptAction.showToast({ message: '创建成功' });
 
       // 通知全局刷新
       getContext(this).eventHub.emit('sync_done');
@@ -201,19 +222,19 @@ export struct AddHabitSheet {
 
           AITextInput({
             text: $aiInputText,
-            placeholder: "询问 AI 以快速添加习惯...",
+            placeholder: "例如：每天背20个单词...",
             onAITriggered: (): Promise<void> => this.onAITriggered()
           })
 
           // 副标题说明
-          Text("设定一个你想坚持的目标。")
+          Text("设定一个新的日常事务。")
             .fontColor($r('app.color.font_secondary'))
             .fontSize(14)
             .width('100%')
             .padding({ left: 16, right: 16 })
 
           // 1. 习惯名称
-          TextInput({ placeholder: '习惯名称', text: this.name })
+          TextInput({ placeholder: '要做什么？', text: this.name })
             .height(ITEM_HEIGHT)
             .fontSize(16)
             .backgroundColor(this.inputBgColor)
@@ -226,7 +247,7 @@ export struct AddHabitSheet {
 
           // 2. 周期选择 (使用 ChipGroup)
           Column({ space: 8 }) {
-            Text("重复周期")
+            Text("类型 / 周期")
               .fontSize(14)
               .fontColor($r('app.color.font_secondary'))
               .padding({ left: 4 })
@@ -250,78 +271,99 @@ export struct AddHabitSheet {
           .alignItems(HorizontalAlign.Start)
 
           // 3. 目标设置
-          Row({ space: 12 }) {
-            // 左侧：频率次数
-            Column({ space: 8 }) {
-              Text("每次/频次")
-                .fontSize(14)
-                .fontColor($r('app.color.font_secondary'))
-                .padding({ left: 4 })
-              TextInput({ placeholder: '1', text: this.timesPerPeriod })
-                .type(InputType.Number)
-                .height(ITEM_HEIGHT)
-                .fontSize(16)
-                .backgroundColor(this.inputBgColor)
-                .borderRadius(COMMON_RADIUS)
-                .padding({ left: 16, right: 16 })
-                .width('100%')
-                .onChange((val) => {
-                  this.timesPerPeriod = val;
+          if (!this.isSimpleMode()) {
+
+            // 3. 目标设置区
+            Row({ space: 12 }) {
+              // 左侧：频率
+              Column({ space: 8 }) {
+                Text("每次/频次")
+                  .fontSize(14)
+                  .fontColor($r('app.color.font_secondary'))
+                  .padding({ left: 4 })
+                TextInput({ placeholder: '1', text: this.timesPerPeriod })
+                  .type(InputType.Number)
+                  .height(ITEM_HEIGHT)
+                  .fontSize(16)
+                  .backgroundColor(this.inputBgColor)
+                  .borderRadius(COMMON_RADIUS)
+                  .padding({ left: 16, right: 16 })
+                  .width('100%')
+                  .onChange((val) => {
+                    this.timesPerPeriod = val;
+                  })
+              }
+              .layoutWeight(1)
+
+              // 右侧：目标类型
+              Column({ space: 8 }) {
+                Text("目标类型")
+                  .fontSize(14)
+                  .fontColor($r('app.color.font_secondary'))
+                  .padding({ left: 4 })
+
+                ChipGroup({
+                  items: this.goalTypeOptions,
+                  itemStyle: {
+                    size: ChipSize.NORMAL,
+                    backgroundColor: this.inputBgColor,
+                    fontColor: $r('app.color.font_secondary'),
+                    selectedBackgroundColor: this.theme.accent,
+                    selectedFontColor: Color.White
+                  },
+                  selectedIndexes: this.selectedGoalTypeIndex,
+                  onChange: (indexes: number[]) => {
+                    this.selectedGoalTypeIndex = indexes;
+                  }
                 })
-            }
-            .layoutWeight(1)
-
-            // 右侧：目标类型 (使用 ChipGroup)
-            Column({ space: 8 }) {
-              Text("目标类型")
-                .fontSize(14)
-                .fontColor($r('app.color.font_secondary'))
-                .padding({ left: 4 })
-
-              ChipGroup({
-                items: this.goalTypeOptions,
-                itemStyle: {
-                  size: ChipSize.NORMAL,
-                  backgroundColor: this.inputBgColor,
-                  fontColor: $r('app.color.font_secondary'),
-                  selectedBackgroundColor: this.theme.accent,
-                  selectedFontColor: Color.White
-                },
-                selectedIndexes: this.selectedGoalTypeIndex,
-                onChange: (indexes: number[]) => {
-                  this.selectedGoalTypeIndex = indexes;
-                }
-              })
-            }
-            .layoutWeight(1)
-          }
-          .width('100%')
-          .alignItems(VerticalAlign.Top)
-
-          // 4. 总目标输入框 (条件渲染)
-          if (this.selectedGoalTypeIndex.length > 0 &&
-            this.getGoalTypeFromIndex(this.selectedGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
-            Column({ space: 8 }) {
-              Text("总目标数量")
-                .fontSize(14)
-                .fontColor($r('app.color.font_secondary'))
-                .padding({ left: 4 })
-
-              TextInput({ placeholder: '例如：100 (页/次)', text: this.totalTarget })
-                .type(InputType.Number)
-                .height(ITEM_HEIGHT)
-                .fontSize(16)
-                .backgroundColor(this.inputBgColor)
-                .borderRadius(COMMON_RADIUS)
-                .padding({ left: 16, right: 16 })
-                .width('100%')
-                .onChange((val) => {
-                  this.totalTarget = val;
-                })
+              }
+              .layoutWeight(1)
             }
             .width('100%')
-          }
+            .alignItems(VerticalAlign.Top)
+            .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
 
+            // 4. 总目标输入框 (条件渲染)
+            if (this.selectedGoalTypeIndex.length > 0 &&
+              this.getGoalTypeFromIndex(this.selectedGoalTypeIndex[0]) === HabitGoalType.TOTAL) {
+              Column({ space: 8 }) {
+                Text("总目标数量")
+                  .fontSize(14)
+                  .fontColor($r('app.color.font_secondary'))
+                  .padding({ left: 4 })
+
+                TextInput({ placeholder: '例如：100 (页/次)', text: this.totalTarget })
+                  .type(InputType.Number)
+                  .height(ITEM_HEIGHT)
+                  .fontSize(16)
+                  .backgroundColor(this.inputBgColor)
+                  .borderRadius(COMMON_RADIUS)
+                  .padding({ left: 16, right: 16 })
+                  .width('100%')
+                  .onChange((val) => {
+                    this.totalTarget = val;
+                  })
+              }
+              .width('100%')
+              .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
+            }
+          } else {
+            Row() {
+              SymbolGlyph(this.selectedPeriodIndex[0] === 3 ? $r('sys.symbol.checkmark_circle') : $r('sys.symbol.intelligent'))
+                .fontSize(20)
+                .fontColor([this.theme.accent])
+                .margin({ right: 8 })
+
+              Text(this.selectedPeriodIndex[0] === 3
+                ? "单次待办：完成后即归档，不重复。"
+                : "记忆曲线：根据艾宾浩斯遗忘曲线自动规划复习时间。")
+                .fontSize(14)
+                .fontColor($r('app.color.font_secondary'))
+            }
+            .width('100%')
+            .padding({ top: 16 })
+            .transition(TransitionEffect.OPACITY.animation({ duration: 300 }))
+          }
         }
         .width('100%')
         .padding(16)
@@ -330,7 +372,7 @@ export struct AddHabitSheet {
     .titleBar({
       content: {
         title: {
-          mainTitle: "创建新习惯",
+          mainTitle: "创建新待办",
         },
         // 右上角：保存 (Checkmark)
         menu: {

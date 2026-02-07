@@ -1,6 +1,7 @@
 import { SettingsConstants as C } from '../../common/local/SettingsConstants';
 import { ITheme } from '../../common/theme/ThemeModel';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus } from '../../model/DDLModels';
+import { DDLStatus } from '../../model/DDLStatus';
 import { ColorUtils } from '../../utils/ColorUtils';
 
 // 接口定义保持不变
@@ -16,13 +17,6 @@ export interface HabitWithDailyStatus {
   doneCount: number;
   targetCount: number;
   isCompleted: boolean;
-}
-
-export enum DDLStatus {
-  UNDERGO,
-  NEAR,
-  PASSED,
-  COMPLETED
 }
 
 @Component
@@ -504,8 +498,6 @@ export struct HabitRow {
   private getProgress(): number {
     return Math.min(1, Math.max(0, this.data.doneCount / Math.max(1, this.data.targetCount)));
   }
-
-  // 【删除】 addAlpha 函数已不再需要
 
   build() {
     Stack() {

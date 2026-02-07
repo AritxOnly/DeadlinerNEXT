@@ -2,7 +2,7 @@ import { DatabaseHelper, DDLInsertParams } from '../data/DatabaseHelper';
 import { SyncService } from '../sync/SyncService';
 import { WebUtils } from '../network/WebUtils';
 import { LocalValues } from '../local/LocalValues';
-import { DDLItem, DeadlineType } from '../../model/DDLModels';
+import { DDLItem, DeadlineType, SubTask } from '../../model/DDLModels';
 import { common } from '@kit.AbilityKit';
 import { WidgetUpdater } from '../../utils/WidgetUpdater';
 import { ReminderScheduler } from '../../utils/notification/ReminderScheduler';
@@ -139,6 +139,13 @@ export class TaskRepository {
     }
   }
 
+  private triggerUpdates() {
+    this.notifyDataChange();
+    this.scheduleSync(); // 触发调度
+    this.scheduleWidgetUpdate();
+    this.scheduleReminderRefresh();
+  }
+
   // ==========================================
   // 增删改查
   // ==========================================
@@ -146,29 +153,48 @@ export class TaskRepository {
   async insertDDL(params: DDLInsertParams): Promise<number> {
     await this.ensureDbReady();
     const id = await this.db.insertDDL(params);
-    this.notifyDataChange();
-    this.scheduleSync(); // 触发调度
-    this.scheduleWidgetUpdate();
-    this.scheduleReminderRefresh();
+    this.triggerUpdates();
     return id;
+  }
+
+  async createDDLWithSubTasks(ddlParams: DDLInsertParams, subTasks: string[]): Promise<number> {
+    await this.ensureDbReady();
+
+    // 使用 runInTransaction 保证原子性
+    const resultId = await this.db.runInTransaction(async () => {
+      // 1. 创建父任务
+      const ddlId = await this.db.insertDDL(ddlParams);
+      if (ddlId <= 0) return -1;
+
+      // 2. 批量创建子任务
+      for (let i = 0; i < subTasks.length; i++) {
+        const content = subTasks[i];
+        await this.db.insertSubTask({
+          ddlId: ddlId,
+          content: content,
+          isCompleted: false,
+          sortOrder: i // 保持顺序
+        });
+      }
+      return ddlId;
+    });
+
+    if (resultId && resultId > 0) {
+      this.triggerUpdates();
+    }
+    return resultId ?? -1;
   }
 
   async updateDDL(item: DDLItem): Promise<void> {
     await this.ensureDbReady();
     await this.db.updateDDL(item);
-    this.notifyDataChange();
-    this.scheduleSync(); // 触发调度
-    this.scheduleWidgetUpdate();
-    this.scheduleReminderRefresh();
+    this.triggerUpdates();
   }
 
   async deleteDDL(id: number): Promise<void> {
     await this.ensureDbReady();
     await this.db.deleteDDL(id);
-    this.notifyDataChange();
-    this.scheduleSync(); // 触发调度
-    this.scheduleWidgetUpdate();
-    this.scheduleReminderRefresh();
+    this.triggerUpdates();
   }
 
   async getAllDDLs(): Promise<DDLItem[]> {
@@ -202,12 +228,36 @@ export class TaskRepository {
     this.widgetUpdateTimer = -1;
   }
 
+  async getSubTasks(ddlId: number): Promise<SubTask[]> {
+    await this.ensureDbReady();
+    return this.db.getSubTasksByDDL(ddlId);
+  }
+
+  async insertSubTask(ddlId: number, content: string, order: number): Promise<number> {
+    await this.ensureDbReady();
+    const id = await this.db.insertSubTask({
+      ddlId: ddlId,
+      content: content,
+      isCompleted: false,
+      sortOrder: order
+    });
+    this.triggerUpdates();
+    return id;
+  }
+
+  async toggleSubTask(subTask: SubTask): Promise<void> {
+    await this.ensureDbReady();
+
+    await this.db.updateSubTaskStatus(subTask.id, !subTask.isCompleted);
+
+    this.triggerUpdates();
+  }
+
   // ==========================================
   // 手动同步
   // ==========================================
   async syncNow(): Promise<boolean> {
     await this.ensureDbReady();
-
 
     // 取消由于防抖挂起的任务，直接插队执行
     if (this.syncTimer !== -1) {

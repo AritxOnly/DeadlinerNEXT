@@ -279,11 +279,15 @@ export struct AIPanelView {
               };
               this.appPathStack.pushPathByName('addTask', params);
             } else {
+              const now = new Date();
+              const parsedEnd = task.dueTime ? DateTimeUtils.parseDateString(task.dueTime) : null;
+              const end = parsedEnd ?? new Date(now.getTime() + 60 * 60 * 1000);
+
               TaskRepository.getInstance().insertDDL({
                 name: task.name,
                 note: task.note,
-                startTime: DateTimeUtils.toLocalISOString(new Date()),
-                endTime: task.dueTime,
+                startTime: DateTimeUtils.toLocalISOString(now),
+                endTime: DateTimeUtils.toLocalISOString(end),
                 isCompleted: false,
                 completeTime: "",
                 isArchived: false,

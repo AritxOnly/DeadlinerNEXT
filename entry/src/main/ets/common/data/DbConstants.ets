@@ -9,6 +9,8 @@ export class DbConstants {
     securityLevel: 1 // S1
   };
 
+  static readonly VERSION_V2 = 20;
+
   static readonly TABLE_NAME = "ddl_items";
   static readonly COLUMN_ID = "id";
   static readonly COLUMN_NAME = "name";
@@ -58,4 +60,17 @@ export class DbConstants {
   static readonly HR_COUNT = "count";
   static readonly HR_STATUS = "status";
   static readonly HR_CREATED_AT = "created_at";
+
+  // SubTask Table
+  static readonly TABLE_SUBTASK = "subtasks";
+  static readonly ST_ID = "id";
+  static readonly ST_DDL_ID = "ddl_id";
+  static readonly ST_CONTENT = "content";
+  static readonly ST_IS_COMPLETED = "is_completed";
+  static readonly ST_SORT_ORDER = "sort_order";
+  static readonly ST_UID = "uid";
+  static readonly ST_DELETED = "deleted";
+  static readonly ST_VER_TS = "ver_ts";
+  static readonly ST_VER_CTR = "ver_ctr";
+  static readonly ST_VER_DEV = "ver_dev";
 }

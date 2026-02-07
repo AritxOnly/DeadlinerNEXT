@@ -210,7 +210,7 @@ export struct MainHomePage {
   }
 
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
-    buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
+    buttons: [{ text: '任务' }, { text: '待办' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
     buttonPadding: 10
@@ -220,7 +220,7 @@ export struct MainHomePage {
     this.tabOptions = SegmentButtonOptions.tab({
       buttons: [
         { text: '任务' },
-        { text: '习惯' }
+        { text: '待办' }
       ] as ItemRestriction<SegmentButtonTextItem>,
       backgroundBlurStyle: BlurStyle.NONE,
       selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
