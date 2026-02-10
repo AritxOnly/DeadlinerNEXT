@@ -47,7 +47,7 @@ struct InteractionSettings {
   @StorageLink(C.KEY_AUTO_ARCHIVE_DAYS) autoArchiveDays: number = 3;
 
   private options: StartupOption[] = [
-    { text: '任务', value: 0 },
+    { text: '目标', value: 0 },
     { text: '待办', value: 1 }
   ];
 

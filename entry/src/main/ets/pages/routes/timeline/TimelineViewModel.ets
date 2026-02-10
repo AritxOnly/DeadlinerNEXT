@@ -1,25 +1,29 @@
+import { LocalValues } from "../../../common/local/LocalValues";
 import { HabitRepository } from "../../../common/repository/HabitRepository";
 import { TaskRepository } from "../../../common/repository/TaskRepository";
-import { DDLItem, DeadlineType, Habit, HabitGoalType, HabitPeriod,
-  HabitRecordStatus,
-  HabitStatus } from "../../../model/DDLModels";
+import { DDLItem, DeadlineType, Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from "../../../model/DDLModels";
 import { DDLStatus } from "../../../model/DDLStatus";
+import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { HabitWithDailyStatus } from "../../components/HabitComponents";
 import { TaskUIModel } from "../main/TaskListSection";
 import { TimelineGroup, TimelineItem, TimelineItemType } from "./TimelineModels";
 
+interface HabitOpt {
+  id: number;
+  date: Date;
+}
+
 @Observed
 export class TimelineViewModel {
-  // UI 绑定的数据源
   groups: TimelineGroup[] = [];
   isLoading: boolean = true;
 
-  // 仓库实例
+  todayIndex: number = 0;
+
   private taskRepo = TaskRepository.getInstance();
   private habitRepo = HabitRepository.getInstance();
 
   constructor() {
-    // 初始化加载
     this.refreshData();
   }
 
@@ -30,12 +34,20 @@ export class TimelineViewModel {
     this.isLoading = true;
     const now = new Date();
 
-    // 设置今天的边界
-    const todayStart = new Date(now); todayStart.setHours(0, 0, 0, 0);
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
+    // 过去 3 天
+    const PAST_DAYS = 3;
+    // 未来 14 天 (习惯不能无限生成，需要一个截止日)
+    const FUTURE_DAYS = 14;
+
+    const rangeStart = new Date(now);
+    rangeStart.setDate(now.getDate() - PAST_DAYS);
+    rangeStart.setHours(0, 0, 0, 0);
+
+    const rangeEnd = new Date(now);
+    rangeEnd.setDate(now.getDate() + FUTURE_DAYS);
+    rangeEnd.setHours(23, 59, 59, 999);
 
     try {
-      // 1. 并行获取 Task 和 Habit 数据
       const GeneratedDestructArray_1 = await Promise.all([
         this.taskRepo.getDDLsByType(DeadlineType.TASK),
         this.habitRepo.getAllHabits()
@@ -45,60 +57,72 @@ export class TimelineViewModel {
 
       const timelineItems: TimelineItem[] = [];
 
-      // 2. 处理 Tasks (DDL)
-      // 过滤策略：未归档 && 未删除 && (未完成 OR (已完成且是今天完成的))
-      // 这里我们为了时间线简洁，通常只显示未完成的
-      const activeTasks = allDDLs.filter(item =>
-      !item.isArchived && !item.deleted && !item.isCompleted
-      );
+      // === 2. 处理 Tasks (DDL) ===
+      allDDLs.forEach(task => {
+        // 排除已删除和归档
+        if (task.isArchived || task.deleted) return;
 
-      activeTasks.forEach(task => {
-        const uiModel = this.mapToTaskUIModel(task, now.getTime());
-        timelineItems.push({
-          id: `task_${task.id}`,
-          type: TimelineItemType.TASK,
-          sortTime: new Date(task.endTime).getTime(),
-          taskData: uiModel
-        });
+        const taskTime = new Date(task.endTime).getTime();
+        const isCompleted = task.isCompleted;
+
+        if (isCompleted) {
+          const sortT = task.completeTime ? new Date(task.completeTime).getTime() : taskTime;
+          if (sortT >= rangeStart.getTime() && sortT <= rangeEnd.getTime()) {
+            this.pushTaskItem(timelineItems, task, now.getTime());
+          }
+          return;
+        }
+
+        this.pushTaskItem(timelineItems, task, now.getTime());
       });
 
-      // 3. 处理 Habits
-      // 策略：只显示“今天”应该出现的习惯
-      // 过滤：状态正常 && 符合周期逻辑
       const activeHabits = allHabits.filter(h => h.status !== HabitStatus.ARCHIVED);
 
-      for (const habit of activeHabits) {
-        // [关键逻辑] 判断今天是否应该显示该习惯
-        if (this.shouldShowHabitOnDate(habit, now)) {
-          // 构建状态（已打卡次数等）
-          const status = await this.buildHabitStatus(habit, now);
+      const loopDate = new Date(rangeStart);
+      const habitPromises: Promise<void>[] = [];
 
-          // 确定排序时间：如果有提醒时间，用提醒时间；否则默认设为今天早上或当前时间
-          let sortTime = now.getTime();
-          if (habit.alarmTime) {
-            const GeneratedDestructArray_1 = habit.alarmTime.split(':').map(Number);
-            const h = GeneratedDestructArray_1[0];
-            const m = GeneratedDestructArray_1[1];
-            const d = new Date(todayStart);
-            d.setHours(h, m);
-            sortTime = d.getTime();
-          } else {
-            // 没有提醒时间的习惯，稍微往后放一点，或者置顶，看需求
-            // 这里设为今天 23:59 作为一个兜底，让它排在过期任务之后
-            sortTime = todayEnd.getTime();
+      while (loopDate.getTime() <= rangeEnd.getTime()) {
+        const currentDate = new Date(loopDate); // 复制当前日期对象
+
+        for (const habit of activeHabits) {
+          if (this.shouldShowHabitOnDate(habit, currentDate)) {
+            // 将构建任务放入数组
+            habitPromises.push((async () => {
+              const status = await this.buildHabitStatus(habit, currentDate);
+
+              // 确定排序时间
+              let sortTime = currentDate.getTime();
+              if (habit.alarmTime) {
+                const parts = habit.alarmTime.split(':').map(Number);
+                const d = new Date(currentDate);
+                d.setHours(parts[0], parts[1]);
+                sortTime = d.getTime();
+              } else {
+                // 无提醒时间，默认放在当天较晚的时候 (23:59)，排在 Task 后面
+                const d = new Date(currentDate);
+                d.setHours(23, 59, 59);
+                sortTime = d.getTime();
+              }
+
+              timelineItems.push({
+                // [关键] ID 必须包含日期，否则 List 渲染会 ID 冲突
+                id: `habit_${habit.id}_${this.getDateStr(currentDate)}`,
+                type: TimelineItemType.HABIT,
+                sortTime: sortTime,
+                habitData: status
+              });
+            })());
           }
-
-          timelineItems.push({
-            id: `habit_${habit.id}`,
-            type: TimelineItemType.HABIT,
-            sortTime: sortTime,
-            habitData: status
-          });
         }
+        // 天数 + 1
+        loopDate.setDate(loopDate.getDate() + 1);
       }
 
-      // 4. 分组与排序
-      this.groups = this.groupItemsByDate(timelineItems, now);
+      // 等待所有习惯数据计算完成
+      await Promise.all(habitPromises);
+
+      // === 4. 分组与排序 ===
+      this.groups = this.groupItemsByDate(timelineItems, now, rangeStart);
 
     } catch (e) {
       console.error('[TimelineVM] Refresh failed:', e);
@@ -107,81 +131,79 @@ export class TimelineViewModel {
     }
   }
 
-  // === 逻辑块：分组 ===
-
-  private formatDateTitle(date: Date): string {
-    const now = new Date();
-    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
-    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
-
-    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
-
-    if (target.getTime() === today.getTime()) {
-      return "今天";
-    } else if (target.getTime() === tomorrow.getTime()) {
-      return "明天";
-    } else {
-      const month = target.getMonth() + 1;
-      const day = target.getDate();
-      const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
-      return `${month}月${day}日 ${weekDays[target.getDay()]}`;
-    }
+  // 辅助方法：添加 Task Item
+  private pushTaskItem(items: TimelineItem[], task: DDLItem, now: number) {
+    const uiModel = this.mapToTaskUIModel(task, now);
+    items.push({
+      id: `task_${task.id}`,
+      type: TimelineItemType.TASK,
+      sortTime: new Date(task.endTime).getTime(),
+      taskData: uiModel
+    });
   }
 
-  private groupItemsByDate(items: TimelineItem[], now: Date): TimelineGroup[] {
-    const nowTime = now.getTime();
-    const todayEnd = new Date(now); todayEnd.setHours(23, 59, 59, 999);
-    const tomorrowEnd = new Date(now); tomorrowEnd.setDate(tomorrowEnd.getDate() + 1); tomorrowEnd.setHours(23, 59, 59, 999);
+  // === 逻辑块：分组 ===
 
-    // 全局排序：按 sortTime 升序
+  private groupItemsByDate(items: TimelineItem[], now: Date, rangeStart: Date): TimelineGroup[] {
+    const nowTime = now.getTime();
+    const rangeStartTs = rangeStart.getTime();
+
+    // 1. 全局按时间戳排序
     items.sort((a, b) => a.sortTime - b.sortTime);
 
-    // 临时 Map 用来存分组
-    // Key: GroupID, Value: Items
+    // 2. 分组 Map
     const groupMap = new Map<string, TimelineItem[]>();
-    const groupOrder: string[] = ['overdue']; // 保证 overdue 排第一
+    const groupOrder: string[] = [];
 
+    // 今天的日期字符串，用于定位
+    const todayStr = this.getDateStr(now);
+
+    // 3. 遍历分组
     items.forEach(item => {
       let groupId = '';
 
-      // 特殊处理：习惯(Habit) 总是归类到 "today"
-      // 因为我们上面的逻辑只拉取了"今天"的习惯
-      if (item.type === TimelineItemType.HABIT) {
-        groupId = this.getDateStr(now); // 今天的日期字符串
+      // 判断 Overdue: 只有未完成的 Task，且时间早于 "显示窗口的起点(过去3天)" 才算真正的 Overdue
+      // 如果一个任务是昨天到期的，它应该显示在“昨天”那个组里，而不是 Overdue
+      const isTaskOverdue = item.type === TimelineItemType.TASK
+        && item.taskData?.status !== DDLStatus.COMPLETED
+        && item.sortTime < rangeStartTs;
+
+      if (isTaskOverdue) {
+        groupId = 'overdue';
       } else {
-        // Task 按照时间分布
-        if (item.sortTime < nowTime) {
-          groupId = 'overdue';
-        } else {
-          // 将时间戳转为 YYYY-MM-DD 字符串作为 GroupID
-          const d = new Date(item.sortTime);
-          groupId = this.getDateStr(d);
-        }
+        // 按日期归类 (YYYY-MM-DD)
+        const d = new Date(item.sortTime);
+        groupId = this.getDateStr(d);
       }
 
       if (!groupMap.has(groupId)) {
         groupMap.set(groupId, []);
-        if (groupId !== 'overdue') {
-          // 如果是新日期，且不在顺序表里，加进去
-          // (简单的去重插入，这里数据量小，直接 push 没问题，后面统一 sort)
+        // 保持插入顺序即可，因为 item 已经排过序了
+        // Overdue 始终置顶
+        if (groupId === 'overdue') {
+          if (!groupOrder.includes('overdue')) groupOrder.unshift('overdue');
+        } else {
           if (!groupOrder.includes(groupId)) groupOrder.push(groupId);
         }
       }
       groupMap.get(groupId)!.push(item);
     });
 
-    // 对 groupOrder 中的日期部分（除了 overdue）进行排序
+    // 4. 将 groupOrder 里的非 overdue 部分按日期字符串排序 (确保天数连续)
     const dateGroups = groupOrder.filter(g => g !== 'overdue').sort();
-    const finalOrder = groupMap.has('overdue') ? ['overdue', ...dateGroups] : dateGroups;
+    const finalOrder = groupOrder.includes('overdue') ? ['overdue', ...dateGroups] : dateGroups;
 
-    // 构建结果
-    return finalOrder.map((gid): TimelineGroup => {
+    // 5. 生成结果并寻找今天的位置
+    const result = finalOrder.map((gid, index): TimelineGroup => {
+      // [关键] 记录今天的索引
+      if (gid === todayStr) {
+        this.todayIndex = index;
+      }
+
       let title = '';
       if (gid === 'overdue') title = '已过期 / 需要立即处理';
       else {
-        // 解析 YYYY-MM-DD
-        const date = new Date(gid);
-        title = this.formatDateTitle(date);
+        title = this.formatDateTitle(new Date(gid));
       }
 
       return {
@@ -190,6 +212,35 @@ export class TimelineViewModel {
         items: groupMap.get(gid)!
       };
     });
+
+    if (!groupMap.has(todayStr)) {
+      const foundIndex = finalOrder.findIndex(gid => gid !== 'overdue' && gid >= todayStr);
+      if (foundIndex !== -1) this.todayIndex = foundIndex;
+      else this.todayIndex = finalOrder.length > 0 ? finalOrder.length - 1 : 0;
+    }
+
+    return result;
+  }
+
+  private formatDateTitle(date: Date): string {
+    const now = new Date();
+    const today = new Date(now.getFullYear(), now.getMonth(), now.getDate());
+    const tomorrow = new Date(today); tomorrow.setDate(today.getDate() + 1);
+    const yesterday = new Date(today); yesterday.setDate(today.getDate() - 1);
+    const beforeYesterday = new Date(today); beforeYesterday.setDate(today.getDate() - 2);
+
+    const target = new Date(date.getFullYear(), date.getMonth(), date.getDate());
+    const tTime = target.getTime();
+
+    if (tTime === today.getTime()) return "今天";
+    if (tTime === tomorrow.getTime()) return "明天";
+    if (tTime === yesterday.getTime()) return "昨天";
+    if (tTime === beforeYesterday.getTime()) return "前天";
+
+    const month = target.getMonth() + 1;
+    const day = target.getDate();
+    const weekDays = ['周日', '周一', '周二', '周三', '周四', '周五', '周六'];
+    return `${month}月${day}日 ${weekDays[target.getDay()]}`;
   }
 
   private getDateStr(date: Date): string {
@@ -199,84 +250,96 @@ export class TimelineViewModel {
     return `${y}-${m}-${d}`;
   }
 
-  // === 逻辑块：Task 映射 ===
-
-  private mapToUI(item: DDLItem, now: number): TaskUIModel {
-    return this.mapToTaskUIModel(item, now);
-  }
-
   private mapToTaskUIModel(item: DDLItem, now: number): TaskUIModel {
-    const start = new Date(item.startTime).getTime();
-    const end = new Date(item.endTime).getTime();
+    // 简单的日期解析容错
+    const parseDate = (str: string): number => {
+      const d = new Date(str);
+      return isNaN(d.getTime()) ? 0 : d.getTime();
+    };
 
-    // 1. Status
+    const start = parseDate(item.startTime);
+    const end = parseDate(item.endTime);
+
+    // 1. 计算状态 (Status)
     let status = DDLStatus.UNDERGO;
-    if (item.isCompleted) status = DDLStatus.COMPLETED;
-    else if (now > end) status = DDLStatus.PASSED;
-    else if ((end - now) < 24 * 60 * 60 * 1000) status = DDLStatus.NEAR;
-
-    // 2. Progress
-    let progress = 0.0;
-    const totalDuration = end - start;
-    const elapsed = now - start;
-    if (totalDuration > 0) {
-      progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+    if (item.isCompleted) {
+      status = DDLStatus.COMPLETED;
+    } else if (now > end) {
+      status = DDLStatus.PASSED;
+    } else if ((end - now) < 24 * 60 * 60 * 1000) {
+      status = DDLStatus.NEAR;
+    } else {
+      status = DDLStatus.UNDERGO;
     }
 
-    // 进度条反向逻辑 (复用 LocalValues 里的配置，这里假设默认为 false)
-    // const dir = LocalValues.getInstance().getProgressDirection();
-    // if (!dir) progress = 1.0 - progress;
-
-    // 3. Time Text
-    let timeText = "";
-    const diffMs = end - now;
-    if (diffMs < 0) {
-      timeText = "已逾期 " + Math.abs(Math.floor(diffMs / (1000 * 60 * 60))) + " 小时";
+    // 2. 计算进度 (Progress)
+    let progress = 0.0;
+    if (item.isCompleted) {
+      progress = 1.0;
     } else {
-      const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
-      const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
-      if (days > 0) timeText = `${days}天 ${hours}小时`;
-      else timeText = `${hours}小时`;
+      const totalDuration = end - start;
+      const elapsed = now - start;
+      if (totalDuration > 0) {
+        progress = Math.max(0, Math.min(1, elapsed / totalDuration));
+      } else {
+        progress = 0;
+      }
+    }
+
+    const progressDir = LocalValues.getInstance().getProgressDir();
+    const displayProgress = progressDir ? progress : 1.0 - progress;
+
+    // 3. 计算剩余时间文本 (TimeText)
+    let timeText = "";
+    if (item.isCompleted) {
+      timeText = "已完成";
+    } else {
+      const diffMs = end - now;
+      if (diffMs < 0) {
+        timeText = "已逾期 " + Math.abs(Math.floor(diffMs / (1000 * 60 * 60))) + " 小时";
+      } else {
+        const days = Math.floor(diffMs / (1000 * 60 * 60 * 24));
+        const hours = Math.floor((diffMs % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60));
+        if (days > 0) {
+          timeText = `${days}天 ${hours}小时`;
+        } else {
+          timeText = `${hours}小时`;
+        }
+      }
     }
 
     return {
       dbId: item.id,
       title: item.name,
       remainingTimeAlt: timeText,
-      note: item.note,
-      progress: progress, // 这里暂时传正向进度，UI如有需要再取反
+      note: item.note || "",
+      progress: displayProgress,
       isStarred: item.isStared,
       status: status
     };
   }
 
-  // === 逻辑块：Habit 逻辑 (复用自 HabitListSection) ===
-
+  // === 逻辑块：Habit 逻辑 ===
   private shouldShowHabitOnDate(habit: Habit, date: Date): boolean {
-    // 1. 常规周期
     if (habit.period === HabitPeriod.DAILY ||
       habit.period === HabitPeriod.WEEKLY ||
       habit.period === HabitPeriod.MONTHLY) {
       return true;
     }
 
-    const targetDate = new Date(date); targetDate.setHours(0,0,0,0);
-    const startDate = new Date(habit.createdAt); startDate.setHours(0,0,0,0);
-    // 如果你有 dedicated startTime 字段: const startDate = new Date(habit.startTime!);
+    const targetDate = new Date(date); targetDate.setHours(0, 0, 0, 0);
+    const startDate = new Date(habit.createdAt); startDate.setHours(0, 0, 0, 0);
 
-    // 2. 单次
     if (habit.period === HabitPeriod.ONCE) {
       return targetDate.getTime() === startDate.getTime();
     }
 
-    // 3. 艾宾浩斯
     if (habit.period === HabitPeriod.EBBINGHAUS) {
       const diffTime = targetDate.getTime() - startDate.getTime();
       const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
       const curve = [0, 1, 2, 4, 7, 15, 30, 60];
       return curve.includes(diffDays);
     }
-
     return true;
   }
 
@@ -313,7 +376,7 @@ export class TimelineViewModel {
     } else if (period === HabitPeriod.WEEKLY) {
       const day = d.getDay();
       const diff = d.getDate() - day + (day === 0 ? -6 : 1);
-      const monday = new Date(d.setDate(diff));
+      const monday = new Date(d); monday.setDate(diff);
       const sunday = new Date(monday); sunday.setDate(monday.getDate() + 6);
       return [monday, sunday];
     } else if (period === HabitPeriod.MONTHLY) {
@@ -325,23 +388,52 @@ export class TimelineViewModel {
   }
 
   // === 交互操作 ===
+  /**
+   * 完成任务
+   * @param id 任务ID
+   * @param onCelebration [新增] 成功完成后的回调（用于触发 Confetti）
+   */
+  async completeTask(id: number, onCelebration?: () => void): Promise<void> {
+    // 1. 震动反馈
+    VibrationUtils.vibrateShort();
 
-  async completeTask(id: number): Promise<void> {
     try {
       const allDDLs = await this.taskRepo.getAllDDLs();
       const task = allDDLs.find(i => i.id === id);
+
       if (task) {
-        task.isCompleted = true;
-        task.completeTime = new Date().toISOString();
+        // 状态反转
+        const newStatus = !task.isCompleted;
+        task.isCompleted = newStatus;
+
+        if (newStatus) {
+          task.completeTime = new Date().toISOString();
+          // 如果变成了完成状态，执行庆祝回调
+          if (onCelebration) {
+            onCelebration();
+          }
+        } else {
+          task.completeTime = "";
+        }
+
         await this.taskRepo.updateDDL(task);
-        await this.refreshData(); // 刷新列表，任务会消失（因为只显示未完成）
+
+        // 刷新列表：完成的任务可能会移动到别的地方或者根据逻辑隐藏/显示
+        await this.refreshData();
       }
     } catch (e) {
       console.error('Complete task failed', e);
     }
   }
 
+  /**
+   * 删除任务
+   * @param id 任务ID
+   */
   async deleteTask(id: number): Promise<void> {
+    // 1. 震动反馈 (中等强度，表示破坏性操作)
+    VibrationUtils.vibrateMedium();
+
     try {
       await this.taskRepo.deleteDDL(id);
       await this.refreshData();
@@ -350,14 +442,116 @@ export class TimelineViewModel {
     }
   }
 
-  async toggleHabit(id: number): Promise<void> {
+  /**
+   * 切换习惯打卡状态
+   * @param habitId 习惯定义的ID (habit.id)
+   * @param dateStr 目标日期的时间戳 (Item.sortTime)
+   * @param onCelebration 完成时的回调
+   */
+  async toggleHabit(habitId: number, dateTs: number, onCelebration?: () => void): Promise<void> {
+    const targetDate = new Date(dateTs);
+    const today = new Date();
+    today.setHours(0,0,0,0);
+
+    // 逻辑：不允许对未来日期打卡
+    const targetCheck = new Date(targetDate); targetCheck.setHours(0,0,0,0);
+    if (targetCheck.getTime() > today.getTime()) {
+      return;
+    }
+
+    VibrationUtils.vibrateShort();
+
     try {
-      // 对今天的习惯进行打卡
-      const now = new Date();
-      await this.habitRepo.toggleRecord(id, now);
+      // 1. 获取打卡前的状态（用于判断是否刚刚完成）
+      // 这里为了简单，我们假设如果 toggle 成功且当前 done >= target，则触发
+      // 更严谨的做法是先查一次，但这里我们相信 refreshData 后的数据
+
+      // 执行打卡
+      await this.habitRepo.toggleRecord(habitId, targetDate);
+
+      // 刷新数据
       await this.refreshData();
+
+      // 检查最新状态以触发撒花
+      // 我们需要在 groups 里找到刚才那个 item
+      // 这步稍微有点耗时，也可以省略，或者在 Repo 层返回最新状态
+      // 简单起见：如果 onCelebration 存在，我们假设用户完成了目标（可以优化为只在 0 -> 1 或 99% -> 100% 时触发）
+      // 这里暂时不自动触发撒花，交给 UI 根据视觉变化决定，或者这里简单触发一下
+      // if (onCelebration) onCelebration();
+
     } catch (e) {
       console.error('Toggle habit failed', e);
     }
+  }
+
+  // --- Batch Operations (Timeline 专用) ---
+  // Timeline 同时包含 Task 和 Habit，批量操作需要区分处理
+
+  async batchComplete(selectedIds: string[]): Promise<void> {
+    if (selectedIds.length === 0) return;
+    VibrationUtils.vibrateShort();
+
+    // ID 格式: "task_123" 或 "habit_456_2023-01-01"
+    const taskIds: number[] = [];
+    const habitOps: HabitOpt[] = [];
+
+    selectedIds.forEach(fullId => {
+      if (fullId.startsWith('task_')) {
+        taskIds.push(Number(fullId.split('_')[1]));
+      } else if (fullId.startsWith('habit_')) {
+        const parts = fullId.split('_'); // habit, id, dateStr
+        habitOps.push({ id: Number(parts[1]), date: new Date(parts[2]) });
+      }
+    });
+
+    try {
+      // 1. 完成 Tasks
+      if (taskIds.length > 0) {
+        const allTasks = await this.taskRepo.getAllDDLs();
+        const targets = allTasks.filter(t => taskIds.includes(t.id));
+        for (const t of targets) {
+          t.isCompleted = true;
+          t.completeTime = new Date().toISOString();
+          await this.taskRepo.updateDDL(t);
+        }
+      }
+
+      // 2. 完成 Habits (打卡)
+      if (habitOps.length > 0) {
+        await Promise.all(habitOps.map(op => {
+          return this.habitRepo.insertRecord(op.id, op.date, 1);
+        }));
+      }
+
+      await this.refreshData();
+    } catch (e) { console.error(e) }
+  }
+
+  async batchDelete(selectedIds: string[]): Promise<void> {
+    if (selectedIds.length === 0) return;
+    VibrationUtils.vibrateMedium();
+
+    const taskIds: number[] = [];
+    const habitIds: number[] = []; // Habit 删除是删除定义，会影响所有日期
+
+    selectedIds.forEach(fullId => {
+      if (fullId.startsWith('task_')) {
+        taskIds.push(Number(fullId.split('_')[1]));
+      } else if (fullId.startsWith('habit_')) {
+        habitIds.push(Number(fullId.split('_')[1]));
+      }
+    });
+
+    // 去重 Habit ID (因为选了昨天的跑步和今天的跑步，其实删的是同一个习惯)
+    const uniqueHabitIds = Array.from(new Set(habitIds));
+
+    try {
+      // Task 删除
+      for (const id of taskIds) await this.taskRepo.deleteDDL(id);
+      // Habit 删除
+      for (const id of uniqueHabitIds) await this.habitRepo.deleteHabitByDdlId(id);
+
+      await this.refreshData();
+    } catch (e) { console.error(e) }
   }
 }

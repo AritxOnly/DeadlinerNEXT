@@ -1,10 +1,15 @@
-import { FormExtensionAbility, formInfo, formBindingData } from '@kit.FormKit';
+import { FormExtensionAbility, formInfo, formBindingData, formProvider } from '@kit.FormKit';
 import { Want } from '@kit.AbilityKit';
 import { preferences } from '@kit.ArkData';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
 import { WidgetData } from '../widget/model/WidgetData';
 import { CapsuleWidgetData } from '../widget/model/CapsuleWidgetData';
 import { HudWidgetData } from '../widget/model/HudWidgetData';
+
+interface TextColor {
+  mTextColor: string;
+  mWallpaperType: number;
+}
 
 export default class EntryFormAbility extends FormExtensionAbility {
 
@@ -20,6 +25,11 @@ export default class EntryFormAbility extends FormExtensionAbility {
       WidgetUpdater.updateAllWidgets(this.context);
     }, 50);
 
+    let textColor = '#FFFFFF';
+    if (want.parameters) {
+      textColor = this.extractTextColor(want.parameters);
+    }
+
     if (formName === 'widget_capsule'|| formName === 'widget_lock_capsule') {
       const capsuleData = new CapsuleWidgetData();
       capsuleData.remainingCount = 0;
@@ -32,7 +42,11 @@ export default class EntryFormAbility extends FormExtensionAbility {
       const hudData = new HudWidgetData();
       hudData.dateStr = "加载中...";
       hudData.urgentTaskName = "正在同步数据...";
-      return formBindingData.createFormBindingData({ 'hudData': hudData });
+
+      return formBindingData.createFormBindingData({
+        'hudData': hudData,
+        'textColor': textColor
+      });
     } else {
       const listData = new WidgetData();
       listData.totalCount = 0;
@@ -46,9 +60,35 @@ export default class EntryFormAbility extends FormExtensionAbility {
     this.deleteFormInfo(formId);
   }
 
-  onUpdateForm(formId: string) {
+  onUpdateForm(formId: string, wantParams?: Record<string, Object>) {
     console.info(`[EntryFormAbility] onUpdateForm: ${formId}`);
+
+    if (wantParams) {
+      const textColor = this.extractTextColor(wantParams);
+      const formData = formBindingData.createFormBindingData({ 'textColor': textColor });
+      formProvider.updateForm(formId, formData).catch((err: Error) => {
+        console.error(`[EntryFormAbility] updateColor failed: ${JSON.stringify(err)}`);
+      });
+    }
+
     WidgetUpdater.updateAllWidgets(this.context);
+  }
+
+  private extractTextColor(params: Record<string, Object>): string {
+    let textColor = '#FFFFFF';
+    try {
+      const colorKey = formInfo.FormParam.HOST_BG_INVERSE_COLOR_KEY;
+      if (params[colorKey]) {
+        const colorObj = params[colorKey] as TextColor;
+        if (colorObj && colorObj.mTextColor) {
+          textColor = colorObj.mTextColor;
+          console.info(`[EntryFormAbility] Color extracted: ${textColor}`);
+        }
+      }
+    } catch (e) {
+      console.error(`[EntryFormAbility] extractTextColor error: ${e}`);
+    }
+    return textColor;
   }
 
   // === Preferences 辅助方法 (已升级支持存储类型) ===

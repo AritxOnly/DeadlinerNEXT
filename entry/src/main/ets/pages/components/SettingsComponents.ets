@@ -569,8 +569,8 @@ export struct SettingsCheckItem {
         .select(this.isSelected)
         .selectedColor(this.theme.brand)
         .hitTestBehavior(HitTestMode.None)
-        .width(24)
-        .height(24)
+        .width(20)
+        .height(20)
     }
     .width('100%')
     .height(56) // 标准列表高度

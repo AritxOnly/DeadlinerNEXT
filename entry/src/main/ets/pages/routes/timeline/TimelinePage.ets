@@ -3,33 +3,38 @@ import { LengthMetrics } from "@kit.ArkUI";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
 import { TimelineSection } from "./TimelineSection";
 import { DividerShowType, HideMode } from "@kit.UIDesignKit";
+import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
+import { ConfettiView } from "../../components/confetti/ConfettiView";
+import { ConfettiController } from "../../components/confetti/ConfettiController";
 
 @Component
 export struct TimelinePage {
   readonly SEGMENT_HEIGHT: number = 18;
   @StorageProp('statusBarHeight') statusBarHeight: number = 38;
 
+  @State confettiController: ConfettiController = new ConfettiController();
+
   build() {
     HdsNavigation() {
-      TimelineSection({
-        topInset: this.SEGMENT_HEIGHT + this.statusBarHeight
-      })
+      Stack() {
+        TimelineSection({
+          topInset: this.SEGMENT_HEIGHT + this.statusBarHeight,
+          confetti: this.confettiController
+        })
+
+        ConfettiView({
+          controller: this.confettiController,
+          colors: ['#fce18a', '#ff726d', '#f4306d', '#b48def']
+        })
+          .hitTestBehavior(HitTestMode.None)
+          .width('100%')
+          .height('100%')
+      }
+      .width('100%')
+      .height('100%')
     }
       .titleBar({
-        style: {
-          scrollEffectOpts: {
-            enableScrollEffect: true,
-            scrollEffectType: ScrollEffectType.COMMON_BLUR,
-            blurEffectiveStartOffset: LengthMetrics.vp(0),
-            blurEffectiveEndOffset: LengthMetrics.vp(10),
-          },
-          originalStyle: {
-            backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_background_transparent') },
-          },
-          scrollEffectStyle: {
-            backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur') },
-          },
-        },
+        style: getImmersiveTitleBarStyle(true),
         content: {
           title: { mainTitle: '时间线' },
           divider: { showType: DividerShowType.OFF }
@@ -40,5 +45,6 @@ export struct TimelinePage {
       .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
       .mode(NavigationMode.Stack)
       .navBarWidth('100%')
+      // .backgroundBlurStyle(BlurStyle.COMPONENT_THICK)
   }
 }

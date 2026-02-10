@@ -15,7 +15,7 @@ export struct ArchivePanelView {
 
   // 分段按钮的配置选项
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
-    buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
+    buttons: [{ text: '目标' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
     buttonPadding: 8
