@@ -15,6 +15,7 @@ import { SettingsConstants as C } from '../common/local/SettingsConstants';
 import { ITheme } from '../common/theme/ThemeModel';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { TimelinePage } from './routes/timeline/TimelinePage';
+import { hdsMaterial, HdsNavigation, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
 
 interface TabData {
   title: string,
@@ -198,7 +199,7 @@ struct Index {
   }
 
   @State currentIndex: number = 0;
-  private tabsController: TabsController = new TabsController();
+  private tabsController: HdsTabsController = new HdsTabsController();
 
   // 用于控制三个 Tab 的动画触发状态 (0: 初始, 每次点击增加以触发动画)
   @State tabAnimationTriggers: number[] = [0, 0, 0];
@@ -245,8 +246,8 @@ struct Index {
   build() {
     Stack() {
       if (this.isShowUI) {
-        Navigation(this.appPathStack) {
-          Tabs({
+        HdsNavigation(this.appPathStack) {
+          HdsTabs({
             barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
             index: this.currentIndex,
             controller: this.tabsController
@@ -330,7 +331,7 @@ struct Index {
             .backgroundColor(this.theme.bgPrimary)
           }
           .vertical(this.isWideScreen && this.tabletUi)
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+          // .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
           .barMode(BarMode.Fixed)
           .barOverlap(true)
           .background(this.theme.bgPrimary)
@@ -349,8 +350,20 @@ struct Index {
               AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
             }
           })
+          .barFloatingStyle({
+            barSideMargin: 16,
+            barBottomMargin: 0,
+            systemMaterialEffect: {
+              materialType: hdsMaterial.MaterialType.IMMERSIVE,
+              materialLevel: hdsMaterial.MaterialLevel.GENTLE
+            }
+          })
         }
         .mode(NavigationMode.Stack)
+        .titleBar({
+          avoidLayoutSafeArea: false,
+          enableComponentSafeArea: false
+        })
         .hideTitleBar(true)
       }
 
