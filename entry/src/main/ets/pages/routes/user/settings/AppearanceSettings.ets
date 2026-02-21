@@ -10,6 +10,7 @@ import { common } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { window } from '@kit.ArkUI';
 import { ThemeSelectSheet } from './components/ThemeSelectSheet';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -39,6 +40,7 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
   @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
   @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) weight: number = 600;
+  @StorageLink(C.KEY_ENABLE_API23) api23: boolean = true;
 
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
@@ -65,6 +67,16 @@ struct AppearanceSettings {
                 this.isThemeSelectSheetShow = true;
               }
             })
+          }
+
+          SettingsSection() {
+            SubSettingsSwitch({
+              title: "沉浸光感视效",
+              subtitle: "API23以上可以打开该选项获得最佳的视觉体验 (需重启生效)。",
+              isOn: this.api23,
+              onChange: (isOn): Promise<void> => LocalValues.getInstance().setApi23Enable(isOn)
+            })
+              .enabled(deviceInfo.distributionOSApiVersion >= 60100)
           }
 
           SettingsSection() {

@@ -567,6 +567,7 @@ export struct TaskListSection {
               .padding({
                 start: LengthMetrics.vp(12), end: LengthMetrics.vp(12)
               })
+              .clip(false)
             }
             .onRefreshing(async () => {
               this.isRefreshing = true
@@ -578,6 +579,7 @@ export struct TaskListSection {
               await this.loadData();
               this.isRefreshing = false;
             })
+            .clip(false)
           }
         }
       }

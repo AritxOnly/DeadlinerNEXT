@@ -1,0 +1,93 @@
+import { DividerMode, hdsMaterial, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
+import { deviceInfo } from '@kit.BasicServicesKit';
+import { ITheme } from '../../common/theme/ThemeModel';
+import { MATERIAL_LEVEL } from '../../common/style/config';
+import { LocalValues } from '../../common/local/LocalValues';
+
+@Component
+export struct AdaptedHdsTabs {
+  // 核心数据的双向绑定
+  @Link currentIndex: number;
+
+  // 布局控制参数
+  @Prop isWideScreen: boolean;
+  @Prop tabletUi: boolean;
+  @Prop theme: ITheme;
+
+  // 控制器
+  controller: HdsTabsController = new HdsTabsController();
+
+  // 接收外部传入的 TabContent 内容
+  @BuilderParam content: () => void;
+
+  // 点击事件回调（把业务逻辑抛给父组件）
+  onTabClick?: (index: number) => void;
+
+  build() {
+    if (deviceInfo.distributionOSApiVersion >= 60100 && LocalValues.getInstance().getApi23Enable()) {
+      HdsTabs({
+        barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
+        index: this.currentIndex,
+        controller: this.controller
+      }) {
+        this.content()
+      }
+        .vertical(this.isWideScreen && this.tabletUi)
+        .barMode(BarMode.Fixed)
+        .barOverlap(true)
+        // .background(this.theme.bgPrimary)
+        .animationDuration(300)
+        .scrollable(false)
+        .height('100%')
+        .width('100%')
+        .onChange((index: number) => {
+          this.currentIndex = index;
+        })
+        .onTabBarClick((index: number) => {
+          if (this.onTabClick) {
+            this.onTabClick(index);
+          }
+        })
+        .clip(false)
+        .barFloatingStyle({
+          barSideMargin: 24,
+          barBottomMargin: 0,
+          systemMaterialEffect: {
+            materialType: hdsMaterial.MaterialType.IMMERSIVE,
+            materialLevel: MATERIAL_LEVEL
+          },
+          gradientMask: {
+            maskColor: this.theme.bgPrimary,
+            maskHeight: 42
+          },
+          lightColor:  this.theme.brand
+        })
+    } else {
+      HdsTabs({
+        barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
+        index: this.currentIndex,
+        controller: this.controller
+      }) {
+        this.content()
+      }
+      .vertical(this.isWideScreen && this.tabletUi)
+      .barMode(BarMode.Fixed)
+      .barOverlap(true)
+      // .background(this.theme.bgPrimary)
+      .animationDuration(300)
+      .scrollable(false)
+      .height('100%')
+      .width('100%')
+      .onChange((index: number) => {
+        this.currentIndex = index;
+      })
+      .onTabBarClick((index: number) => {
+        if (this.onTabClick) {
+          this.onTabClick(index);
+        }
+      })
+      .clip(false)
+      .divider({ mode: DividerMode.NONE })
+    }
+  }
+}

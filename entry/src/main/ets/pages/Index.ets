@@ -16,6 +16,7 @@ import { ITheme } from '../common/theme/ThemeModel';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { TimelinePage } from './routes/timeline/TimelinePage';
 import { hdsMaterial, HdsNavigation, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
+import { AdaptedHdsTabs } from './components/AdaptedHdsTabs';
 
 interface TabData {
   title: string,
@@ -247,10 +248,19 @@ struct Index {
     Stack() {
       if (this.isShowUI) {
         HdsNavigation(this.appPathStack) {
-          HdsTabs({
-            barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
-            index: this.currentIndex,
-            controller: this.tabsController
+          AdaptedHdsTabs({
+            currentIndex: $currentIndex,
+            isWideScreen: this.isWideScreen,
+            tabletUi: this.tabletUi,
+            theme: this.theme,
+            controller: this.tabsController,
+            onTabClick: (index: number) => {
+              this.tabAnimationTriggers[index] += 1;
+              if (index === this.currentIndex) {
+                console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
+                AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
+              }
+            }
           }) {
             // --- Tab 1: 主页 ---
             TabContent() {
@@ -330,34 +340,6 @@ struct Index {
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
           }
-          .vertical(this.isWideScreen && this.tabletUi)
-          // .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .barMode(BarMode.Fixed)
-          .barOverlap(true)
-          .background(this.theme.bgPrimary)
-          .animationDuration(300)
-          .scrollable(false)
-          .height('100%')
-          .width('100%')
-          .onChange((index: number) => {
-            this.currentIndex = index;
-          })
-          .onTabBarClick((index: number) => {
-            this.tabAnimationTriggers[index] += 1;
-
-            if (index === this.currentIndex) {
-              console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
-              AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
-            }
-          })
-          .barFloatingStyle({
-            barSideMargin: 16,
-            barBottomMargin: 0,
-            systemMaterialEffect: {
-              materialType: hdsMaterial.MaterialType.IMMERSIVE,
-              materialLevel: hdsMaterial.MaterialLevel.GENTLE
-            }
-          })
         }
         .mode(NavigationMode.Stack)
         .titleBar({

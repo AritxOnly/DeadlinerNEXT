@@ -2,6 +2,7 @@ import { preferences } from '@kit.ArkData';
 import { SettingsConstants as C } from './SettingsConstants';
 import { SecureStorage } from './SecureStorage';
 import { MainButtonType } from './LocalModels';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 interface WebDavAuthInterface {
   user: string;
@@ -130,6 +131,9 @@ export class LocalValues {
 
       const directAddOnAi = await this.pref.get(C.KEY_DIRECT_ADD_ON_AI, true);
       AppStorage.setOrCreate(C.KEY_DIRECT_ADD_ON_AI, directAddOnAi);
+
+      const enableApi23 = await this.pref.get(C.KEY_ENABLE_API23, true);
+      AppStorage.setOrCreate(C.KEY_ENABLE_API23, enableApi23);
 
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
@@ -566,5 +570,13 @@ export class LocalValues {
 
   async setAutoArchiveDays(days: number) {
     await this.setValue(C.KEY_AUTO_ARCHIVE_DAYS, days);
+  }
+
+  getApi23Enable(): boolean {
+    return AppStorage.get(C.KEY_ENABLE_API23) ?? true;
+  }
+
+  async setApi23Enable(enable: boolean) {
+    await this.setValue(C.KEY_ENABLE_API23, enable);
   }
 }

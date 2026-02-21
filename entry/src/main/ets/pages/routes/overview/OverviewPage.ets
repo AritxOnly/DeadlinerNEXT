@@ -6,6 +6,7 @@ import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
 import { OverviewCard, OverviewViewModel } from "./OverviewViewModel";
 import { SortSheet } from "./SortSheet";
+import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
 
 @Component
 export struct OverviewPage {
@@ -267,20 +268,7 @@ export struct OverviewPage {
       }
     }
     .titleBar({
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        originalStyle: {
-          backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_background_transparent') },
-        },
-        scrollEffectStyle: {
-          backgroundStyle: { backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur') },
-        }
-      },
+      style: getImmersiveTitleBarStyle(false),
       content: {
         title: { mainTitle: '概览' },
         stackBuilder: this.titleMenuBuilder.bind(this),

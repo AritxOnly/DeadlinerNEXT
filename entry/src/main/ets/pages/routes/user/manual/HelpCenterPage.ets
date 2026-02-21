@@ -4,6 +4,7 @@ import { SettingsSection, SettingsItem, SettingsDivider } from '../../../compone
 import { ManualSection, ManualItem, ManualDataManager } from '../../../../common/manual/ManualModel';
 import { common } from '@kit.AbilityKit';
 import { ITheme } from '../../../../common/theme/ThemeModel';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 @Component
 export struct HelpCenterPage {
@@ -126,7 +127,10 @@ export struct HelpCenterPage {
         }
       }
     }
-    .titleBar({ content: { title: { mainTitle: "使用手册" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(false),
+      content: { title: { mainTitle: "使用手册" } }
+    })
   }
 }
 

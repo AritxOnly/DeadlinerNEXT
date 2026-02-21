@@ -47,6 +47,8 @@ export class SettingsConstants {
 
   static readonly KEY_AUTO_ARCHIVE_DAYS = 'auto_archive_days';
 
+  static readonly KEY_ENABLE_API23 = 'enable_api23';
+
   static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';
   static readonly KEY_TREND_CARD_ORDER = 'trend_card_order';
 }

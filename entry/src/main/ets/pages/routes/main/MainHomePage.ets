@@ -27,6 +27,7 @@ import { AddTaskSheet } from './modify/AddTaskSheet'
 import { AddHabitSheet } from './modify/AddHabitSheet'
 import { LocalValues } from '../../../common/local/LocalValues'
 import { MainButtonType } from '../../../common/local/LocalModels'
+import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -288,9 +289,9 @@ export struct MainHomePage {
       }
       .width('100%')
       .height('100%')
-      .justifyContent(FlexAlign.Start) // 强制靠左
-      .padding({ left: 16 }) // 根据需要调整左边距，通常是 12vp 或 16vp
-      .hitTestBehavior(HitTestMode.Transparent) // 关键：让 Row 的空白区域不拦截点击事件，防止挡住中间的 Segment
+      .justifyContent(FlexAlign.Start)
+      .padding({ left: 16 })
+      .hitTestBehavior(HitTestMode.Transparent)
 
       Column() {
         SegmentButton({
@@ -504,24 +505,7 @@ export struct MainHomePage {
         })
     }
     .titleBar({
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        originalStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
-          },
-        },
-        scrollEffectStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur')
-          },
-        }
-      },
+      style: getImmersiveTitleBarStyle(false),
       content: {
         title: {
           mainTitle: 'Deadliner',
