@@ -60,7 +60,7 @@ export struct AdaptedHdsTabs {
             maskColor: this.theme.bgPrimary,
             maskHeight: 42
           },
-          lightColor:  this.theme.brand
+          lightColor: this.theme.tabIcon
         })
     } else {
       HdsTabs({
