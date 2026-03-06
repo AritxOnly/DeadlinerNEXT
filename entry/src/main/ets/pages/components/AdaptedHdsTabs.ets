@@ -1,7 +1,6 @@
 import { DividerMode, hdsMaterial, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { ITheme } from '../../common/theme/ThemeModel';
-import { MATERIAL_LEVEL } from '../../common/style/config';
 import { LocalValues } from '../../common/local/LocalValues';
 
 @Component
@@ -54,7 +53,7 @@ export struct AdaptedHdsTabs {
           barBottomMargin: 0,
           systemMaterialEffect: {
             materialType: hdsMaterial.MaterialType.IMMERSIVE,
-            materialLevel: MATERIAL_LEVEL
+            materialLevel: hdsMaterial.MaterialLevel.GENTLE
           },
           gradientMask: {
             maskColor: this.theme.bgPrimary,

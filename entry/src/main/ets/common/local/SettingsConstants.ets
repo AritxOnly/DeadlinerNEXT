@@ -6,6 +6,7 @@ export class SettingsConstants {
   static readonly KEY_BASIC_MODE = 'key_basic_mode';
 
   static readonly KEY_CLOUD_SYNC_ENABLE = 'cloud_sync_enable';
+  static readonly KEY_CLOUD_SYNC_MODE = 'cloud_sync_mode';
   static readonly KEY_WEBDAV_URL = 'webdav_url';
   static readonly KEY_WEBDAV_USERNAME = 'webdav_username';
   static readonly KEY_WEBDAV_PASSWORD = 'webdav_password';

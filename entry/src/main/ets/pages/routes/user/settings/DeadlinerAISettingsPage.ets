@@ -119,7 +119,6 @@ export struct DeadlinerAISettingsPage {
 
         // 4. 高级设置 (保持只读，减少审核员困惑，体现“专为DeepSeek打造”)
         Column({ space: 12 }) {
-          // ... (原有的高级设置代码保持不变) ...
           Text("高级设置")
             .fontSize(14)
             .fontWeight(FontWeight.Bold)
@@ -131,7 +130,7 @@ export struct DeadlinerAISettingsPage {
             Text("模型名称").width(80).fontSize(16)
             TextInput({ text: this.model, placeholder: 'deepseek-chat' })
               .layoutWeight(1)
-              .enabled(false) // 锁死，不让乱改
+              // .enabled(false) // 锁死，不让乱改
               .fontColor($r('sys.color.font_secondary'))
           }
 
@@ -141,7 +140,7 @@ export struct DeadlinerAISettingsPage {
             TextInput({ text: this.baseUrl, placeholder: 'https://api.deepseek.com' })
               .type(InputType.URL)
               .layoutWeight(1)
-              .enabled(false) // 锁死
+              // .enabled(false) // 锁死
               .fontColor($r('sys.color.font_secondary'))
           }
         }

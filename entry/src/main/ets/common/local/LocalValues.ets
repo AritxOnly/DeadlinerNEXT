@@ -38,6 +38,9 @@ export class LocalValues {
       const syncEnable = await this.pref.get(C.KEY_CLOUD_SYNC_ENABLE, false);
       AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, syncEnable);
 
+      const syncMode = await this.pref.get(C.KEY_CLOUD_SYNC_MODE, 'cloud');
+      AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_MODE, syncMode);
+
       const url = await this.pref.get(C.KEY_WEBDAV_URL, '');
       AppStorage.setOrCreate(C.KEY_WEBDAV_URL, url);
 
@@ -578,5 +581,13 @@ export class LocalValues {
 
   async setApi23Enable(enable: boolean) {
     await this.setValue(C.KEY_ENABLE_API23, enable);
+  }
+
+  getSyncMode(): string {
+    return AppStorage.get(C.KEY_CLOUD_SYNC_MODE) ?? 'cloud';
+  }
+
+  async setSyncMode(mode: string) {
+    await this.setValue(C.KEY_CLOUD_SYNC_MODE, mode);
   }
 }

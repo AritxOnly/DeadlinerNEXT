@@ -1,8 +1,9 @@
 import { DatabaseHelper } from '../data/DatabaseHelper';
-import { WebUtils, PreconditionFailedError } from '../network/WebUtils';
 import { relationalStore, ValuesBucket } from '@kit.ArkData';
 import { util } from '@kit.ArkTS';
 import { DDLItem } from '../../model/DDLModels';
+// 引入你新建的 Provider 接口
+import { ISyncProvider } from './SyncProvider';
 
 // 定义快照的数据结构 (Interface)
 interface SnapshotVer {
@@ -38,7 +39,7 @@ interface SnapshotInterface {
   dev: string;
 }
 
-interface SnapshotRoot {
+export interface SnapshotRoot {
   version: SnapshotInterface;
   items: SnapshotItem[]; // 或使用 Array<SnapshotItem>
 }
@@ -50,12 +51,17 @@ export interface SyncResult {
 
 export class SyncService {
   private db: DatabaseHelper;
-  private web: WebUtils;
-  private readonly SNAPSHOT_PATH = "Deadliner/snapshot-v1.json";
+  private provider: ISyncProvider;
 
-  constructor(db: DatabaseHelper, web: WebUtils) {
+  // 构造函数改为接收 ISyncProvider
+  constructor(db: DatabaseHelper, provider: ISyncProvider) {
     this.db = db;
-    this.web = web;
+    this.provider = provider;
+  }
+
+  // 动态切换 Provider 的能力
+  public switchProvider(newProvider: ISyncProvider) {
+    this.provider = newProvider;
   }
 
   // 业务层钩子
@@ -64,7 +70,7 @@ export class SyncService {
   onLocalDeleting(localId: number) {}
 
   async syncOnce(): Promise<SyncResult> {
-    console.info("WebDAV: snapshot syncOnce start");
+    console.info("SyncService: snapshot syncOnce start");
     try {
       return await this.syncSnapshotOnce();
     } catch (e) {
@@ -75,7 +81,7 @@ export class SyncService {
 
   // ============== 1) 构造“本地快照”（包含墓碑） ==============
   private async buildLocalSnapshot(): Promise<SnapshotRoot> {
-    const store = this.db.getRdbStore(); // ⚠️ 需要在 DatabaseHelper 中暴露 getRdbStore()
+    const store = this.db.getRdbStore();
     if (!store) throw new Error("DB not initialized");
 
     const sql = `
@@ -138,11 +144,9 @@ export class SyncService {
   }
 
   // ============== 2) 合并（LWW：ts > ctr > dev） ==============
-  // 纯逻辑合并：不涉及 IO
   private mergeSnapshots(local: SnapshotRoot, remote: SnapshotRoot): SnapshotRoot {
     const map = new Map<string, SnapshotItem>();
 
-    // 辅助：加载 items 到 map
     const load = (root: SnapshotRoot) => {
       if (root.items && Array.isArray(root.items)) {
         for (const item of root.items) {
@@ -151,33 +155,26 @@ export class SyncService {
       }
     };
 
-    // 先全部加载 local
     load(local);
 
-    // 遍历 remote 进行 LWW 决断
     if (remote.items && Array.isArray(remote.items)) {
       for (const rItem of remote.items) {
         const lItem = map.get(rItem.uid);
         if (!lItem) {
-          // 本地没有，直接用远端
           map.set(rItem.uid, rItem);
         } else {
-          // 冲突：LWW
           if (this.newer(rItem, lItem)) {
             map.set(rItem.uid, rItem);
           }
-          // else: local is newer, keep local
         }
       }
     }
 
-    // 转换为 Array
     const outItems = Array.from(map.values());
 
-    // 返回合并后的结构 (版本号取 Local 的当前时间)
     return {
       version: {
-        ts: local.version.ts, // Use local new timestamp
+        ts: local.version.ts,
         dev: local.version.dev
       },
       items: outItems
@@ -185,22 +182,16 @@ export class SyncService {
   }
 
   // ============== 3) 应用“最终快照”到本地 DB ==============
-  // 提取 newer 逻辑，方便复用
-  // 判断 a 是否比 b 新
   private isVerNewer(aVer: SnapshotVer, bVer: SnapshotVer): boolean {
     if (aVer.ts !== bVer.ts) return aVer.ts > bVer.ts;
     if (aVer.ctr !== bVer.ctr) return aVer.ctr > bVer.ctr;
     return aVer.dev >= bVer.dev;
   }
 
-  // 修改原有的 newer 方法，调用上面的通用逻辑
   private newer(a: SnapshotItem, b: SnapshotItem): boolean {
     return this.isVerNewer(a.ver, b.ver);
   }
 
-  // =====================================================
-  // 🔥🔥🔥 核心修复：applySnapshotToLocal 🔥🔥🔥
-  // =====================================================
   private async applySnapshotToLocal(merged: SnapshotRoot): Promise<boolean> {
     const store = this.db.getRdbStore();
     if (!store || !merged.items) return false;
@@ -208,15 +199,14 @@ export class SyncService {
     store.beginTransaction();
     let insertCount = 0;
     let updateCount = 0;
-    let skipCount = 0; // 统计被跳过的（保护本地新修改的）
+    let skipCount = 0;
 
     try {
       for (const item of merged.items) {
         const uid = item.uid;
-        const mergedVer = item.ver; // 这是同步计算出的版本
+        const mergedVer = item.ver;
         const deleted = item.deleted;
 
-        // 1. 查询本地当前的实际状态
         const predicates = new relationalStore.RdbPredicates("ddl_items");
         predicates.equalTo("uid", uid);
         const resultSet = await store.query(predicates);
@@ -227,7 +217,6 @@ export class SyncService {
 
         if (exists) {
           localId = resultSet.getLong(resultSet.getColumnIndex("id"));
-          // 读取当前 DB 里的版本号
           currentLocalVer = {
             ts: resultSet.getString(resultSet.getColumnIndex("ver_ts")),
             ctr: resultSet.getLong(resultSet.getColumnIndex("ver_ctr")),
@@ -236,17 +225,12 @@ export class SyncService {
         }
         resultSet.close();
 
-        // 2. 🛡️🛡️🛡️ 竞态保护 🛡️🛡️🛡️
-        // 如果本地存在，且本地现在的版本 比 合并结果的版本 还要新
-        // 说明在同步期间，用户修改了这条数据。
-        // 此时绝对不能覆盖，保留本地的修改！
         if (currentLocalVer && this.isVerNewer(currentLocalVer, mergedVer)) {
           console.warn(`[Sync] Race detected for uid=${uid.slice(0,6)}. Local is newer, skipping overwrite.`);
           skipCount++;
-          continue; // 跳过这一条的写入
+          continue;
         }
 
-        // 3. 正常写入逻辑 (和之前一样)
         const bucket: ValuesBucket = {};
         bucket["ver_ts"] = mergedVer.ts;
         bucket["ver_ctr"] = mergedVer.ctr;
@@ -260,7 +244,6 @@ export class SyncService {
             await store.update(bucket, upPred);
             updateCount++;
           } else {
-            // 插入墓碑
             bucket["uid"] = uid;
             bucket["name"] = "(deleted)";
             bucket["start_time"] = ""; bucket["end_time"] = ""; bucket["complete_time"] = "";
@@ -310,99 +293,42 @@ export class SyncService {
     }
   }
 
+  // ============== 4) 核心同步流程 ==============
   private async syncSnapshotOnce(): Promise<SyncResult> {
-    const path = this.SNAPSHOT_PATH;
-    const textEncoder = new util.TextEncoder();
-    const textDecoder = util.TextDecoder.create('utf-8');
-
-    // ================= 1. 构建本地快照 =================
+    // 1. 构建本地快照
     const localSnap = await this.buildLocalSnapshot();
 
-    // 🔍 侦探日志：看看本地到底查到了什么？
-    const localTaskCount = localSnap.items.length;
-    if (localTaskCount > 0) {
-      // 打印第一个任务的 UID 和 VerTS，确认不是 1970
-      const first = localSnap.items[0];
-    }
-
-    // ================= 2. HEAD 探测 =================
-    let remoteCode = 0;
-    try {
-      const WebHead = await this.web.head(path);
-      remoteCode = WebHead.code;
-    } catch (e) {
+    // 2. 获取远端快照 (由具体的 Provider 实现，可能是 WebDAV 的 GET，也可能是 CloudSync 读本地映射)
+    const remoteRes = await this.provider.getRemoteSnapshot();
+    if (!remoteRes.success) {
+      console.error("[Sync] Failed to get remote snapshot.");
       return { success: false, hasLocalChanges: false };
     }
 
-    // ================= 3. 处理 404 (初始化云端) =================
-    if ([404, 409, 410].includes(remoteCode)) {
-      try {
-        await this.web.ensureDir("Deadliner");
-        const jsonStr = JSON.stringify(localSnap);
-        const bytes = textEncoder.encode(jsonStr);
-
-        const res = await this.web.putBytes(path, bytes, null, true); // 假设 putBytes 返回 response，如果没返回也没事
-        return { success: true, hasLocalChanges: false };
-      } catch (e) {
-        return { success: false, hasLocalChanges: false };
-      }
+    let merged: SnapshotRoot;
+    if (remoteRes.snapshot === null) {
+      // 远端为空/不存在，说明是首次同步或初始化，直接使用本地快照
+      merged = localSnap;
+      console.info("[Sync] Remote is empty, initializing with local snapshot.");
+    } else {
+      // 3. 远端有数据，进行 LWW 合并
+      merged = this.mergeSnapshots(localSnap, remoteRes.snapshot);
+      console.info("[Sync] Merge completed.");
     }
 
-    // ================= 4. GET 下载远端 =================
-    let remoteSnap: SnapshotRoot;
-    let currentEtag: string | null = null;
-    try {
-      const webBytes = await this.web.getBytes(path);
-      const bytes = webBytes.bytes;
-      currentEtag = webBytes.etag;
-
-      try {
-        // 1. 解码
-        const jsonStr = textDecoder.decodeToString(bytes); // API 9+ 推荐用 decodeToString
-        // 如果是旧 API，用: textDecoder.decode(bytes)
-
-        // 2. 解析
-        remoteSnap = JSON.parse(jsonStr) as SnapshotRoot;
-
-        // 3. 🛡️🛡️🛡️ 安全熔断检查 🛡️🛡️🛡️
-        // 如果远端明明有数据（>1KB），但解析出来 items 却是 undefined 或空，
-        // 说明解析失败，绝对不能继续合并，否则会清空云端！
-        if (bytes.length > 1000 && (!remoteSnap.items || !Array.isArray(remoteSnap.items))) {
-          console.error(`[Sync] CRITICAL: Invalid remote JSON. Sync aborted.`);
-          return { success: false, hasLocalChanges: false };
-        }
-
-        // 如果解析出来的 items 是 null (例如刚初始化的文件)，给个空数组
-        if (!remoteSnap.items) {
-          remoteSnap.items = [];
-        }
-
-      } catch (e) {
-        return { success: false, hasLocalChanges: false };
-      }
-    } catch (e) {
+    // 4. 将合并后的结果覆盖写回远端 (由具体的 Provider 实现)
+    const putSuccess = await this.provider.putMergedSnapshot(merged);
+    if (!putSuccess) {
+      console.error("[Sync] Failed to put merged snapshot to remote.");
       return { success: false, hasLocalChanges: false };
     }
 
-    // ================= 5. 合并 =================
-    let merged = this.mergeSnapshots(localSnap, remoteSnap);
-
-    let mergedJson = JSON.stringify(merged);
-    // 🔥 修复点：使用 encodeIntoUint8Array
-    let mergedBytes = textEncoder.encode(mergedJson);
-
-    // ================= 6. PUT 上传 =================
-    try {
-      // 这里假设你的 WebUtils.putBytes 能够抛出错误或者返回状态
-      await this.web.putBytes(path, mergedBytes, currentEtag, false);
-    } catch (e) {
-      if (e instanceof PreconditionFailedError) {
-        console.warn("[Sync] Conflict 412, syncing again next time...");
-      }
-    }
-
-    // ================= 7. 应用回本地 =================
+    // 5. 应用最终结果到本地数据库
     const hasChanges = await this.applySnapshotToLocal(merged);
+
+    // 6. 主动触发同步推流 (针对华为端云协同，WebDAV 实现为空操作)
+    await this.provider.triggerSync();
+
     return { success: true, hasLocalChanges: hasChanges };
   }
 }

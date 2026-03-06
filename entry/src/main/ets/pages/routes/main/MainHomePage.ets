@@ -505,7 +505,7 @@ export struct MainHomePage {
         })
     }
     .titleBar({
-      style: getImmersiveTitleBarStyle(false),
+      style: getImmersiveTitleBarStyle(false, true),  // 暂时屏蔽新材质
       content: {
         title: {
           mainTitle: 'Deadliner',
