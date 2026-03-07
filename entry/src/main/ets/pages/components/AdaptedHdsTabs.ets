@@ -53,7 +53,7 @@ export struct AdaptedHdsTabs {
           barBottomMargin: 0,
           systemMaterialEffect: {
             materialType: hdsMaterial.MaterialType.IMMERSIVE,
-            materialLevel: hdsMaterial.MaterialLevel.GENTLE
+            materialLevel: hdsMaterial.MaterialLevel.EXQUISITE
           },
           gradientMask: {
             maskColor: this.theme.bgPrimary,

@@ -22,9 +22,9 @@ import { AIPanelView } from '../../common/AIPanelView'
 import { HabitListController } from './HabitListController'
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
 import { ArchivePanelView } from '../../common/ArchivePanelView'
-import { AddTaskPage } from './modify/AddTaskPage'
-import { AddTaskSheet } from './modify/AddTaskSheet'
-import { AddHabitSheet } from './modify/AddHabitSheet'
+import { AddTaskPage } from './modify/task/AddTaskPage'
+import { AddTaskSheet } from './modify/task/AddTaskSheet'
+import { AddHabitSheet } from './modify/habit/AddHabitSheet'
 import { LocalValues } from '../../../common/local/LocalValues'
 import { MainButtonType } from '../../../common/local/LocalModels'
 import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
@@ -305,7 +305,27 @@ export struct MainHomePage {
           // .padding({ top: 6 })
       }
       .justifyContent(FlexAlign.Center)
-      .hitTestBehavior(HitTestMode.None) // 避免容器拦截，具体视 SegmentButton 实现而定
+      .hitTestBehavior(HitTestMode.None)
+
+      Row() {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph(this.rightBtn.icon)
+            .fontSize(24)
+            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor($r('sys.color.comp_background_tertiary'))
+        .onClick(() => {
+          this.rightBtn.onClick();
+        })
+        .enabled(((this.rightBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.rightBtnType !== MainButtonType.AI))
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ right: 16 })
+      .hitTestBehavior(HitTestMode.Transparent)
     }
     .height('100%')
     .width('100%')
@@ -366,9 +386,11 @@ export struct MainHomePage {
     if (this.currentIndex == MainTabIndex.TASKS) {
       AddTaskSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
+        .height('100%')
     } else {
       AddHabitSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
+        .height('100%')
     }
   }
 
@@ -422,7 +444,7 @@ export struct MainHomePage {
             })
             .zIndex(1)
             .bindSheet($$this.isAddShow, this.addSheet(), {
-              height: SheetSize.FIT_CONTENT,
+              height: SheetSize.LARGE,
               onDisappear: () => {
                 this.isAddShow = false;
               },
@@ -510,19 +532,6 @@ export struct MainHomePage {
         title: {
           mainTitle: 'Deadliner',
           subTitle: this.navSubtitle
-        },
-        menu: {
-          value: [
-            {
-              content: {
-                icon: this.rightBtn.icon,
-                action: () => {
-                  this.rightBtn.onClick();
-                },
-                isEnabled: ((this.rightBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.rightBtnType !== MainButtonType.AI)
-              }
-            },
-          ]
         },
         stackBuilder: this.topSegment.bind(this),
         divider: { showType: DividerShowType.OFF }

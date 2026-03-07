@@ -206,11 +206,17 @@ struct Index {
   @State tabAnimationTriggers: number[] = [0, 0, 0];
 
   // 定义 Tab 数据
+  // private tabs: Array<TabData> = [
+  //   { title: '清单', icon: $r('sys.symbol.checkmark_circle_on_circle_fill'), index: 0 },
+  //   { title: '时间线', icon: $r('sys.symbol.rectangle_and_line_horizontal_and_rectangle_filled'), index: 1 },
+  //   { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 2 },
+  //   { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 3 },
+  // ]
+
   private tabs: Array<TabData> = [
     { title: '清单', icon: $r('sys.symbol.checkmark_circle_on_circle_fill'), index: 0 },
-    { title: '时间线', icon: $r('sys.symbol.rectangle_and_line_horizontal_and_rectangle_filled'), index: 1 },
-    { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 2 },
-    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 3 },
+    { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 1 },
+    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
   ]
 
   private getTabBarStyle(item: TabData): BottomTabBarStyle {
@@ -289,32 +295,32 @@ struct Index {
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
 
-            TabContent() {
-              TimelinePage()
-                .width('100%')
-                .height('100%')
-                .attributeModifier(new TabAnimModifier(1, this.currentIndex))
-                .animation({
-                  duration: 300,
-                  curve: Curve.EaseInOut
-                })
-            }
-            .tabBar(this.getTabBarStyle(this.tabs[1]))
-            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-            .backgroundColor(this.theme.bgPrimary)
+            // TabContent() {
+            //   TimelinePage()
+            //     .width('100%')
+            //     .height('100%')
+            //     .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+            //     .animation({
+            //       duration: 300,
+            //       curve: Curve.EaseInOut
+            //     })
+            // }
+            // .tabBar(this.getTabBarStyle(this.tabs[1]))
+            // .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+            // .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 2: 概览 ---
             TabContent() {
               if (!(this.isWideScreen && this.tabletUi)) {
                 OverviewPage({ currentTabIndex: this.currentIndex })
-                  .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
                   .animation({
                     duration: 300, // 保持与 Tabs 动画时长一致
                     curve: Curve.EaseInOut
                   })
               } else {
                 OverviewPageTablet()
-                  .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
                   .animation({
                     duration: 300, // 保持与 Tabs 动画时长一致
                     curve: Curve.EaseInOut
@@ -322,21 +328,21 @@ struct Index {
                   .padding({ left: TAB_VERTICAL_PADDING })
               }
             }
-            .tabBar(this.getTabBarStyle(this.tabs[2]))
+            .tabBar(this.getTabBarStyle(this.tabs[1]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 3: 我的 ---
             TabContent() {
               UserPage()
-                .attributeModifier(new TabAnimModifier(3, this.currentIndex))
+                .attributeModifier(new TabAnimModifier(2, this.currentIndex))
                 .animation({
                   duration: 300, // 保持与 Tabs 动画时长一致
                   curve: Curve.EaseInOut
                 })
                 .padding({ left: (this.isWideScreen && this.tabletUi) ? TAB_VERTICAL_PADDING : 0 })
             }
-            .tabBar(this.getTabBarStyle(this.tabs[3]))
+            .tabBar(this.getTabBarStyle(this.tabs[2]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
           }

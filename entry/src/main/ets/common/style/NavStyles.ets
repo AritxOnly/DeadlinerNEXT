@@ -42,7 +42,7 @@ export function getImmersiveTitleBarStyle(
           backgroundColor: isWideScreen ?
             ThemeManager.getCurrentTheme().bgPrimary :
             $r('sys.color.ohos_id_color_navigation_background_blur'),
-          blurRadius: 32
+          blurRadius: 40
         },
         contentStyle: {
           titleStyle: {
@@ -55,7 +55,7 @@ export function getImmersiveTitleBarStyle(
       },
       systemMaterialEffect: disableMaterial ? undefined : {
         materialType: hdsMaterial.MaterialType.IMMERSIVE,
-        materialLevel: hdsMaterial.MaterialLevel.GENTLE
+        materialLevel: hdsMaterial.MaterialLevel.EXQUISITE
       },
     };
   } else {
