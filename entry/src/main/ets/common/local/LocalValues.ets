@@ -138,6 +138,9 @@ export class LocalValues {
       const enableApi23 = await this.pref.get(C.KEY_ENABLE_API23, true);
       AppStorage.setOrCreate(C.KEY_ENABLE_API23, enableApi23);
 
+      const materialLevel = await this.pref.get(C.KEY_API23_MATERIAL_LEVEL, 'EXQUISITE');
+      AppStorage.setOrCreate(C.KEY_API23_MATERIAL_LEVEL, materialLevel)
+
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
 
@@ -589,5 +592,15 @@ export class LocalValues {
 
   async setSyncMode(mode: string) {
     await this.setValue(C.KEY_CLOUD_SYNC_MODE, mode);
+  }
+
+  getMaterialLevel(): string {
+    return AppStorage.get(C.KEY_API23_MATERIAL_LEVEL) ?? 'EXQUISITE';
+  }
+
+  async setMaterialLevel(level: string) {
+    const levels = ['ADAPTIVE', 'SMOOTH', 'GENTLE', 'EXQUISITE'];
+    const actual = (levels.includes(level)) ? level : 'ADAPTIVE';
+    await this.setValue(C.KEY_API23_MATERIAL_LEVEL, actual);
   }
 }

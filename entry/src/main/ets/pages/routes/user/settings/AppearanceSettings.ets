@@ -3,7 +3,8 @@ import { SettingsConstants as C } from '../../../../common/local/SettingsConstan
 import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
   SettingsCheckItem,
   SubSettingsDivider,
-  SettingsSlider} from '../../../components/SettingsComponents';
+  SettingsSlider,
+  SettingsSelect} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
@@ -53,6 +54,21 @@ struct AppearanceSettings {
     })
   }
 
+  @State menuOptions: SelectOption[] = [
+    { value: '自适应' },
+    { value: '流畅' },
+    { value: '柔和' },
+    { value: '精美' },
+  ]
+  @State currentSelectIndex: number = 0;
+
+  MATERIAL_LEVELS = ['ADAPTIVE', 'SMOOTH', 'GENTLE', 'EXQUISITE']
+
+  aboutToAppear(): void {
+    const level = LocalValues.getInstance().getMaterialLevel()
+    this.currentSelectIndex = this.MATERIAL_LEVELS.indexOf(level);
+  }
+
   build() {
     HdsNavDestination() {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
@@ -77,6 +93,22 @@ struct AppearanceSettings {
               onChange: (isOn): Promise<void> => LocalValues.getInstance().setApi23Enable(isOn)
             })
               .enabled(deviceInfo.distributionOSApiVersion >= 60100)
+
+            if (this.api23 && deviceInfo.distributionOSApiVersion >= 60100) {
+              SettingsDivider()
+
+              SettingsSelect({
+                title: '材质等级',
+                subtitle: '选择沉浸光感材质等级',
+                options: this.menuOptions,
+                selectedIndex: $currentSelectIndex,
+                onChange: (index, value) => {
+                  console.info(`用户选中了第 ${index} 项，值为: ${value}`);
+                  const level = this.MATERIAL_LEVELS[index];
+                  LocalValues.getInstance().setMaterialLevel(level)
+                }
+              })
+            }
           }
 
           SettingsSection() {

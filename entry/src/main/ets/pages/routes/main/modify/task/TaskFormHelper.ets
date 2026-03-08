@@ -61,10 +61,10 @@ export class TaskFormHelper {
 
       if (results && results.length !== 0) {
         const task = results[0];
-        const endDate = DateTimeUtils.parseDateString(task.dueTime);
+        const endDate = task.dueTime ? DateTimeUtils.parseDateString(task.dueTime) : new Date();
         return {
           name: task.name,
-          note: task.note,
+          note: task.note ?? "",
           endTime: endDate || undefined
         };
       }

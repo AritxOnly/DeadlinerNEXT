@@ -3,6 +3,7 @@ import { hdsMaterial, HdsNavigationTitleBarStyle, ScrollEffectType, TitleBarStyl
 import { ThemeManager } from '../theme/ThemeManager';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { LocalValues } from '../local/LocalValues';
+import { getHdsMaterialLevel } from './MaterialLevel';
 
 /**
  * 获取统一的沉浸式标题栏样式配置
@@ -12,7 +13,8 @@ import { LocalValues } from '../local/LocalValues';
  */
 export function getImmersiveTitleBarStyle(
   isWideScreen: boolean,
-  disableMaterial: boolean = false
+  disableMaterial: boolean = false,
+  level?: string,
 ) : TitleBarStyleOptions {
   if (deviceInfo.distributionOSApiVersion >= 60100 && LocalValues.getInstance().getApi23Enable()) {
     return {
@@ -55,7 +57,7 @@ export function getImmersiveTitleBarStyle(
       },
       systemMaterialEffect: disableMaterial ? undefined : {
         materialType: hdsMaterial.MaterialType.IMMERSIVE,
-        materialLevel: hdsMaterial.MaterialLevel.EXQUISITE
+        materialLevel: getHdsMaterialLevel(level)
       },
     };
   } else {

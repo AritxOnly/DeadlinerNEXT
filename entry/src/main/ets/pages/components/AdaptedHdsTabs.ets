@@ -2,6 +2,7 @@ import { DividerMode, hdsMaterial, HdsTabs, HdsTabsController } from '@kit.UIDes
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { ITheme } from '../../common/theme/ThemeModel';
 import { LocalValues } from '../../common/local/LocalValues';
+import { getHdsMaterialLevel } from '../../common/style/MaterialLevel';
 
 @Component
 export struct AdaptedHdsTabs {
@@ -24,6 +25,7 @@ export struct AdaptedHdsTabs {
 
   build() {
     if (deviceInfo.distributionOSApiVersion >= 60100 && LocalValues.getInstance().getApi23Enable()) {
+
       HdsTabs({
         barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
         index: this.currentIndex,
@@ -53,7 +55,7 @@ export struct AdaptedHdsTabs {
           barBottomMargin: 0,
           systemMaterialEffect: {
             materialType: hdsMaterial.MaterialType.IMMERSIVE,
-            materialLevel: hdsMaterial.MaterialLevel.EXQUISITE
+            materialLevel: getHdsMaterialLevel()
           },
           gradientMask: {
             maskColor: this.theme.bgPrimary,

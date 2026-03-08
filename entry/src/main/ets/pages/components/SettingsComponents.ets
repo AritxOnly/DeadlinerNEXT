@@ -700,3 +700,81 @@ export struct SettingsSlider {
     })
   }
 }
+
+@Component
+export struct SettingsSelect {
+  @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
+  title: string | Resource = '';
+  subtitle?: string | Resource = '';
+
+  // 1. 新增：下拉菜单的数据源
+  options: SelectOption[] = [];
+  // 2. 修改：布尔值替换为选中项的索引
+  @Link selectedIndex: number;
+  // 3. 修改：回调函数传出 索引 和 选中的文本
+  onChange?: (index: number, value: string) => void;
+
+  // 内部状态，用于处理按压效果 (与 SettingsItem 保持一致)
+  @State isPressed: boolean = false;
+
+  build() {
+    Row() {
+      // 1. 左侧：标题和副标题 (Column) 完全保持不变
+      Column() {
+        Text(this.title)
+          .fontSize(16)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('app.color.font_primary'))
+          .maxLines(1)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        if (this.subtitle) {
+          Text(this.subtitle)
+            .fontSize(12)
+            .fontColor($r('app.color.font_secondary'))
+            .margin({ top: 4 })
+            .lineHeight(16)
+            .textOverflow({ overflow: TextOverflow.Ellipsis })
+            .maxLines(2)
+        }
+      }
+      .layoutWeight(1) // 占满左侧剩余空间
+      .alignItems(HorizontalAlign.Start)
+      .margin({ right: 12 })
+
+      // 2. 右侧：下拉选择框 (替换了 Toggle)
+      Select(this.options)
+        .selected(this.selectedIndex)
+        // 安全取值，防止越界
+        .value(this.options?.[this.selectedIndex]?.value ?? '')
+        .font({ size: 14, weight: 400 })
+        .fontColor($r('app.color.font_secondary'))
+        .selectedOptionFont({ size: 14, weight: FontWeight.Bold }) // 选中项文字加粗
+        .optionFont({ size: 14, weight: 400 })
+        .selectedOptionFontColor(this.theme.brand) // 选中项文字使用品牌色
+        .backgroundColor(Color.Transparent) // 取消 Select 自带背景色，融入 Row
+        .onSelect((index: number, value: string) => {
+          this.selectedIndex = index;
+          if (this.onChange) {
+            this.onChange(index, value);
+          }
+        })
+    }
+    .width('100%')
+    .alignItems(VerticalAlign.Center)
+    .padding({ left: 12, right: 12, top: 12, bottom: 12 })
+    .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
+    .borderRadius(20)
+    .animation({ duration: 200 })
+    .onTouch((event) => {
+      if (event.type === TouchType.Down) {
+        this.isPressed = true;
+      } else if (event.type === TouchType.Up || event.type === TouchType.Cancel) {
+        this.isPressed = false;
+      }
+    })
+    // ⚠️ 注意：这里移除了原始 Switch 组件中 Row 的 .onClick()。
+    // 原因：在 ArkUI 中，原生 Select 必须点击它自己的区域才能弹出。
+    // 如果想要保留“点击整行都能弹出菜单”的体验，请查看下方的方案二。
+  }
+}

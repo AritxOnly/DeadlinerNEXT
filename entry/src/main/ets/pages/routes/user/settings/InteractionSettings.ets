@@ -90,14 +90,14 @@ struct InteractionSettings {
                 onChange: (isOn): Promise<void> => LocalValues.getInstance().setVibration(isOn)
               })
 
-              SubSettingsDivider()
-
-              SubSettingsSwitch({
-                title: "全屏添加页面",
-                subtitle: "开启后，点击添加按钮将打开沉浸式的全屏页面，而非半屏弹窗。",
-                isOn: this.fullScreenAdd,
-                onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
-              })
+              // SubSettingsDivider()
+              //
+              // SubSettingsSwitch({
+              //   title: "全屏添加页面",
+              //   subtitle: "开启后，点击添加按钮将打开沉浸式的全屏页面，而非半屏弹窗。",
+              //   isOn: this.fullScreenAdd,
+              //   onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
+              // })
 
               SubSettingsDivider()
 
