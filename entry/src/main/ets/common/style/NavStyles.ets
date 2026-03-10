@@ -44,7 +44,7 @@ export function getImmersiveTitleBarStyle(
           backgroundColor: isWideScreen ?
             ThemeManager.getCurrentTheme().bgPrimary :
             $r('sys.color.ohos_id_color_navigation_background_blur'),
-          blurRadius: 40
+          blurRadius: 32
         },
         contentStyle: {
           titleStyle: {
