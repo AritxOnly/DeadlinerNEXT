@@ -26,7 +26,7 @@
     },
     {
       "name": "addTask",
-      "pageSourceFile": "src/main/ets/pages/routes/main/modify/AddTaskPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/main/modify/task/AddTaskPage.ets",
       "buildFunction": "AddTaskBuilder",
       "data": {
         "description": "添加任务页"
@@ -34,7 +34,7 @@
     },
     {
       "name": "addHabit",
-      "pageSourceFile": "src/main/ets/pages/routes/main/modify/AddHabitPage.ets",
+      "pageSourceFile": "src/main/ets/pages/routes/main/modify/habit/AddHabitPage.ets",
       "buildFunction": "AddHabitBuilder",
       "data": {
         "description": "添加习惯页"

@@ -3,13 +3,15 @@ import { SettingsConstants as C } from '../../../../common/local/SettingsConstan
 import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
   SettingsCheckItem,
   SubSettingsDivider,
-  SettingsSlider} from '../../../components/SettingsComponents';
+  SettingsSlider,
+  SettingsSelect} from '../../../components/SettingsComponents';
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { common } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { window } from '@kit.ArkUI';
 import { ThemeSelectSheet } from './components/ThemeSelectSheet';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -39,6 +41,7 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
   @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
   @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) weight: number = 600;
+  @StorageLink(C.KEY_ENABLE_API23) api23: boolean = true;
 
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
@@ -49,6 +52,21 @@ struct AppearanceSettings {
     ThemeSelectSheet({
       onDone: () => { this.isThemeSelectSheetShow = false }
     })
+  }
+
+  @State menuOptions: SelectOption[] = [
+    { value: '自适应' },
+    { value: '流畅' },
+    { value: '柔和' },
+    { value: '精美' },
+  ]
+  @State currentSelectIndex: number = 0;
+
+  MATERIAL_LEVELS = ['ADAPTIVE', 'SMOOTH', 'GENTLE', 'EXQUISITE']
+
+  aboutToAppear(): void {
+    const level = LocalValues.getInstance().getMaterialLevel()
+    this.currentSelectIndex = this.MATERIAL_LEVELS.indexOf(level);
   }
 
   build() {
@@ -65,6 +83,32 @@ struct AppearanceSettings {
                 this.isThemeSelectSheetShow = true;
               }
             })
+          }
+
+          SettingsSection() {
+            SubSettingsSwitch({
+              title: "沉浸光感视效",
+              subtitle: "API23以上可以打开该选项获得最佳的视觉体验 (需重启生效)。",
+              isOn: this.api23,
+              onChange: (isOn): Promise<void> => LocalValues.getInstance().setApi23Enable(isOn)
+            })
+              .enabled(deviceInfo.distributionOSApiVersion >= 60100)
+
+            if (this.api23 && deviceInfo.distributionOSApiVersion >= 60100) {
+              SettingsDivider()
+
+              SettingsSelect({
+                title: '材质等级',
+                subtitle: '选择沉浸光感材质等级',
+                options: this.menuOptions,
+                selectedIndex: $currentSelectIndex,
+                onChange: (index, value) => {
+                  console.info(`用户选中了第 ${index} 项，值为: ${value}`);
+                  const level = this.MATERIAL_LEVELS[index];
+                  LocalValues.getInstance().setMaterialLevel(level)
+                }
+              })
+            }
           }
 
           SettingsSection() {

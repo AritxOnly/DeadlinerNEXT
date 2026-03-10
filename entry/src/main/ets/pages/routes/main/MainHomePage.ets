@@ -22,11 +22,12 @@ import { AIPanelView } from '../../common/AIPanelView'
 import { HabitListController } from './HabitListController'
 import { SettingsConstants as C } from '../../../common/local/SettingsConstants'
 import { ArchivePanelView } from '../../common/ArchivePanelView'
-import { AddTaskPage } from './modify/AddTaskPage'
-import { AddTaskSheet } from './modify/AddTaskSheet'
-import { AddHabitSheet } from './modify/AddHabitSheet'
+import { AddTaskPage } from './modify/task/AddTaskPage'
+import { AddTaskSheet } from './modify/task/AddTaskSheet'
+import { AddHabitSheet } from './modify/habit/AddHabitSheet'
 import { LocalValues } from '../../../common/local/LocalValues'
 import { MainButtonType } from '../../../common/local/LocalModels'
+import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 
 enum MainTabIndex {
   TASKS = 0,
@@ -210,7 +211,7 @@ export struct MainHomePage {
   }
 
   @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
-    buttons: [{ text: '目标' }, { text: '待办' }] as ItemRestriction<SegmentButtonTextItem>,
+    buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
     backgroundBlurStyle: BlurStyle.NONE,
     selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
     backgroundColor: $r('sys.color.comp_background_tertiary'),
@@ -220,8 +221,8 @@ export struct MainHomePage {
   updateTabOptions() {
     this.tabOptions = SegmentButtonOptions.tab({
       buttons: [
-        { text: '目标' },
-        { text: '待办' }
+        { text: '任务' },
+        { text: '习惯' }
       ] as ItemRestriction<SegmentButtonTextItem>,
       backgroundBlurStyle: BlurStyle.NONE,
       selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
@@ -288,9 +289,9 @@ export struct MainHomePage {
       }
       .width('100%')
       .height('100%')
-      .justifyContent(FlexAlign.Start) // 强制靠左
-      .padding({ left: 16 }) // 根据需要调整左边距，通常是 12vp 或 16vp
-      .hitTestBehavior(HitTestMode.Transparent) // 关键：让 Row 的空白区域不拦截点击事件，防止挡住中间的 Segment
+      .justifyContent(FlexAlign.Start)
+      .padding({ left: 16 })
+      .hitTestBehavior(HitTestMode.Transparent)
 
       Column() {
         SegmentButton({
@@ -304,7 +305,27 @@ export struct MainHomePage {
           // .padding({ top: 6 })
       }
       .justifyContent(FlexAlign.Center)
-      .hitTestBehavior(HitTestMode.None) // 避免容器拦截，具体视 SegmentButton 实现而定
+      .hitTestBehavior(HitTestMode.None)
+
+      Row() {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          SymbolGlyph(this.rightBtn.icon)
+            .fontSize(24)
+            .fontColor([$r('sys.color.ohos_id_color_text_primary')])
+        }
+        .width(40)
+        .height(40)
+        .backgroundColor($r('sys.color.comp_background_tertiary'))
+        .onClick(() => {
+          this.rightBtn.onClick();
+        })
+        .enabled(((this.rightBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.rightBtnType !== MainButtonType.AI))
+      }
+      .width('100%')
+      .height('100%')
+      .justifyContent(FlexAlign.End)
+      .padding({ right: 16 })
+      .hitTestBehavior(HitTestMode.Transparent)
     }
     .height('100%')
     .width('100%')
@@ -365,9 +386,11 @@ export struct MainHomePage {
     if (this.currentIndex == MainTabIndex.TASKS) {
       AddTaskSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
+        .height('100%')
     } else {
       AddHabitSheet({ onDone: this.onAddSheetQuit })
         .width('100%')
+        .height('100%')
     }
   }
 
@@ -421,7 +444,7 @@ export struct MainHomePage {
             })
             .zIndex(1)
             .bindSheet($$this.isAddShow, this.addSheet(), {
-              height: SheetSize.FIT_CONTENT,
+              height: SheetSize.LARGE,
               onDisappear: () => {
                 this.isAddShow = false;
               },
@@ -504,41 +527,11 @@ export struct MainHomePage {
         })
     }
     .titleBar({
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        originalStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
-          },
-        },
-        scrollEffectStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur')
-          },
-        }
-      },
+      style: getImmersiveTitleBarStyle(false, true),  // 暂时屏蔽新材质
       content: {
         title: {
           mainTitle: 'Deadliner',
           subTitle: this.navSubtitle
-        },
-        menu: {
-          value: [
-            {
-              content: {
-                icon: this.rightBtn.icon,
-                action: () => {
-                  this.rightBtn.onClick();
-                },
-                isEnabled: ((this.rightBtnType === MainButtonType.AI) && !this.isBasicMode) || (this.rightBtnType !== MainButtonType.AI)
-              }
-            },
-          ]
         },
         stackBuilder: this.topSegment.bind(this),
         divider: { showType: DividerShowType.OFF }

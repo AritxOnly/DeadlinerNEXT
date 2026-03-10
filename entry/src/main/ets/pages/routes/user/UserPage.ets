@@ -18,6 +18,7 @@ import { AIPanelView } from "../../common/AIPanelView";
 import { SupportPanelView } from "../../common/SupportPanelView";
 import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
 import { ITheme } from "../../../common/theme/ThemeModel";
+import { FriendshipLinksPage } from "./settings/FriendshipLinksPage";
 
 const USER_ROUTE_WHITELIST: string[] = [
   'settingsAppearance',
@@ -225,6 +226,12 @@ export struct UserPage {
     }
   }
 
+  @State isFriendsSheetShow: boolean = false;
+  @Builder
+  friendsSheet() {
+    FriendshipLinksPage()
+  }
+
   build() {
     HdsNavigation(this.userLocalPathStack) {
       TopSafeContainer({ topAvoidHeight: this.statusBarHeight + this.TITLE_BAR_CONTENT_HEIGHT }) {
@@ -380,10 +387,35 @@ export struct UserPage {
                 this.isSupportSheetShow = true;
               }
             })
+
+            SettingsDivider()
+
+            SettingsItem({
+              title: "朋友们",
+              subtitle: "来看看其他好友的优秀作品！",
+              icon: $r('sys.symbol.application_projection'),
+              onItemClick: () => {
+                this.isFriendsSheetShow = true;
+              }
+            })
           }
 
           // 底部留白
-          Blank().height(50)
+
+          Blank().height(30)
+            .bindSheet($$this.isFriendsSheetShow, this.friendsSheet(), {
+              height: SheetSize.FIT_CONTENT,
+              enableOutsideInteractive: false,
+              dragBar: true,
+              onDisappear: () => {
+                this.isFriendsSheetShow = false;
+              },
+              blurStyle: BlurStyle.Regular,
+              backgroundColor: Color.Transparent,
+              title: { title: "友链" }
+            })
+
+          Blank().height(30)
             .bindSheet($$this.isSupportSheetShow, this.supportSheet(), {
               height: SheetSize.FIT_CONTENT,
               enableOutsideInteractive: false,

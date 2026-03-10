@@ -12,7 +12,7 @@ import { SettingsConstants as C } from "../../../common/local/SettingsConstants"
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
 import { DateTimeUtils } from "../../../utils/DateTimeUtils";
 import { DateTimePicker } from "../../components/DateTimePicker";
-import { TaskEditSheet } from "./modify/TaskEditSheet";
+import { TaskEditSheet } from "./modify/task/TaskEditSheet";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 import { ITheme } from "../../../common/theme/ThemeModel";
 
@@ -567,6 +567,7 @@ export struct TaskListSection {
               .padding({
                 start: LengthMetrics.vp(12), end: LengthMetrics.vp(12)
               })
+              .clip(false)
             }
             .onRefreshing(async () => {
               this.isRefreshing = true
@@ -578,6 +579,7 @@ export struct TaskListSection {
               await this.loadData();
               this.isRefreshing = false;
             })
+            .clip(false)
           }
         }
       }

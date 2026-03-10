@@ -6,6 +6,9 @@ import { DDLItem, DeadlineType, SubTask } from '../../model/DDLModels';
 import { common } from '@kit.AbilityKit';
 import { WidgetUpdater } from '../../utils/WidgetUpdater';
 import { ReminderScheduler } from '../../utils/notification/ReminderScheduler';
+import { ISyncProvider } from '../sync/SyncProvider';
+import { CloudSyncProvider } from '../sync/CloudSyncProvider';
+import { WebDavProvider } from '../sync/WebDavProvider';
 
 export class TaskRepository {
   private static instance: TaskRepository;
@@ -20,7 +23,6 @@ export class TaskRepository {
   private widgetUpdateTimer: number = -1;
   private readonly WIDGET_UPDATE_DELAY_MS = 500;
 
-  // 🔥 新增：并发控制状态
   private isSyncing: boolean = false;      // 是否正在同步中
   private hasPendingSync: boolean = false; // 是否在同步期间又有新请求
 
@@ -37,6 +39,31 @@ export class TaskRepository {
 
   public setContext(context: common.Context) {
     this.context = context;
+  }
+
+  private createSyncProvider(): ISyncProvider | null {
+    if (!this.context) {
+      console.warn('[TaskRepo] Context is null, cannot create SyncProvider.');
+      return null;
+    }
+
+    const syncMode = LocalValues.getInstance().getSyncMode();
+
+    if (syncMode === 'cloud') {
+      return new CloudSyncProvider(this.context);
+    } else if (syncMode === 'webdav') {
+      const url = LocalValues.getInstance().getWebDavUrl();
+      if (!url) {
+        console.warn('[TaskRepo] WebDAV URL not set.');
+        return null;
+      }
+      const webAuth = LocalValues.getInstance().getWebDavAuth();
+      const web = new WebUtils(url, webAuth.user, webAuth.pass);
+      return new WebDavProvider(web);
+    } else {
+      console.warn(`[TaskRepo] Unknown sync mode: ${syncMode}`);
+      return null;
+    }
   }
 
   private async ensureDbReady(): Promise<void> {
@@ -106,23 +133,17 @@ export class TaskRepository {
     console.info('[TaskRepo] Starting auto-sync...');
 
     try {
-      const GeneratedDestructObj_1 = LocalValues.getInstance().getWebDavAuth();
-      const user = GeneratedDestructObj_1.user;
-      const pass = GeneratedDestructObj_1.pass;
-      const url = LocalValues.getInstance().getWebDavUrl();
+      const provider = this.createSyncProvider();
+      if (!provider) return;
 
-      if (url) {
-        const web = new WebUtils(url, user, pass);
-        const syncService = new SyncService(this.db, web);
+      const syncService = new SyncService(this.db, provider);
 
-        await syncService.syncOnce();
+      await syncService.syncOnce();
 
-        console.info('[TaskRepo] Auto-sync success.');
+      console.info('[TaskRepo] Auto-sync success.');
 
-        // 🔥 修复：使用保存的 context 发送事件，通知 UI 刷新
-        if (this.context) {
-          this.context.eventHub.emit('sync_done');
-        }
+      if (this.context) {
+        this.context.eventHub.emit('sync_done');
       }
     } catch (e) {
       console.error(`[TaskRepo] Auto-sync failed: ${e}`);
@@ -278,14 +299,10 @@ export class TaskRepository {
 
     this.isSyncing = true;
     try {
-      const webAuth = LocalValues.getInstance().getWebDavAuth();
-      const user = webAuth.user;
-      const pass = webAuth.pass;
-      const url = LocalValues.getInstance().getWebDavUrl();
-      if (!url) return false;
+      const provider = this.createSyncProvider();
+      if (!provider) return false;
 
-      const web = new WebUtils(url, user, pass);
-      const syncService = new SyncService(this.db, web);
+      const syncService = new SyncService(this.db, provider);
       const result = await syncService.syncOnce();
 
       if (result.success && result.hasLocalChanges && this.context) {

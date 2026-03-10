@@ -1,19 +1,23 @@
 import { TopSafeContainer } from "../../components/TopSafeContainer"
 import { HabitRepository } from '../../../common/repository/HabitRepository';
 import { Habit, HabitGoalType, HabitPeriod, HabitRecordStatus, HabitStatus } from '../../../model/DDLModels';
-import { WeekRow, HabitRow, HabitWithDailyStatus, DayOverview,
-  HabitProgress } from '../../components/HabitComponents'
+import { WeekRow, HabitRow, HabitWithDailyStatus, DayOverview, HabitProgress } from '../../components/HabitComponents'
 import { HabitListController } from "./HabitListController";
 import { ChipGroup, ChipGroupItemOptions, ChipSize, curves, promptAction } from '@kit.ArkUI'
 import { VibrationUtils } from "../../../utils/VibrationUtils";
 import { ConfettiController } from "../../components/confetti/ConfettiController";
 import { FloatUpModifier } from "../../../utils/animation/FloatUpModifier";
-import { HabitEditSheet } from "./modify/HabitEditSheet";
+import { HabitEditSheet } from "./modify/habit/HabitEditSheet";
 import { HabitReminderDialog } from "../../components/HabitReminderDialog";
 import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 import { ITheme } from "../../../common/theme/ThemeModel";
 import { DDLStatus } from "../../../model/DDLStatus"
+
+interface EbbinState {
+  isDue: boolean;
+  text: string;
+}
 
 @Component
 export struct HabitListSection {
@@ -52,9 +56,7 @@ export struct HabitListSection {
       selectedTime: this.tempSelectedTime,
       onConfirm: (enabled, timeStr): Promise<void> => this.saveAlarmSetting(enabled, timeStr)
     }),
-    // 修改点：设置为居中
     alignment: DialogAlignment.Center,
-    // 居中时通常不需要 offset，除非你想微调
     offset: { dx: 0, dy: 0 },
     autoCancel: true,
     customStyle: true
@@ -90,10 +92,6 @@ export struct HabitListSection {
     this.controller.loadData = (): Promise<void> => this.refreshAll(this.selectedDate);
   }
 
-  /**
-   * 处理设置提醒的请求
-   * 逻辑：检查当前是否选中了【唯一】的一个待办，如果是，则弹出设置框
-   */
   async handleRequestSetAlarm() {
     if (this.selectedDdlIds.size !== 1) {
       promptAction.showToast({ message: '请选择一个待办来设置提醒' });
@@ -111,27 +109,20 @@ export struct HabitListSection {
 
     if (habit.alarmTime && habit.alarmTime.length > 0) {
       this.tempIsEnabled = true;
-      // 解析 "HH:mm"
       const parts = habit.alarmTime.split(':');
       const d = new Date();
       d.setHours(parseInt(parts[0]), parseInt(parts[1]));
       this.tempSelectedTime = d;
     } else {
       this.tempIsEnabled = false;
-      // 默认时间 20:00
       const d = new Date();
       d.setHours(20, 0);
       this.tempSelectedTime = d;
     }
 
     this.alarmDialogController.open();
-
-    // this.exitSelectionMode();
   }
 
-  /**
-   * 保存提醒设置 (对应 Android 的 onPositiveButton)
-   */
   async saveAlarmSetting(enabled: boolean, timeStr: string) {
     if (this.currentAlarmDdlId === -1) return;
 
@@ -139,9 +130,8 @@ export struct HabitListSection {
       const habitRaw = await this.repo.getHabitByDdlId(this.currentAlarmDdlId);
       if (!habitRaw) return;
 
-      // 如果 enabled 为 true，保存 timeStr (例如 "20:00")，否则为 null
-      const updatedHabit = habitRaw; // 注意：直接修改引用或 clone
-      updatedHabit.alarmTime = enabled ? timeStr : null; // ArkTS 中如果类型定义是 string | null
+      const updatedHabit = habitRaw;
+      updatedHabit.alarmTime = enabled ? timeStr : null;
 
       await this.repo.updateHabit(updatedHabit);
 
@@ -150,10 +140,7 @@ export struct HabitListSection {
 
       promptAction.showToast({ message: enabled ? `已设置提醒: ${timeStr}` : '提醒已关闭' });
 
-      // 刷新列表显示（虽然 alarmTime 可能不显示在列表上，但保持数据一致性）
       await this.refreshAll(this.selectedDate);
-
-      // 退出选择模式
       this.exitSelectionMode();
 
     } catch (e) {
@@ -168,13 +155,11 @@ export struct HabitListSection {
     const allHabitsRaw = await this.repo.getAllHabits();
     const allHabits = allHabitsRaw.filter(h => h.status !== HabitStatus.ARCHIVED);
 
-    // 计算列表状态
     const statusListNullable = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, date)));
     const statusList = statusListNullable.filter((item) => item !== null) as HabitWithDailyStatus[];
     this.allHabitsCache = statusList;
     this.applyFilter();
 
-    // 计算周视图
     this.calculateWeekOverview(date, allHabits);
 
     if (this.isFirstLoad) {
@@ -185,20 +170,14 @@ export struct HabitListSection {
   }
 
   private async buildStatusForDate(habit: Habit, date: Date): Promise<HabitWithDailyStatus | null> {
-
-    // 1. === 可见性过滤 (Visibility Filter) ===
-    // 如果今天不是这个任务的“执行日”，直接返回 null，列表就不会渲染它
     if (!this.shouldShowHabitOnDate(habit, date)) {
       return null;
     }
 
-    // 2. === 原有状态查询逻辑 ===
     const bounds = this.getPeriodBounds(habit.period, date);
     const start = bounds[0];
     const end = bounds[1];
 
-    // 对于 TOTAL 类型，统计从开天辟地到现在的总数
-    // 对于 PER_PERIOD，统计当期（比如当天、当周）的数量
     const queryStart = habit.goalType === HabitGoalType.TOTAL ? new Date(0) : start;
     const queryEnd = habit.goalType === HabitGoalType.TOTAL ? date : end;
 
@@ -222,44 +201,45 @@ export struct HabitListSection {
   }
 
   private shouldShowHabitOnDate(habit: Habit, date: Date): boolean {
-    // 1. 每日/每周/每月：永远显示 (因为即使今天没打卡，也属于周期内)
-    if (habit.period === HabitPeriod.DAILY ||
-      habit.period === HabitPeriod.WEEKLY ||
-      habit.period === HabitPeriod.MONTHLY) {
-      return true;
-    }
-
-    // 标准化日期 (只比较 YYYY-MM-DD)
-    const targetDate = new Date(date);
-    targetDate.setHours(0, 0, 0, 0);
-
-    // 解析待办的开始时间 (Created Time / Start Time)
-    // 假设 habit.ddlId 对应的 DDLItem.startTime 是这个待办的基准时间
-    // 这里我们需要注意：Habit 模型里没有直接存 startTime，但通常逻辑上 createdAt 或者关联的 DDL startTime 是基准
-    // *假设* 你能从 Repo 获取到 startTime，或者我们在创建 Habit 时把 createdAt 当作 startTime
-    // 这里为了简单，我们使用 habit.createdAt (或者你需要从 Database 联查 DDL 的 startTime)
-    const startDate = new Date(habit.createdAt);
-    startDate.setHours(0, 0, 0, 0);
-
-    // 2. 单次待办 (ONCE)
-    if (habit.period === HabitPeriod.ONCE) {
-      // 只有日期完全一致才显示
-      return targetDate.getTime() === startDate.getTime();
-    }
-
-    // 3. 艾宾浩斯 (EBBINGHAUS)
-    if (habit.period === HabitPeriod.EBBINGHAUS) {
-      // 计算天数差
-      const diffTime = targetDate.getTime() - startDate.getTime();
-      const diffDays = Math.floor(diffTime / (1000 * 60 * 60 * 24));
-
-      // 艾宾浩斯标准曲线: 0(当天), 1, 2, 4, 7, 15, 30
-      // 也可以加上更长周期的，看你需求
-      const curve = [0, 1, 2, 4, 7, 15, 30, 60];
-      return curve.includes(diffDays);
-    }
-
+    // 移除 ONCE，现有的 DAILY, WEEKLY, MONTHLY, EBBINGHAUS 均始终在列表中占位显示
     return true;
+  }
+
+  /**
+   * 获取艾宾浩斯习惯在指定日期的状态
+   * 返回 isDue: 是否是复习日, text: UI 提示文本
+   */
+  private getEbbinghausState(habit: Habit, targetDate: Date): EbbinState {
+    if (habit.period !== HabitPeriod.EBBINGHAUS) {
+      return { isDue: true, text: "" };
+    }
+
+    const tDate = new Date(targetDate);
+    tDate.setHours(0, 0, 0, 0);
+
+    const sDate = new Date(habit.createdAt);
+    sDate.setHours(0, 0, 0, 0);
+
+    const diffDays = Math.floor((tDate.getTime() - sDate.getTime()) / (1000 * 60 * 60 * 24));
+
+    // 艾宾浩斯标准曲线
+    const curve = [0, 1, 2, 4, 7, 15, 30, 60];
+
+    if (diffDays < 0) {
+      return { isDue: false, text: `${-diffDays} 天后开始` };
+    }
+
+    if (curve.includes(diffDays)) {
+      return { isDue: true, text: "" }; // 今天是复习日
+    }
+
+    // 寻找下一个复习日
+    const nextDay = curve.find(c => c > diffDays);
+    if (nextDay !== undefined) {
+      return { isDue: false, text: `${nextDay - diffDays} 天后复习` };
+    } else {
+      return { isDue: false, text: "已完成记忆周期" };
+    }
   }
 
   private applyFilter() {
@@ -273,7 +253,6 @@ export struct HabitListSection {
     }
   }
 
-  // 日期辅助逻辑
   private getPeriodBounds(period: HabitPeriod, date: Date): [Date, Date] {
     const d = new Date(date);
     d.setHours(0, 0, 0, 0);
@@ -292,6 +271,7 @@ export struct HabitListSection {
       const lastDay = new Date(d.getFullYear(), d.getMonth() + 1, 0);
       return [firstDay, lastDay];
     }
+    // 艾宾浩斯的周期就限定在当天
     return [d, d];
   }
 
@@ -306,14 +286,18 @@ export struct HabitListSection {
       const current = new Date(monday);
       current.setDate(monday.getDate() + i);
 
-      // 获取当天的所有状态 (包含 null)
       const statusesNullable = await Promise.all(allHabits.map(h => this.buildStatusForDate(h, current)));
-
-      // 过滤出当天可见的待办
       const activeStatuses = statusesNullable.filter((s) => s !== null) as HabitWithDailyStatus[];
 
-      const completedCount = activeStatuses.filter(s => s.isCompleted).length;
-      const totalCount = activeStatuses.length; // 分母是当天实际需要展示的数量
+      // 计算当天真实的分子和分母
+      // 对于艾宾浩斯，只有当 isDue 为 true 时，才计入当天的完成率统计
+      const validStatuses = activeStatuses.filter(s => {
+        const ebState = this.getEbbinghausState(s.habit, current);
+        return ebState.isDue;
+      });
+
+      const completedCount = validStatuses.filter(s => s.isCompleted).length;
+      const totalCount = validStatuses.length;
 
       week.push({
         date: current,
@@ -331,14 +315,20 @@ export struct HabitListSection {
   }
 
   async onToggleHabit(item: HabitWithDailyStatus) {
-    // 只有选中的日期不晚于今天才能打卡
     const today = new Date();
     today.setHours(0, 0, 0, 0);
     const currentSel = new Date(this.selectedDate);
     currentSel.setHours(0, 0, 0, 0);
 
     if (currentSel.getTime() > today.getTime()) {
-      return; // 未来日期不可打卡
+      return;
+    }
+
+    // 艾宾浩斯非复习日阻断打卡
+    const ebState = this.getEbbinghausState(item.habit, this.selectedDate);
+    if (!ebState.isDue) {
+      promptAction.showToast({ message: '今天不是该记忆周期的复习日' });
+      return;
     }
 
     if (this.isSelectionMode) {
@@ -352,7 +342,6 @@ export struct HabitListSection {
     await this.repo.toggleRecord(item.habit.id, this.selectedDate);
     await this.refreshAll(this.selectedDate);
 
-    // 庆祝检测
     const afterItem = this.allHabitsCache.find(it => it.habit.id === item.habit.id);
     if (afterItem) {
       const afterRate = afterItem.doneCount / afterItem.targetCount;
@@ -373,12 +362,14 @@ export struct HabitListSection {
 
     VibrationUtils.vibrateShort();
 
-    const targets = this.allHabitsCache.filter(item =>
-    this.selectedDdlIds.has(item.habit.ddlId) && !item.isCompleted
-    );
+    // 过滤出未完成 且 属于今天可打卡范围的待办（排除未到复习日的艾宾浩斯）
+    const targets = this.allHabitsCache.filter(item => {
+      const ebState = this.getEbbinghausState(item.habit, this.selectedDate);
+      return this.selectedDdlIds.has(item.habit.ddlId) && !item.isCompleted && ebState.isDue;
+    });
 
     if (targets.length === 0) {
-      promptAction.showToast({ message: '选中的待办已全部完成' });
+      promptAction.showToast({ message: '没有可打卡的待办' });
       this.exitSelectionMode();
       return;
     }
@@ -413,15 +404,12 @@ export struct HabitListSection {
       primaryButton: {
         value: '取消',
         fontColor: this.theme.brand,
-        action: () => {
-          // 点击取消，不做任何事，或者可以退出选择模式
-        }
+        action: () => {}
       },
       secondaryButton: {
         value: '删除',
         fontColor: $r('app.color.warning'),
         action: async () => {
-          // 点击删除
           try {
             const idsToDelete = Array.from(this.selectedDdlIds);
             await Promise.all(idsToDelete.map(ddlId => this.repo.deleteHabitByDdlId(ddlId)));
@@ -429,7 +417,6 @@ export struct HabitListSection {
             promptAction.showToast({ message: '删除成功' });
             this.refreshAll(this.selectedDate);
             this.exitSelectionMode();
-            // 通知全局刷新
             getContext(this).eventHub.emit('sync_done');
           } catch (e) {
             console.error('Batch delete failed:', e);
@@ -447,7 +434,6 @@ export struct HabitListSection {
       const targets = this.allHabitsCache.filter(item => this.selectedDdlIds.has(item.habit.ddlId));
 
       await Promise.all(targets.map(item => {
-        // 更新状态为 ARCHIVED
         const updatedHabit = item.habit;
         updatedHabit.status = HabitStatus.ARCHIVED;
         return this.repo.updateHabit(updatedHabit);
@@ -469,7 +455,6 @@ export struct HabitListSection {
     }
 
     const ddlId: number = this.selectedDdlIds.values().next().value;
-
     const targetItem = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
 
     if (!targetItem) {
@@ -477,10 +462,7 @@ export struct HabitListSection {
       return;
     }
 
-    // 5. 退出选择模式
     this.exitSelectionMode();
-
-    // 6. 填充数据并打开编辑页
     this.currentEditingHabit = targetItem.habit;
     this.isEditSheetShow = true;
   }
@@ -494,7 +476,6 @@ export struct HabitListSection {
   toggleSelection(ddlId: number) {
     if (this.selectedDdlIds.has(ddlId)) {
       this.selectedDdlIds.delete(ddlId);
-      // 如果所有都取消了，可能需要退出选择模式，视需求而定
       if (this.selectedDdlIds.size === 0) {
         this.isSelectionMode = false;
       }
@@ -514,7 +495,6 @@ export struct HabitListSection {
     return todayOverview ? todayOverview.completionRatio : 0;
   }
 
-  // == 编辑表单 ==
   @State isEditSheetShow: boolean = false
   @State currentEditingHabit: Habit | undefined = undefined;
 
@@ -528,11 +508,8 @@ export struct HabitListSection {
   }
 
   async handleSaveHabit(updatedHabit: Habit) {
-    // 执行数据库更新
     await this.repo.updateHabit(updatedHabit);
-    // 刷新列表
     await this.refreshAll(this.selectedDate);
-    // 全局通知
     getContext(this).eventHub.emit('sync_done');
   }
 
@@ -564,21 +541,11 @@ export struct HabitListSection {
     .justifyContent(FlexAlign.Center)
   }
 
-  /**
-   * 切换周
-   * @param offset -1 表示上一周，1 表示下一周
-   */
   changeWeek(offset: number) {
     const newDate = new Date(this.selectedDate);
-    // 偏移 7 天
     newDate.setDate(newDate.getDate() + (offset * 7));
-
-    // 更新选中日期，这会自动触发 UI 重绘（因为 selectedDate 是 @State）
     this.selectedDate = newDate;
-
-    // 刷新数据（重新计算周视图数据 和 当日待办状态）
     this.refreshAll(newDate);
-
     VibrationUtils.vibrateSoft();
   }
 
@@ -586,13 +553,11 @@ export struct HabitListSection {
     Column() {
       TopSafeContainer({ topAvoidHeight: this.topAvoidHeight, scrollable: false }) {
         Column() {
-          // 1. 顶部进度 (使用新组件)
           HabitProgress({ progress: this.getTodayCompletionRatio() })
             .margin({ top: 12, bottom: 12 })
             .align(Alignment.Center)
             .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
 
-          // 2. 本周日期横条 (使用新组件)
           WeekRow({
             weekOverview: this.weekOverview,
             selectedDate: this.selectedDate,
@@ -611,13 +576,15 @@ export struct HabitListSection {
               if (this.displayHabits.length > 0) {
                 ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
                   ListItem() {
-                    // 使用新组件 HabitRow
                     HabitRow({
                       data: item,
                       status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
                       isSelected: this.isSelected(item.habit.ddlId),
-                      canToggle: new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0),
-                      remainingText: "",
+                      // 直接在传参时进行内联计算
+                      canToggle: (new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0))
+                        && this.getEbbinghausState(item.habit, this.selectedDate).isDue,
+                      // 这里会重复调用一次 getEbbinghausState，但因为只有纯数学运算，对性能无影响
+                      remainingText: this.getEbbinghausState(item.habit, this.selectedDate).text,
                       onToggle: (): Promise<void> => this.onToggleHabit(item),
                       onLongPress: (): void => this.onLongPress(item.habit.ddlId)
                     })
@@ -654,7 +621,6 @@ export struct HabitListSection {
           }
           .onRefreshing(async () => {
             this.isRefreshing = true
-
             await this.refreshAll(this.selectedDate);
             this.isRefreshing = false;
           })

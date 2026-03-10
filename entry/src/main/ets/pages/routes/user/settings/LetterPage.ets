@@ -1,4 +1,5 @@
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { ITheme } from '../../../../common/theme/ThemeModel';
 import { MarkdownView } from '../../../components/MarkdownView';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
@@ -95,6 +96,9 @@ export struct LetterPage {
         .align(Alignment.TopStart)
       }
     }
-    .titleBar({ content: { title: { mainTitle: "开发者说" } } })
+    .titleBar({
+      style: getImmersiveTitleBarStyle(false),
+      content: { title: { mainTitle: "开发者说" } }
+    })
   }
 }

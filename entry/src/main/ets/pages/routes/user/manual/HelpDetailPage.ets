@@ -7,6 +7,7 @@ import { common } from '@kit.AbilityKit';
 import { BrandPageHeader } from '../../../components/BrandPageHeader';
 import { SettingsSection } from '../../../components/SettingsComponents';
 import { ITheme } from '../../../../common/theme/ThemeModel';
+import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 
 @Component
 export struct HelpDetailPage {
@@ -68,14 +69,7 @@ export struct HelpDetailPage {
     }
     .titleBar({
       content: { title: { mainTitle: this.title } },
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        }
-      }
+      style: getImmersiveTitleBarStyle(false),
     })
     .onReady((ctx) => {
       this.item = ctx.pathInfo.param as ManualItem;

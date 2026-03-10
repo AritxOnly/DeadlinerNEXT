@@ -15,6 +15,8 @@ import { SettingsConstants as C } from '../common/local/SettingsConstants';
 import { ITheme } from '../common/theme/ThemeModel';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { TimelinePage } from './routes/timeline/TimelinePage';
+import { hdsMaterial, HdsNavigation, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
+import { AdaptedHdsTabs } from './components/AdaptedHdsTabs';
 
 interface TabData {
   title: string,
@@ -198,17 +200,23 @@ struct Index {
   }
 
   @State currentIndex: number = 0;
-  private tabsController: TabsController = new TabsController();
+  private tabsController: HdsTabsController = new HdsTabsController();
 
   // 用于控制三个 Tab 的动画触发状态 (0: 初始, 每次点击增加以触发动画)
   @State tabAnimationTriggers: number[] = [0, 0, 0];
 
   // 定义 Tab 数据
+  // private tabs: Array<TabData> = [
+  //   { title: '清单', icon: $r('sys.symbol.checkmark_circle_on_circle_fill'), index: 0 },
+  //   { title: '时间线', icon: $r('sys.symbol.rectangle_and_line_horizontal_and_rectangle_filled'), index: 1 },
+  //   { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 2 },
+  //   { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 3 },
+  // ]
+
   private tabs: Array<TabData> = [
     { title: '清单', icon: $r('sys.symbol.checkmark_circle_on_circle_fill'), index: 0 },
-    { title: '时间线', icon: $r('sys.symbol.rectangle_and_line_horizontal_and_rectangle_filled'), index: 1 },
-    { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 2 },
-    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 3 },
+    { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 1 },
+    { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 2 },
   ]
 
   private getTabBarStyle(item: TabData): BottomTabBarStyle {
@@ -245,11 +253,20 @@ struct Index {
   build() {
     Stack() {
       if (this.isShowUI) {
-        Navigation(this.appPathStack) {
-          Tabs({
-            barPosition: (this.isWideScreen && this.tabletUi) ? BarPosition.Start : BarPosition.End,
-            index: this.currentIndex,
-            controller: this.tabsController
+        HdsNavigation(this.appPathStack) {
+          AdaptedHdsTabs({
+            currentIndex: $currentIndex,
+            isWideScreen: this.isWideScreen,
+            tabletUi: this.tabletUi,
+            theme: this.theme,
+            controller: this.tabsController,
+            onTabClick: (index: number) => {
+              this.tabAnimationTriggers[index] += 1;
+              if (index === this.currentIndex) {
+                console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
+                AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
+              }
+            }
           }) {
             // --- Tab 1: 主页 ---
             TabContent() {
@@ -278,32 +295,32 @@ struct Index {
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
 
-            TabContent() {
-              TimelinePage()
-                .width('100%')
-                .height('100%')
-                .attributeModifier(new TabAnimModifier(1, this.currentIndex))
-                .animation({
-                  duration: 300,
-                  curve: Curve.EaseInOut
-                })
-            }
-            .tabBar(this.getTabBarStyle(this.tabs[1]))
-            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-            .backgroundColor(this.theme.bgPrimary)
+            // TabContent() {
+            //   TimelinePage()
+            //     .width('100%')
+            //     .height('100%')
+            //     .attributeModifier(new TabAnimModifier(1, this.currentIndex))
+            //     .animation({
+            //       duration: 300,
+            //       curve: Curve.EaseInOut
+            //     })
+            // }
+            // .tabBar(this.getTabBarStyle(this.tabs[1]))
+            // .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+            // .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 2: 概览 ---
             TabContent() {
               if (!(this.isWideScreen && this.tabletUi)) {
                 OverviewPage({ currentTabIndex: this.currentIndex })
-                  .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
                   .animation({
                     duration: 300, // 保持与 Tabs 动画时长一致
                     curve: Curve.EaseInOut
                   })
               } else {
                 OverviewPageTablet()
-                  .attributeModifier(new TabAnimModifier(2, this.currentIndex))
+                  .attributeModifier(new TabAnimModifier(1, this.currentIndex))
                   .animation({
                     duration: 300, // 保持与 Tabs 动画时长一致
                     curve: Curve.EaseInOut
@@ -311,46 +328,30 @@ struct Index {
                   .padding({ left: TAB_VERTICAL_PADDING })
               }
             }
-            .tabBar(this.getTabBarStyle(this.tabs[2]))
+            .tabBar(this.getTabBarStyle(this.tabs[1]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
 
             // --- Tab 3: 我的 ---
             TabContent() {
               UserPage()
-                .attributeModifier(new TabAnimModifier(3, this.currentIndex))
+                .attributeModifier(new TabAnimModifier(2, this.currentIndex))
                 .animation({
                   duration: 300, // 保持与 Tabs 动画时长一致
                   curve: Curve.EaseInOut
                 })
                 .padding({ left: (this.isWideScreen && this.tabletUi) ? TAB_VERTICAL_PADDING : 0 })
             }
-            .tabBar(this.getTabBarStyle(this.tabs[3]))
+            .tabBar(this.getTabBarStyle(this.tabs[2]))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
             .backgroundColor(this.theme.bgPrimary)
           }
-          .vertical(this.isWideScreen && this.tabletUi)
-          .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
-          .barMode(BarMode.Fixed)
-          .barOverlap(true)
-          .background(this.theme.bgPrimary)
-          .animationDuration(300)
-          .scrollable(false)
-          .height('100%')
-          .width('100%')
-          .onChange((index: number) => {
-            this.currentIndex = index;
-          })
-          .onTabBarClick((index: number) => {
-            this.tabAnimationTriggers[index] += 1;
-
-            if (index === this.currentIndex) {
-              console.debug(`[MainPage] 重复点击了第 ${index} 页，触发回到顶部`);
-              AppStorage.setOrCreate(`Event_ScrollToTop_${index}`, Date.now());
-            }
-          })
         }
         .mode(NavigationMode.Stack)
+        .titleBar({
+          avoidLayoutSafeArea: false,
+          enableComponentSafeArea: false
+        })
         .hideTitleBar(true)
       }
 

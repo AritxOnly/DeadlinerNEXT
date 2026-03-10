@@ -47,8 +47,8 @@ struct InteractionSettings {
   @StorageLink(C.KEY_AUTO_ARCHIVE_DAYS) autoArchiveDays: number = 3;
 
   private options: StartupOption[] = [
-    { text: '目标', value: 0 },
-    { text: '待办', value: 1 }
+    { text: '任务', value: 0 },
+    { text: '习惯', value: 1 }
   ];
 
   handleSelect(value: number) {
@@ -90,14 +90,14 @@ struct InteractionSettings {
                 onChange: (isOn): Promise<void> => LocalValues.getInstance().setVibration(isOn)
               })
 
-              SubSettingsDivider()
-
-              SubSettingsSwitch({
-                title: "全屏添加页面",
-                subtitle: "开启后，点击添加按钮将打开沉浸式的全屏页面，而非半屏弹窗。",
-                isOn: this.fullScreenAdd,
-                onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
-              })
+              // SubSettingsDivider()
+              //
+              // SubSettingsSwitch({
+              //   title: "全屏添加页面",
+              //   subtitle: "开启后，点击添加按钮将打开沉浸式的全屏页面，而非半屏弹窗。",
+              //   isOn: this.fullScreenAdd,
+              //   onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
+              // })
 
               SubSettingsDivider()
 

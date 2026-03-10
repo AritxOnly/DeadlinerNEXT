@@ -2,6 +2,7 @@ import { preferences } from '@kit.ArkData';
 import { SettingsConstants as C } from './SettingsConstants';
 import { SecureStorage } from './SecureStorage';
 import { MainButtonType } from './LocalModels';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 interface WebDavAuthInterface {
   user: string;
@@ -36,6 +37,9 @@ export class LocalValues {
       // --- 1. 普通数据 (Preferences) ---
       const syncEnable = await this.pref.get(C.KEY_CLOUD_SYNC_ENABLE, false);
       AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_ENABLE, syncEnable);
+
+      const syncMode = await this.pref.get(C.KEY_CLOUD_SYNC_MODE, 'cloud');
+      AppStorage.setOrCreate(C.KEY_CLOUD_SYNC_MODE, syncMode);
 
       const url = await this.pref.get(C.KEY_WEBDAV_URL, '');
       AppStorage.setOrCreate(C.KEY_WEBDAV_URL, url);
@@ -130,6 +134,12 @@ export class LocalValues {
 
       const directAddOnAi = await this.pref.get(C.KEY_DIRECT_ADD_ON_AI, true);
       AppStorage.setOrCreate(C.KEY_DIRECT_ADD_ON_AI, directAddOnAi);
+
+      const enableApi23 = await this.pref.get(C.KEY_ENABLE_API23, true);
+      AppStorage.setOrCreate(C.KEY_ENABLE_API23, enableApi23);
+
+      const materialLevel = await this.pref.get(C.KEY_API23_MATERIAL_LEVEL, 'EXQUISITE');
+      AppStorage.setOrCreate(C.KEY_API23_MATERIAL_LEVEL, materialLevel)
 
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
       AppStorage.setOrCreate(C.KEY_OVERVIEW_CARD_ORDER, overviewOrder);
@@ -566,5 +576,31 @@ export class LocalValues {
 
   async setAutoArchiveDays(days: number) {
     await this.setValue(C.KEY_AUTO_ARCHIVE_DAYS, days);
+  }
+
+  getApi23Enable(): boolean {
+    return AppStorage.get(C.KEY_ENABLE_API23) ?? true;
+  }
+
+  async setApi23Enable(enable: boolean) {
+    await this.setValue(C.KEY_ENABLE_API23, enable);
+  }
+
+  getSyncMode(): string {
+    return AppStorage.get(C.KEY_CLOUD_SYNC_MODE) ?? 'cloud';
+  }
+
+  async setSyncMode(mode: string) {
+    await this.setValue(C.KEY_CLOUD_SYNC_MODE, mode);
+  }
+
+  getMaterialLevel(): string {
+    return AppStorage.get(C.KEY_API23_MATERIAL_LEVEL) ?? 'EXQUISITE';
+  }
+
+  async setMaterialLevel(level: string) {
+    const levels = ['ADAPTIVE', 'SMOOTH', 'GENTLE', 'EXQUISITE'];
+    const actual = (levels.includes(level)) ? level : 'ADAPTIVE';
+    await this.setValue(C.KEY_API23_MATERIAL_LEVEL, actual);
   }
 }
