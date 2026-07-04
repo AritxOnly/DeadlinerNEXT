@@ -17,6 +17,7 @@ import { ThemeManager } from '../../../../common/theme/ThemeManager';
 import { ITheme } from '../../../../common/theme/ThemeModel';
 import { ImageCropSheet } from './components/ImageCropSheet';
 import { IconSelectSheet } from './components/IconSelectSheet';
+import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from '../../../../common/layout/AppBreakpoints';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -29,13 +30,14 @@ struct AppearanceSettings {
   @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
+  @StorageLink(APP_BREAKPOINT_STORAGE_KEY) currentBreakpoint: string = APP_BREAKPOINT_DEFAULT;
   @StorageProp('currentThemeKey') currentThemeKey: string = 'vibrant';
   @StorageProp('currentTheme') currentTheme: ITheme = {} as ITheme;
   @State initialThemeSnapshot: string = '';
   @State restartRequested: boolean = false;
 
   private navigateTo(name: string) {
-    if (this.isWideScreen) {
+    if (AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi)) {
       this.userLocalPathStack.pushPath({ name: name });
     } else {
       this.appPathStack.pushPath({ name: name });
@@ -367,7 +369,7 @@ struct AppearanceSettings {
             })
           }
 
-          Blank().height(0)
+          Blank().height(50)
             .bindSheet($$this.isIconSelectShow, this.iconSelectSheet(), {
               blurStyle: BlurStyle.Regular,
               backgroundColor: Color.Transparent,

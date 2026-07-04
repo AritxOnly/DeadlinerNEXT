@@ -51,4 +51,8 @@ export class AppBreakpointUtils {
   static isWide(breakpoint: string): boolean {
     return breakpoint === AppBreakpoint.LG || breakpoint === AppBreakpoint.XL;
   }
+
+  static usesSplitLayout(breakpoint: string, tabletUi: boolean): boolean {
+    return tabletUi && breakpoint !== AppBreakpoint.SM;
+  }
 }

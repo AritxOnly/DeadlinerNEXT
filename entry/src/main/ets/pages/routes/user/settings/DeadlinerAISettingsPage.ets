@@ -158,7 +158,7 @@ export struct LifiAISettingsPage {
             .backgroundColor($r('app.color.background_secondary'))
             .borderRadius(24)
 
-            Blank()
+            Blank().height(50)
           }
           .height('100%')
           .width('100%')

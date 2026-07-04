@@ -98,6 +98,8 @@ struct HabitProgressStyleSettings {
             .padding({ left: 24, right: 24, top: 8, bottom: 24 })
             .width('100%')
 
+          Blank().height(50)
+
         }
         .width('100%')
         .padding(16)

@@ -823,26 +823,34 @@ export struct PersonalizationPage {
           .width('100%')
           .height('100%')
         }
+
+        Blank()
+          .width(0)
+          .height(0)
+          .bindSheet($$this.isThemeSelectSheetShow, this.themeSheet(), {
+            detents: [550, 900],
+            height: 550,
+            dragBar: true,
+            enableFloatingDragBar: true,
+            enableOutsideInteractive: false,
+            scrollSizeMode: ScrollSizeMode.CONTINUOUS,
+            onDisappear: () => {
+              this.isThemeSelectSheetShow = false;
+            },
+            backgroundColor: Color.Transparent,
+            showClose: false
+          })
+
+        Blank()
+          .width(0)
+          .height(0)
+          .bindSheet($$this.isBackgroundSheetShow, this.cropSheetBuilder(), {
+            showClose: false,
+            onDisappear: () => {
+              this.isBackgroundSheetShow = false;
+            }
+          })
       }
-      .bindSheet($$this.isThemeSelectSheetShow, this.themeSheet(), {
-        detents: [550, 900],
-        height: 550,
-        dragBar: true,
-        enableFloatingDragBar: true,
-        enableOutsideInteractive: false,
-        scrollSizeMode: ScrollSizeMode.CONTINUOUS,
-        onDisappear: () => {
-          this.isThemeSelectSheetShow = false;
-        },
-        backgroundColor: Color.Transparent,
-        showClose: false
-      })
     }
-    .bindSheet($$this.isBackgroundSheetShow, this.cropSheetBuilder(), {
-      showClose: false,
-      onDisappear: () => {
-        this.isBackgroundSheetShow = false;
-      }
-    })
   }
 }

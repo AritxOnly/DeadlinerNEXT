@@ -2,17 +2,30 @@ import { MarkdownParser, MdNode, MdType } from '../../utils/markdown/MarkdownPar
 import { ManualDataManager, ManualItem } from '../../common/manual/ManualModel';
 import { LinkParser, LinkSegment, LinkType } from '../../utils/markdown/LinkParser';
 import { ITheme } from '../../common/theme/ThemeModel';
+import { SettingsConstants as C } from '../../common/local/SettingsConstants';
+import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from '../../common/layout/AppBreakpoints';
 
 @Component
 export struct MarkdownView {
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
+  @StorageLink(APP_BREAKPOINT_STORAGE_KEY) currentBreakpoint: string = APP_BREAKPOINT_DEFAULT;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
 
   @Prop content: string = '';
   @State nodes: MdNode[] = [];
 
   @Prop baseColor: string | ResourceColor = '';
+
+  private pushRoute(pathInfo: NavPathInfo) {
+    if (AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi) && this.userLocalPathStack.size() > 0) {
+      this.userLocalPathStack.pushPath(pathInfo);
+      return;
+    }
+    this.appPathStack.pushPath(pathInfo);
+  }
 
   aboutToAppear() {
     // 组件加载时进行解析
@@ -37,7 +50,7 @@ export struct MarkdownView {
                 const realItem = ManualDataManager.getInstance().getItemById(targetId);
 
                 if (realItem) {
-                  this.appPathStack.pushPath({
+                  this.pushRoute({
                     name: 'helpDetail',
                     param: realItem
                   });
@@ -51,12 +64,12 @@ export struct MarkdownView {
                     themeColor: '#808080',
                     icon: $r('sys.symbol.doc')
                   };
-                  this.appPathStack.pushPath({ name: 'helpDetail', param: tempItem });
+                  this.pushRoute({ name: 'helpDetail', param: tempItem });
                 }
 
               } else {
                 // 跳转普通路由
-                this.appPathStack.pushPath({ name: segment.target });
+                this.pushRoute({ name: segment.target });
               }
             })
         }

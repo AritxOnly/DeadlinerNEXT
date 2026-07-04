@@ -21,6 +21,8 @@ export struct HelpDetailPage {
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+
   async loadMarkdown() {
     if (this.item && this.item.fileName) {
       const context = getContext(this) as common.UIAbilityContext;
@@ -69,7 +71,7 @@ export struct HelpDetailPage {
       }
     }
     .titleBar({
-      avoidLayoutSafeArea: true,
+      avoidLayoutSafeArea: this.isWideScreen,
       content: { title: { mainTitle: this.title } },
       style: getImmersiveTitleBarStyle(false),
     })

@@ -219,6 +219,8 @@ struct NotificationSettings {
               .fontColor($r('app.color.font_secondary'))
               .padding({ top: 16, left: 16 })
           }
+
+          Blank().height(50)
         }
         .width('100%')
         .padding(16)

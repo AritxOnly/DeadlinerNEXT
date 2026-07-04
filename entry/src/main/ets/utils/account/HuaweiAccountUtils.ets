@@ -59,6 +59,10 @@ export class HuaweiAccountUtils implements AccountUtils {
     return true;
   }
 
+  static async signOutAsync(): Promise<void> {
+    await auth.signOut();
+  }
+
    static async getHuaweiAccountProfile(context: Context, forcePrompt: boolean = false): Promise<HuaweiAccountProfile> {
     let avatarUri: string | undefined = undefined;
     let nickName: string | undefined = undefined;

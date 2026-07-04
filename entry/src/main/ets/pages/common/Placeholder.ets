@@ -39,12 +39,14 @@ export struct PlaceHolder {
       .alignItems(HorizontalAlign.Center)
       // 背景色设在这里
       .backgroundColor(this.theme.bgPrimary)
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     }
     // 配置标题栏（即使隐藏也要配置，为了统一沉浸式行为）
     .titleBar({
       style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: { title: { mainTitle: '' } }
     })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
     .hideTitleBar(true)   // 占位页通常不需要标题栏
     .hideBackButton(true) // 占位页绝不需要返回按钮
   }

@@ -20,9 +20,9 @@ import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
 import { ITheme } from "../../../common/theme/ThemeModel";
 import { FriendshipLinksPage } from "./settings/FriendshipLinksPage";
 import {
-  AppBreakpoint,
   APP_BREAKPOINT_DEFAULT,
-  APP_BREAKPOINT_STORAGE_KEY
+  APP_BREAKPOINT_STORAGE_KEY,
+  AppBreakpointUtils
 } from "../../../common/layout/AppBreakpoints";
 
 const USER_ROUTE_WHITELIST: string[] = [
@@ -33,7 +33,13 @@ const USER_ROUTE_WHITELIST: string[] = [
   'settingsAI',
   'settingsAbout',
   'settingsHelpCenter',
-  'settingsWidgetBackground'
+  'settingsWidgetBackground',
+  'settingsMainPageButtons',
+  'settingsHabitProgressStyle',
+  'helpDetail',
+  'letterPage',
+  'codeText',
+  'webBrowser'
 ];
 
 const PLACEHOLDER_ROUTE_NAME = 'placeholder';
@@ -69,7 +75,7 @@ export struct UserPage {
   }
 
   private usesSplitLayout(): boolean {
-    return this.tabletUi && this.currentBreakpoint !== AppBreakpoint.SM;
+    return AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi);
   }
 
   /**

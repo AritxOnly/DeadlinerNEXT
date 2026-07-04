@@ -1,5 +1,6 @@
 import { HdsNavDestination, HdsNavDestinationAttribute } from "@kit.UIDesignKit";
 import { LocalValues } from "../../../../common/local/LocalValues";
+import { SettingsConstants as C } from "../../../../common/local/SettingsConstants";
 import { HuaweiAccountUtils } from "../../../../utils/account/HuaweiAccountUtils";
 import { SettingsDivider, SettingsItem, SettingsSection } from "../../../components/SettingsComponents";
 import { common, bundleManager, Want } from "@kit.AbilityKit";
@@ -10,6 +11,7 @@ import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 import { MarkdownView } from "../../../components/MarkdownView";
 import { LETTER_CONTENT } from "./LetterPage";
 import { ITheme } from "../../../../common/theme/ThemeModel";
+import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from "../../../../common/layout/AppBreakpoints";
 
 @Builder
 export function AboutPageBuilder() {
@@ -22,12 +24,23 @@ export struct AboutPage {
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
+  @StorageLink(APP_BREAKPOINT_STORAGE_KEY) currentBreakpoint: string = APP_BREAKPOINT_DEFAULT;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
 
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
   @StorageLink('topAvoidExtraHeight') topAvoidExtraHeight: number = 0;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   private context = getContext(this) as common.UIAbilityContext;
+
+  private pushSettingsRoute(pathInfo: NavPathInfo) {
+    if (AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi)) {
+      this.userLocalPathStack.pushPath(pathInfo);
+      return;
+    }
+    this.appPathStack.pushPath(pathInfo);
+  }
 
   @State versionName: string = '';
   @State versionCode: string = '';
@@ -61,8 +74,14 @@ export struct AboutPage {
         action: async () => {
           await LocalValues.getInstance().revokePrivacy();
           await LocalValues.getInstance().clearAllAdvancedSettings();
-          (new HuaweiAccountUtils()).signOut();
-          this.context.terminateSelf();
+          try {
+            await HuaweiAccountUtils.signOutAsync();
+          } catch (error) {
+            console.error('Sign out after privacy revoke failed', JSON.stringify(error));
+          } finally {
+            AppStorage.setOrCreate('isLoggedIn', false);
+            this.context.terminateSelf();
+          }
         }
       },
       backgroundBlurStyle: BlurStyle.Regular
@@ -77,7 +96,7 @@ export struct AboutPage {
       title: '隐私协议',
     };
 
-    this.appPathStack.pushPath({
+    this.pushSettingsRoute({
       name: 'webBrowser',
       param: params,
     });
@@ -137,7 +156,7 @@ export struct AboutPage {
               icon: $r('sys.symbol.envelope'),
               onItemClick: () => {
                 if (this.isWideScreen) this.isLetterSheetShow = true;
-                else this.appPathStack.pushPath({ name: 'letterPage' }); }
+                else this.pushSettingsRoute({ name: 'letterPage' }); }
             })
 
             SettingsDivider()
@@ -163,7 +182,7 @@ export struct AboutPage {
                   title: '开源许可证'
                 };
 
-                this.appPathStack.pushPath({
+                this.pushSettingsRoute({
                   name: 'codeText',
                   param: params
                 });

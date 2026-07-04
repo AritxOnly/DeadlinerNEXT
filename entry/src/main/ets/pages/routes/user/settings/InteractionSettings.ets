@@ -7,6 +7,7 @@ import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
 import { HdsNavDestination, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
+import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from '../../../../common/layout/AppBreakpoints';
 
 @Builder
 export function InteractionSettingsBuilder() {
@@ -25,9 +26,11 @@ struct InteractionSettings {
   @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
 
   @StorageLink('isWideScreen') isWideScreen: boolean = false;
+  @StorageLink(APP_BREAKPOINT_STORAGE_KEY) currentBreakpoint: string = APP_BREAKPOINT_DEFAULT;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
 
   private navigateTo(name: string) {
-    if (this.isWideScreen) {
+    if (AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi)) {
       this.userLocalPathStack.pushPath({ name: name });
     } else {
       this.appPathStack.pushPath({ name: name });
@@ -174,6 +177,8 @@ struct InteractionSettings {
             .fontColor($r('sys.color.ohos_id_color_text_secondary'))
             .padding({ left: 24, right: 24, top: 0, bottom: 24 })
             .lineHeight(16)
+
+          Blank().height(50)
         }
         .width('100%')
         .padding(16)

@@ -5,17 +5,32 @@ import { ManualSection, ManualItem, ManualDataManager } from '../../../../common
 import { common } from '@kit.AbilityKit';
 import { ITheme } from '../../../../common/theme/ThemeModel';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
+import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
+import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from '../../../../common/layout/AppBreakpoints';
 
 @Component
 export struct HelpCenterPage {
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Consume('userLocalPathStack') userLocalPathStack: NavPathStack = new NavPathStack();
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
 
   @State sections: ManualSection[] = [];
   @State isLoading: boolean = true;
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
+  @StorageLink(APP_BREAKPOINT_STORAGE_KEY) currentBreakpoint: string = APP_BREAKPOINT_DEFAULT;
+  @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
+
+  private pushSettingsRoute(pathInfo: NavPathInfo) {
+    if (AppBreakpointUtils.usesSplitLayout(this.currentBreakpoint, this.tabletUi)) {
+      this.userLocalPathStack.pushPath(pathInfo);
+      return;
+    }
+    this.appPathStack.pushPath(pathInfo);
+  }
 
   aboutToAppear() {
     this.loadData();
@@ -105,7 +120,7 @@ export struct HelpCenterPage {
                       icon: item.icon,
                       isImage: item.isImage,
                       onItemClick: () => {
-                        this.appPathStack.pushPath({
+                        this.pushSettingsRoute({
                           name: 'helpDetail',
                           param: item
                         })
@@ -129,7 +144,7 @@ export struct HelpCenterPage {
       }
     }
     .titleBar({
-      avoidLayoutSafeArea: true,
+      avoidLayoutSafeArea: this.isWideScreen,
       style: getImmersiveTitleBarStyle(false),
       content: { title: { mainTitle: "使用手册" } }
     })

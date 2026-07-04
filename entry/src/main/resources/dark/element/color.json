@@ -280,6 +280,8 @@
 
     { "name": "widget_bg_grad_start", "value": "#FF1A1D21" },
     { "name": "widget_bg_grad_end", "value": "#FF141619" },
-    { "name": "widget_item_bg", "value": "#FF282C31" }
+    { "name": "widget_item_bg", "value": "#FF282C31" },
+
+    { "name": "tab_bar_icon_unselected", "value": "#CCCCCC" }
   ]
 }

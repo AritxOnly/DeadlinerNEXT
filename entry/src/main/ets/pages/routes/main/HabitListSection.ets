@@ -569,91 +569,87 @@ export struct HabitListSection {
 
   build() {
     Column() {
+      Blank().height(this.topAvoidHeight).width('100%')
+
       Column() {
-        Blank().height(this.topAvoidHeight).width('100%')
+        HabitProgress({ progress: this.getTodayCompletionRatio() })
+          .margin({ top: 12, bottom: 12 })
+          .align(Alignment.Center)
+          .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
 
-        Column() {
-          HabitProgress({ progress: this.getTodayCompletionRatio() })
-            .margin({ top: 12, bottom: 12 })
-            .align(Alignment.Center)
-            .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
+        WeekRow({
+          weekOverview: this.weekOverview,
+          selectedDate: this.selectedDate,
+          currentDate: new Date(),
+          onChangeWeek: (offset: number): void => this.changeWeek(offset),
+          onSelectDate: (d: Date): void => this.onDateSelected(d)
+        })
+          .margin({ bottom: 8 })
+          .align(Alignment.Center)
+          .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
 
-          WeekRow({
-            weekOverview: this.weekOverview,
-            selectedDate: this.selectedDate,
-            currentDate: new Date(),
-            onChangeWeek: (offset: number): void => this.changeWeek(offset),
-            onSelectDate: (d: Date): void => this.onDateSelected(d)
-          })
-            .margin({ bottom: 8 })
-            .align(Alignment.Center)
-            .attributeModifier(new FloatUpModifier(0, 15, this.isFirstLoad))
-
-          Refresh({
-            refreshing: $$this.isRefreshing
-          }) {
-            List({ scroller: this.scroller, space: 10 }) {
-              if (this.displayHabits.length > 0) {
-                ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
-                  ListItem() {
-                    HabitRow({
-                      data: item,
-                      status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
-                      isSelected: this.isSelected(item.habit.ddlId),
-                      // 直接在传参时进行内联计算
-                      canToggle: (new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0))
-                        && this.getEbbinghausState(item.habit, this.selectedDate).isDue,
-                      // 这里会重复调用一次 getEbbinghausState，但因为只有纯数学运算，对性能无影响
-                      remainingText: this.getEbbinghausState(item.habit, this.selectedDate).text,
-                      onToggle: (): Promise<void> => this.onToggleHabit(item),
-                      onLongPress: (): void => this.onLongPress(item.habit.ddlId)
-                    })
-                  }
-                  .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
-                  .attributeModifier(new PressEffectModifier(0.98))
-                  .animation({
-                    curve: curves.responsiveSpringMotion(0.35, 0.60)
+        Refresh({
+          refreshing: $$this.isRefreshing
+        }) {
+          List({ scroller: this.scroller, space: 10 }) {
+            if (this.displayHabits.length > 0) {
+              ForEach(this.displayHabits, (item: HabitWithDailyStatus, index: number) => {
+                ListItem() {
+                  HabitRow({
+                    data: item,
+                    status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
+                    isSelected: this.isSelected(item.habit.ddlId),
+                    canToggle: (new Date(this.selectedDate).setHours(0, 0, 0, 0) <= new Date().setHours(0, 0, 0, 0))
+                      && this.getEbbinghausState(item.habit, this.selectedDate).isDue,
+                    remainingText: this.getEbbinghausState(item.habit, this.selectedDate).text,
+                    onToggle: (): Promise<void> => this.onToggleHabit(item),
+                    onLongPress: (): void => this.onLongPress(item.habit.ddlId)
                   })
-                }, (item: HabitWithDailyStatus) => {
-                  return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
+                }
+                .attributeModifier(new FloatUpModifier(index + 1, 15, this.isFirstLoad))
+                .attributeModifier(new PressEffectModifier(0.98))
+                .animation({
+                  curve: curves.responsiveSpringMotion(0.35, 0.60)
                 })
+              }, (item: HabitWithDailyStatus) => {
+                return `${item.habit.id}_${item.doneCount}_${item.habit.updatedAt}`;
+              })
 
-                ListItem() {
-                  Column() {
-                    Blank().height(140)
-                  }
+              ListItem() {
+                Column() {
+                  Blank().height(140)
                 }
-              } else {
-                ListItem() {
-                  this.EmptyPlaceholder()
-                }
-                .width('100%')
-                .height('100%')
-                .attributeModifier(new FloatUpModifier(2, 15))
               }
+            } else {
+              ListItem() {
+                this.EmptyPlaceholder()
+              }
+              .width('100%')
+              .height('100%')
+              .attributeModifier(new FloatUpModifier(2, 15))
             }
-            .width('100%')
-            .height('100%')
-            .layoutWeight(1)
-            .padding({ left: 12, right: 12 })
-            .scrollBar(BarState.Off)
-            .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
-            .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
           }
-          .onRefreshing(async () => {
-            this.isRefreshing = true
-            await this.refreshAll(this.selectedDate);
-            this.isRefreshing = false;
-          })
-          .layoutWeight(1)
           .width('100%')
+          .height('100%')
+          .layoutWeight(1)
+          .padding({ left: 12, right: 12 })
+          .scrollBar(BarState.Off)
+          .edgeEffect(EdgeEffect.Spring, { alwaysEnabled: true })
           .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
         }
-        .height('100%')
-        .width('100%')
+        .onRefreshing(async () => {
+          this.isRefreshing = true
+          await this.refreshAll(this.selectedDate);
+          this.isRefreshing = false;
+        })
         .layoutWeight(1)
+        .width('100%')
         .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
       }
+      .height('100%')
+      .width('100%')
+      .layoutWeight(1)
+      .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.BOTTOM])
     }
     .width('100%')
     .height('100%')

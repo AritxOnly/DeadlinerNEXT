@@ -392,9 +392,9 @@ struct Index {
 
   // 定义 Tab 数据
   private tabs: Array<TabData> = [
-    { title: '清单', icon: $r('sys.symbol.checkmark_circle_on_circle_fill'), index: 0 },
+    { title: '清单', icon: $r('sys.symbol.house_fill_1'), index: 0 },
     { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 1 },
-    { title: '灵感', icon: $r('sys.symbol.pencil_crcle_fill'), index: 2 },
+    { title: '灵感', icon: $r('app.media.capture'), index: 2 },
     { title: 'AI', icon: $r('app.media.lifi'), index: 3 },
     { title: '我的', icon: $r('sys.symbol.person_crop_circle_fill_1'), index: 4 },
   ]
@@ -412,12 +412,12 @@ struct Index {
 
     style.iconStyle({
       selectedColor: this.theme.tabIcon,
-      unselectedColor: $r('app.color.font_secondary')
+      unselectedColor: $r('app.color.tab_bar_icon_unselected')
     });
 
     style.labelStyle({
       selectedColor: this.theme.tabIcon,
-      unselectedColor: $r('app.color.font_secondary')
+      unselectedColor: $r('app.color.tab_bar_icon_unselected')
     })
 
     return style;
@@ -427,7 +427,7 @@ struct Index {
     return {
       normal: new SymbolGlyphModifier(icon)
         .fontSize(24)
-        .fontColor([$r('app.color.font_secondary')])
+        .fontColor([$r('app.color.tab_bar_icon_unselected')])
         .renderingStrategy(SymbolRenderingStrategy.MULTIPLE_OPACITY),
 
       selected: new SymbolGlyphModifier(icon)
@@ -526,7 +526,7 @@ struct Index {
                 })
                 .padding({ left: (this.isWideScreen && this.tabletUi && !this.getFloatingTabs()) ? TAB_VERTICAL_PADDING : 0 })
             }
-            .tabBar(this.getTabBarStyle(this.tabs[2]))
+            .tabBar(this.getTabBarStyle(this.tabs[2], true))
             .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
 
             // --- Tab 4: Lifi ---

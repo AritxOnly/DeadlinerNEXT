@@ -3,6 +3,8 @@ import { getHdsMaterialLevelRaw } from '../../common/style/MaterialLevel';
 import { BlurBackgroundModifier } from '../../utils/animation/BlurBackgroundModifier';
 import { HdsMiniBarButton } from './infra/HdsMiniBarButton';
 import { Symbol } from './infra/Symbol';
+import { uiMaterial } from '@kit.ArkUI';
+import { deviceInfo } from '@kit.BasicServicesKit';
 
 @Component
 export struct HdsTitleBarMenuButton {
@@ -52,16 +54,32 @@ export struct HdsTitleBarMenuButton {
         this.buttonIcon()
       }
     } else {
-      Button({ type: ButtonType.Circle, stateEffect: true }) {
-        this.buttonIcon()
+      if (deviceInfo.apiAvailable('26.0.0')) {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          this.buttonIcon()
+        }
+        .width(this.buttonSize)
+        .height(this.buttonSize)
+        .attributeModifier(
+          new BlurBackgroundModifier((!!this.customBg && this.api23), $r('sys.color.comp_background_tertiary')))
+        .onClick(() => {
+          this.handleClick();
+        })
+        .enabled(this.isEnabled)
+        .systemMaterial(
+          new uiMaterial.ImmersiveMaterial()
+        )
+      } else {
+        Button({ type: ButtonType.Circle, stateEffect: true }) {
+          this.buttonIcon()
+        }
+        .width(this.buttonSize)
+        .height(this.buttonSize)
+        .onClick(() => {
+          this.handleClick();
+        })
+        .enabled(this.isEnabled)
       }
-      .width(this.buttonSize)
-      .height(this.buttonSize)
-      .attributeModifier(new BlurBackgroundModifier((!!this.customBg && this.api23), $r('sys.color.comp_background_tertiary')))
-      .onClick(() => {
-        this.handleClick();
-      })
-      .enabled(this.isEnabled)
     }
   }
 }

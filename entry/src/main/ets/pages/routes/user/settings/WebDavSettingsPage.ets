@@ -211,6 +211,8 @@ export struct SettingsWebDavPage {
                 }
               })
           }
+
+          Blank().height(50)
         }
         .width('100%')
         .padding(16)

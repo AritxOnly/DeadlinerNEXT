@@ -376,7 +376,7 @@ struct HistoryStatsCard {
     const greenColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartCompleted));
     const orangeColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartTodo));
     const redColor = ColorUtils.parseColor(getHexColorSync(ctx, this.theme.chartOverdue));
-    const grayColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('sys.color.ohos_id_color_text_secondary')));
+    const grayColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.icon_secondary')));
     const txtColor = ColorUtils.parseColor(getHexColorSync(ctx, $r('app.color.font_secondary')));
 
     const completed = this.historyStats.get("累计完成") || 0;

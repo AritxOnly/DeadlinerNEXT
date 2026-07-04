@@ -28,7 +28,7 @@ import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 import { HdsTitleBarMenuButton } from '../../components/HdsTitleBarMenuButton'
 import { HdsTitleBarSegment } from '../../components/HdsTitleBarSegment'
 import { AISheetController } from '../../components/AISheetController'
-import { SideDashboard } from '../../components/SideDashboard'
+import { HomeFocusLayout, HomeFocusPanel, HomeFocusRailMode, HomeFocusSegment } from '../../components/HomeFocusPanel'
 import { SearchPage } from './search/SearchPage'
 import { AddDialogTablet } from '../../components/AddDialogTablet'
 import { MainProfileQuickSheet, ProfileAvatarMenuButton } from '../../components/MainProfileEntry'
@@ -328,7 +328,6 @@ export struct MainHomePage {
   }
 
   private buildWideTitleMenus(): HdsNavigationMenuItemOptions[] {
-    // TODO: md/lg 的 HdsNavigation.menu 头像仍受 icon slot 约束，后续再评估是否改成可裁切资源或支持自定义菜单项。
     return [
       {
         content: {
@@ -357,6 +356,14 @@ export struct MainHomePage {
 
   private isTaskTab(): boolean {
     return this.currentIndex === MainTabIndex.TASKS;
+  }
+
+  private getCurrentHomeFocusSegment(): HomeFocusSegment {
+    return this.isTaskTab() ? HomeFocusSegment.TASKS : HomeFocusSegment.HABITS;
+  }
+
+  private getRailSegment(): HomeFocusSegment {
+    return this.usesWideSplitLayout() ? HomeFocusSegment.ALL : this.getCurrentHomeFocusSegment();
   }
 
   private getFreeTopAvoidHeight(): number {
@@ -615,8 +622,12 @@ export struct MainHomePage {
         .color($r('sys.color.ohos_id_color_list_separator'))
         .opacity(0.5)
 
-      SideDashboard()
-        .width(132)
+      HomeFocusPanel({
+        segment: this.getRailSegment(),
+        layout: HomeFocusLayout.RAIL,
+        railMode: HomeFocusRailMode.MEDIUM
+      })
+        .width(164)
         .height('100%')
         .padding({ top: this.getMiniTopAvoidHeight(), left: 10, right: 10, bottom: 24 })
     }
@@ -840,10 +851,14 @@ export struct MainHomePage {
             .color($r('sys.color.ohos_id_color_list_separator'))
             .opacity(0.5)
 
-          SideDashboard()
-            .width(108)
+          HomeFocusPanel({
+            segment: this.getRailSegment(),
+            layout: HomeFocusLayout.RAIL,
+            railMode: HomeFocusRailMode.WIDE
+          })
+            .width(176)
             .height('100%')
-            .padding({ top: this.getMiniTopAvoidHeight() + this.statusBarHeight })
+            .padding({ top: this.getMiniTopAvoidHeight() + this.statusBarHeight, left: 12, right: 12, bottom: 24 })
         }
       }
       .width('100%')
@@ -927,6 +942,10 @@ export struct MainHomePage {
           right: { anchor: '__container__', align: HorizontalAlign.End },
         })
         .zIndex(1)
+
+      this.currentPhoneFabBuilder()
+
+      Column()
         .bindSheet($$this.isAddShow, this.addSheet(), {
           height: SheetSize.LARGE,
           onDisappear: () => {
@@ -936,16 +955,6 @@ export struct MainHomePage {
           backgroundColor: Color.Transparent,
           showClose: false
         })
-        .bindSheet($$this.isProfileSheetShow, this.profileSheet(), {
-          height: SheetSize.FIT_CONTENT,
-          dragBar: true,
-          blurStyle: BlurStyle.Regular,
-          backgroundColor: Color.Transparent,
-          onDisappear: () => { this.closeProfileSheet(); },
-          title: { title: '主页工作台' }
-        })
-
-      this.currentPhoneFabBuilder()
 
       Column()
         .bindSheet($$this.isSearchShow, this.searchSheet(), {
