@@ -55,6 +55,7 @@ export struct TaskFormView {
           AITextInput({
             text: $aiInputText,
             placeholder: "询问 AI 以快速添加任务...",
+            inputEnabled: !this.isAILoading,
             onAITriggered: this.onAITriggered
           })
         }

@@ -17,6 +17,7 @@ import { ThemeManager } from '../common/theme/ThemeManager';
 import { DynamicIconUtils } from '../utils/DynamicIconUtils';
 import { AIService } from '../ai/AIServcice';
 import { AppBreakpointUtils, APP_BREAKPOINT_STORAGE_KEY } from '../common/layout/AppBreakpoints';
+import { API23_UI_DEFAULT, EXPERIMENTAL_COMPONENTS_DEFAULT } from '../common/local/ExperimentalComponentsPolicy';
 
 const DOMAIN = 0x0000;
 
@@ -27,6 +28,9 @@ export default class EntryAbility extends UIAbility {
   async onCreate(want: Want, launchParam: AbilityConstant.LaunchParam): Promise<void> {
     try {
       this.context.getApplicationContext().setColorMode(ConfigurationConstant.ColorMode.COLOR_MODE_NOT_SET);
+      AppStorage.setOrCreate(C.KEY_ENABLE_API23, API23_UI_DEFAULT);
+      AppStorage.setOrCreate(C.KEY_EXPERIMENTAL_COMPONENTS, EXPERIMENTAL_COMPONENTS_DEFAULT);
+      AppStorage.setOrCreate(C.KEY_API23_MATERIAL_LEVEL, 'EXQUISITE');
 
       await ThemeManager.init(this.context);
 

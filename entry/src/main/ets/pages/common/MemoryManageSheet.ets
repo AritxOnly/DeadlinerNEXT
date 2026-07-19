@@ -6,6 +6,8 @@ import {
 } from '@kit.UIDesignKit';
 import { SettingsSection } from '../components/SettingsComponents';
 import { TopSafeContainer } from '../components/TopSafeContainer';
+import { DialogCompat } from '../../common/ui/DialogCompat';
+import { ImmersivePopupSurface } from '../../common/ui/ImmersivePopupSurface';
 
 // ==========================================
 // MARK: - 自定义画像编辑弹窗
@@ -20,47 +22,49 @@ export struct ProfileEditDialog {
 
   build() {
     Column() {
-      Text("编辑用户画像")
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
+      ImmersivePopupSurface({ paddingValue: 16, radius: 36, fallbackBlurStyle: BlurStyle.Thick }) {
+        Column() {
+          Text("编辑用户画像")
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('sys.color.ohos_id_color_text_primary'))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .margin({ top: 8, bottom: 24 })
+
+          TextArea({ text: $$this.draftContent, placeholder: "输入画像..." })
+            .height(140)
+            .backgroundColor($r('sys.color.comp_background_tertiary'))
+            .borderRadius(24)
+            .padding(12)
+
+          Row() {
+            Button("取消")
+              .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onClick(() => {
+                this.controller?.close();
+              })
+
+            Divider().vertical(true).height(24).color($r('sys.color.ohos_id_color_list_separator'))
+
+            Button("保存")
+              .fontColor(this.theme.brand)
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onClick(() => {
+                this.onConfirm();
+                this.controller?.close();
+              })
+          }
+          .margin({ top: 24 })
+          .width('100%')
+        }
         .width('100%')
-        .textAlign(TextAlign.Center)
-        .margin({ top: 8, bottom: 24 })
-
-      TextArea({ text: $$this.draftContent, placeholder: "输入画像..." })
-        .height(140)
-        .backgroundColor($r('sys.color.comp_background_tertiary'))
-        .borderRadius(24)
-        .padding(12)
-
-      Row() {
-        Button("取消")
-          .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.controller?.close();
-          })
-
-        Divider().vertical(true).height(24).color($r('sys.color.ohos_id_color_list_separator'))
-
-        Button("保存")
-          .fontColor(this.theme.brand)
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.onConfirm();
-            this.controller?.close();
-          })
       }
-      .margin({ top: 24 })
-      .width('100%')
     }
-    .padding(16)
     .margin(16)
-    .borderRadius(36)
-    .backgroundBlurStyle(BlurStyle.Thick)
   }
 }
 
@@ -77,47 +81,49 @@ export struct FragmentEditDialog {
 
   build() {
     Column() {
-      Text("编辑碎片记忆")
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
+      ImmersivePopupSurface({ paddingValue: 16, radius: 36, fallbackBlurStyle: BlurStyle.Thick }) {
+        Column() {
+          Text("编辑碎片记忆")
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .fontColor($r('sys.color.ohos_id_color_text_primary'))
+            .width('100%')
+            .textAlign(TextAlign.Center)
+            .margin({ top: 8, bottom: 24 })
+
+          TextArea({ text: $$this.draftContent })
+            .height(140)
+            .backgroundColor($r('sys.color.comp_background_tertiary'))
+            .borderRadius(24)
+            .padding(12)
+
+          Row() {
+            Button("取消")
+              .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onClick(() => {
+                this.controller?.close();
+              })
+
+            Divider().vertical(true).height(24).color($r('sys.color.ohos_id_color_list_separator'))
+
+            Button("保存")
+              .fontColor(this.theme.brand)
+              .backgroundColor(Color.Transparent)
+              .layoutWeight(1)
+              .onClick(() => {
+                this.onConfirm();
+                this.controller?.close();
+              })
+          }
+          .margin({ top: 24 })
+          .width('100%')
+        }
         .width('100%')
-        .textAlign(TextAlign.Center)
-        .margin({ top: 8, bottom: 24 })
-
-      TextArea({ text: $$this.draftContent })
-        .height(140)
-        .backgroundColor($r('sys.color.comp_background_tertiary'))
-        .borderRadius(24)
-        .padding(12)
-
-      Row() {
-        Button("取消")
-          .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.controller?.close();
-          })
-
-        Divider().vertical(true).height(24).color($r('sys.color.ohos_id_color_list_separator'))
-
-        Button("保存")
-          .fontColor(this.theme.brand)
-          .backgroundColor(Color.Transparent)
-          .layoutWeight(1)
-          .onClick(() => {
-            this.onConfirm();
-            this.controller?.close();
-          })
       }
-      .margin({ top: 24 })
-      .width('100%')
     }
-    .padding(16)
     .margin(16)
-    .borderRadius(36)
-    .backgroundBlurStyle(BlurStyle.Thick)
   }
 }
 
@@ -224,7 +230,7 @@ export struct MemoryManageSheet {
   }
 
   private showClearAllConfirm() {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '确认清空所有记忆？',
       message: '这会清空用户画像和所有碎片记忆，且不可恢复。',
       primaryButton: {
@@ -239,7 +245,7 @@ export struct MemoryManageSheet {
           this.refreshData();
         }
       }
-    });
+    }, BlurStyle.Regular));
   }
 
   // ==========================================

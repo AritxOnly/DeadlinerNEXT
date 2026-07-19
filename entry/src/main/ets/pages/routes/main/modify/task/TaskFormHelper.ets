@@ -4,6 +4,7 @@ import { DeadlineType } from '../../../../../model/DDLModels';
 import { DateTimeUtils } from '../../../../../utils/DateTimeUtils';
 import { AIService } from '../../../../../ai/AIServcice';
 import { i18n } from '@kit.LocalizationKit';
+import { Toast } from '../../../../../common/ui/Toast';
 
 export interface AITaskParseResult {
   name: string;
@@ -20,7 +21,7 @@ export class TaskFormHelper {
     endTime: Date
   ): Promise<boolean> {
     if (!name.trim()) {
-      promptAction.showToast({ message: '请输入任务名称' });
+      Toast.show({ message: '请输入任务名称' });
       return false;
     }
 
@@ -38,11 +39,11 @@ export class TaskFormHelper {
         calendarEventId: null
       });
 
-      promptAction.showToast({ message: '创建成功' });
+      Toast.show({ message: '创建成功' });
       return true;
     } catch (e) {
       console.error(`Add task failed: ${e}`);
-      promptAction.showToast({ message: '创建失败: ' + (e.message || e) });
+      Toast.show({ message: '创建失败: ' + (e.message || e) });
       return false;
     }
   }
@@ -50,7 +51,7 @@ export class TaskFormHelper {
   // —— AI 解析逻辑 ——
   static async parseAIInput(aiInputText: string): Promise<AITaskParseResult | null> {
     if (!aiInputText || !aiInputText.trim()) {
-      promptAction.showToast({ message: '请输入内容后再尝试' });
+      Toast.show({ message: '请输入内容后再尝试' });
       return null;
     }
 
@@ -68,10 +69,10 @@ export class TaskFormHelper {
           endTime: endDate || undefined
         };
       } else {
-        promptAction.showToast({ message: '未能识别出任务，请尝试换种说法' });
+        Toast.show({ message: '未能识别出任务，请尝试换种说法' });
       }
     } catch (err) {
-      promptAction.showToast({
+      Toast.show({
         message: `抱歉，遇到了一些问题：${err.message || '网络连接失败'}`
       });
     }

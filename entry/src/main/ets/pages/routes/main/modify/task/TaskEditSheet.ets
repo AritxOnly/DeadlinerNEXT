@@ -3,6 +3,7 @@ import { ITheme } from '../../../../../common/theme/ThemeModel';
 import { DDLItem } from '../../../../../model/DDLModels';
 import { DateTimeUtils } from '../../../../../utils/DateTimeUtils';
 import { TaskFormView } from './TaskFormView';
+import { Toast } from '../../../../../common/ui/Toast';
 
 @Component
 export struct TaskEditSheet {
@@ -47,7 +48,7 @@ export struct TaskEditSheet {
     if (!this.editingTask) return;
 
     if (!this.name.trim()) {
-      promptAction.showToast({ message: '任务名称不能为空' });
+      Toast.show({ message: '任务名称不能为空' });
       return;
     }
 
@@ -63,11 +64,11 @@ export struct TaskEditSheet {
 
       // 关闭弹窗
       this.isShow = false;
-      promptAction.showToast({ message: '修改已保存' });
+      Toast.show({ message: '修改已保存' });
 
     } catch (e) {
       console.error('Save edit failed:', e);
-      promptAction.showToast({ message: '保存失败' });
+      Toast.show({ message: '保存失败' });
     }
   }
 

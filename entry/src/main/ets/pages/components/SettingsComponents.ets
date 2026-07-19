@@ -6,6 +6,8 @@ import { HuaweiAccountUtils } from "../../utils/account/HuaweiAccountUtils";
 import { ITheme } from "../../common/theme/ThemeModel";
 import { BlurBackgroundModifier } from "../../utils/animation/BlurBackgroundModifier";
 import { Symbol } from "./infra/Symbol";
+import { DialogCompat } from "../../common/ui/DialogCompat";
+import { Toast } from '../../common/ui/Toast';
 
 /**
  * SettingsSection: 类似 Android 的 Surface 容器
@@ -381,7 +383,7 @@ export struct SettingsUserProfile {
   }
 
   private showLogoutDialog() {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '退出登录',
       message: '确定要退出当前账号吗？',
       primaryButton: {
@@ -396,16 +398,15 @@ export struct SettingsUserProfile {
           try {
             await auth.signOut();
             AppStorage.setOrCreate('isLoggedIn', false);
-            promptAction.showToast({ message: '已退出登录' });
+            Toast.show({ message: '已退出登录' });
           } catch (e) {
-            promptAction.showToast({ message: '退出失败' });
+            Toast.show({ message: '退出失败' });
           }
         }
       },
       alignment: DialogAlignment.Bottom,
-      offset: { dx: 0, dy: -20 },
-      backgroundBlurStyle: BlurStyle.Regular,
-    })
+      offset: { dx: 0, dy: -20 }
+    }, BlurStyle.Regular))
   }
 
   @Builder

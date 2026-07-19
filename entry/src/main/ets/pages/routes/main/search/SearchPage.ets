@@ -1,18 +1,25 @@
 import {
+  BottomBuilderShowType,
   HdsNavDestination
 } from '@kit.UIDesignKit';
-import { promptAction } from '@kit.ArkUI';
+import { ItemRestriction, SegmentButtonTextItem } from '@kit.ArkUI';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
+import { HdsTitleBarSegment } from '../../../components/HdsTitleBarSegment';
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
 import { InspirationRepository } from '../../../../common/repository/InspirationRepository';
 import { DDLStatus } from '../../../../model/DDLStatus';
-import { DDLItemCardSwipeable, ArchivedDDLItemCard } from '../../../components/TaskItemCard'; // [导入] 归档卡片
+import { DDLItemCardSwipeable } from '../../../components/TaskItemCard';
 import { HabitRow, HabitWithDailyStatus } from '../../../components/HabitComponents';
-import { FloatUpModifier } from '../../../../utils/animation/FloatUpModifier';
 import { VibrationUtils } from '../../../../utils/VibrationUtils';
 import { ConfettiController } from '../../../components/confetti/ConfettiController';
-import { SearchUtils, TaskUIModel, ArchivedSearchModel } from '../../../../utils/SearchUtils';
+import {
+  ArchivedSearchModel,
+  SearchResult,
+  SearchScope,
+  SearchUtils,
+  TaskUIModel
+} from '../../../../utils/SearchUtils';
 import { DDLItem, Habit } from '../../../../model/DDLModels';
 import { InspirationItem } from '../../../../model/InspirationModels';
 import { ITheme } from '../../../../common/theme/ThemeModel';
@@ -24,10 +31,184 @@ import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
 import { getHdsMaterialLevelRaw } from '../../../../common/style/MaterialLevel';
 import { HdsMiniBarButton } from '../../../components/infra/HdsMiniBarButton';
+import { ImmersiveMaterialModifier } from '../../../../common/style/SystemMaterialCompat';
+import { DialogCompat } from '../../../../common/ui/DialogCompat';
+import { Toast } from '../../../../common/ui/Toast';
+import { API23_UI_DEFAULT, EXPERIMENTAL_COMPONENTS_DEFAULT } from '../../../../common/local/ExperimentalComponentsPolicy';
 
 @Builder
 export function SearchPageBuilder() {
   SearchPage()
+}
+
+enum SearchListItemType {
+  SPACER = 'spacer',
+  LOADING = 'loading',
+  FOOTER = 'footer',
+  SYMBOL_HEADER = 'symbolHeader',
+  IMAGE_HEADER = 'imageHeader',
+  TASK = 'task',
+  HABIT = 'habit',
+  INSPIRATION = 'inspiration',
+  ARCHIVED = 'archived'
+}
+
+interface SearchListItem {
+  id: string;
+  type: SearchListItemType;
+}
+
+class SearchSpacerItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.SPACER;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
+class SearchLoadingItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.LOADING;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
+class SearchFooterItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.FOOTER;
+
+  constructor(id: string) {
+    this.id = id;
+  }
+}
+
+class SearchSymbolHeaderItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.SYMBOL_HEADER;
+  title: string;
+  symbol: Resource;
+  color: ResourceColor | Color;
+
+  constructor(id: string, title: string, symbol: Resource, color: ResourceColor | Color) {
+    this.id = id;
+    this.title = title;
+    this.symbol = symbol;
+    this.color = color;
+  }
+}
+
+class SearchImageHeaderItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.IMAGE_HEADER;
+  title: string;
+  icon: ResourceStr;
+
+  constructor(id: string, title: string, icon: ResourceStr) {
+    this.id = id;
+    this.title = title;
+    this.icon = icon;
+  }
+}
+
+class SearchTaskItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.TASK;
+  task: TaskUIModel;
+
+  constructor(id: string, task: TaskUIModel) {
+    this.id = id;
+    this.task = task;
+  }
+}
+
+class SearchHabitItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.HABIT;
+  habit: HabitWithDailyStatus;
+
+  constructor(id: string, habit: HabitWithDailyStatus) {
+    this.id = id;
+    this.habit = habit;
+  }
+}
+
+class SearchInspirationItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.INSPIRATION;
+  inspiration: InspirationItem;
+
+  constructor(id: string, inspiration: InspirationItem) {
+    this.id = id;
+    this.inspiration = inspiration;
+  }
+}
+
+class SearchArchivedItem implements SearchListItem {
+  id: string;
+  type: SearchListItemType = SearchListItemType.ARCHIVED;
+  archived: ArchivedSearchModel;
+
+  constructor(id: string, archived: ArchivedSearchModel) {
+    this.id = id;
+    this.archived = archived;
+  }
+}
+
+class SearchListDataSource implements IDataSource {
+  private items: SearchListItem[] = [];
+  private listeners: DataChangeListener[] = [];
+
+  public setItems(items: SearchListItem[]): void {
+    this.items = items;
+    this.notifyDataReload();
+  }
+
+  public appendItems(items: SearchListItem[]): void {
+    if (items.length === 0) {
+      return;
+    }
+    const startIndex = this.items.length;
+    this.items = this.items.concat(items);
+    this.notifyDataAdd(startIndex, items.length);
+  }
+
+  public totalCount(): number {
+    return this.items.length;
+  }
+
+  public getData(index: number): SearchListItem {
+    return this.items[index];
+  }
+
+  public registerDataChangeListener(listener: DataChangeListener): void {
+    if (this.listeners.indexOf(listener) < 0) {
+      this.listeners.push(listener);
+    }
+  }
+
+  public unregisterDataChangeListener(listener: DataChangeListener): void {
+    const index = this.listeners.indexOf(listener);
+    if (index >= 0) {
+      this.listeners.splice(index, 1);
+    }
+  }
+
+  private notifyDataReload(): void {
+    this.listeners.forEach((listener: DataChangeListener) => {
+      listener.onDataReloaded();
+    });
+  }
+
+  private notifyDataAdd(startIndex: number, count: number): void {
+    this.listeners.forEach((listener: DataChangeListener) => {
+      for (let offset = 0; offset < count; offset++) {
+        listener.onDataAdd(startIndex + offset);
+      }
+    });
+  }
 }
 
 @Component
@@ -43,16 +224,14 @@ export struct SearchPage {
   @State searchText: string = '';
   @State isSearching: boolean = false;
   @State hasSearchTerm: boolean = false;
-
-  @State taskResults: TaskUIModel[] = [];
-  @State habitResults: HabitWithDailyStatus[] = [];
-  @State inspirationResults: InspirationItem[] = [];
-  @State archivedResults: ArchivedSearchModel[] = []; // [新增] 归档结果
+  @State selectedScopeIndexes: number[] = [0];
+  @State visibleResults: SearchResult = this.emptySearchResult();
 
   private logic = SearchUtils.getInstance();
   private taskRepo = TaskRepository.getInstance();
   private habitRepo = HabitRepository.getInstance();
   private inspirationRepo = InspirationRepository.getInstance();
+  private searchListDataSource: SearchListDataSource = new SearchListDataSource();
 
   private scroller: Scroller = new Scroller();
   private confetti: ConfettiController = new ConfettiController();
@@ -69,19 +248,30 @@ export struct SearchPage {
   @State directTaskNote: string = '';
   @State directHabitName: string = '';
   @State searchBarMeasuredWidth: number = 0;
+  private searchRequestToken: number = 0;
+  private listBuildToken: number = 0;
+  private cachedQuery: string = '';
+  private cachedAllResults: SearchResult = this.emptySearchResult();
+  readonly SCOPE_SEGMENT_HEIGHT: number = 48;
+  readonly SCOPE_EXPERIMENTAL_HEIGHT: number = 52;
+  readonly SEARCH_LIST_APPEND_CHUNK_SIZE: number = 3;
 
   readonly SEARCH_INPUT_ID = 'search_input';
-  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = true;
-  @StorageProp(C.KEY_ENABLE_API23) api23: boolean = false;
+  readonly scopeButtons: ItemRestriction<SegmentButtonTextItem> = [
+    { text: '全部' },
+    { text: '清单' },
+    { text: '归档' }
+  ] as ItemRestriction<SegmentButtonTextItem>;
+  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = EXPERIMENTAL_COMPONENTS_DEFAULT;
+  @StorageProp(C.KEY_ENABLE_API23) api23: boolean = API23_UI_DEFAULT;
   @StorageProp(C.KEY_API23_MATERIAL_LEVEL) materialLevel: string = 'EXQUISITE';
 
   async aboutToAppear() {
+    void this.rebuildSearchListItems();
     await this.logic.preloadData();
     getContext(this).eventHub.on('sync_done', (): void => {
       void this.logic.preloadData().then(async (): Promise<void> => {
-        if (this.searchText) {
-          await this.handleSearch(this.searchText);
-        }
+        await this.refreshCurrentResults();
       });
     });
     setTimeout(() => {
@@ -94,29 +284,282 @@ export struct SearchPage {
     getContext(this).eventHub.off('sync_done');
   }
 
-  private async handleSearch(value: string) {
+  private resolveScope(index: number): SearchScope {
+    switch (index) {
+      case 1:
+        return SearchScope.ACTIVE;
+      case 2:
+        return SearchScope.ARCHIVE;
+      default:
+        return SearchScope.ALL;
+    }
+  }
+
+  private get currentScope(): SearchScope {
+    return this.resolveScope(this.selectedScopeIndexes[0] ?? 0);
+  }
+
+  private async handleSearch(value: string, forceRefresh: boolean = false, scopeOverride?: SearchScope) {
     this.searchText = value;
-    const hasTerm = value.trim().length > 0;
+    const normalizedQuery = value.trim();
+    const hasTerm = normalizedQuery.length > 0;
     this.hasSearchTerm = hasTerm;
+    const targetScope = scopeOverride ?? this.currentScope;
 
     if (!hasTerm) {
-      this.taskResults = [];
-      this.habitResults = [];
-      this.inspirationResults = [];
-      this.archivedResults = [];
+      this.resetSearchCache();
+      this.setSearching(false);
+      this.clearResults();
       return;
     }
 
-    this.isSearching = true;
-    const results = await this.logic.executeSearch(value);
+    if (!forceRefresh && this.cachedQuery === normalizedQuery) {
+      this.applyResultsForScope(this.cachedAllResults, targetScope);
+      this.setSearching(false);
+      return;
+    }
 
-    animateTo({ duration: 300, curve: Curve.FastOutSlowIn }, () => {
-      this.taskResults = results.tasks;
-      this.habitResults = results.habits;
-      this.inspirationResults = results.inspirations;
-      this.archivedResults = results.archived; // [新增]
-      this.isSearching = false;
-    })
+    const requestToken = ++this.searchRequestToken;
+    this.setSearching(true);
+    const results = await this.logic.executeSearch(normalizedQuery, SearchScope.ALL);
+
+    if (requestToken !== this.searchRequestToken) {
+      return;
+    }
+
+    this.cachedQuery = normalizedQuery;
+    this.cachedAllResults = results;
+
+    this.setSearching(false);
+    this.applyResultsForScope(results, targetScope);
+  }
+
+  private async refreshCurrentResults(): Promise<void> {
+    if (this.hasSearchTerm) {
+      await this.handleSearch(this.searchText, true);
+      return;
+    }
+
+    this.resetSearchCache();
+    this.clearResults();
+  }
+
+  private clearResults(): void {
+    this.visibleResults = this.emptySearchResult();
+    void this.rebuildSearchListItems();
+  }
+
+  private emptySearchResult(): SearchResult {
+    return {
+      tasks: [],
+      habits: [],
+      inspirations: [],
+      archivedTasks: [],
+      archivedHabits: []
+    };
+  }
+
+  private resetSearchCache(): void {
+    this.searchRequestToken += 1;
+    this.cachedQuery = '';
+    this.cachedAllResults = this.emptySearchResult();
+  }
+
+  private filterResultsByScope(results: SearchResult, scope: SearchScope): SearchResult {
+    switch (scope) {
+      case SearchScope.ACTIVE:
+        return {
+          tasks: results.tasks,
+          habits: results.habits,
+          inspirations: results.inspirations,
+          archivedTasks: [],
+          archivedHabits: []
+        };
+      case SearchScope.ARCHIVE:
+        return {
+          tasks: [],
+          habits: [],
+          inspirations: [],
+          archivedTasks: results.archivedTasks,
+          archivedHabits: results.archivedHabits
+        };
+      case SearchScope.ALL:
+      default:
+        return results;
+    }
+  }
+
+  private applyResultsForScope(results: SearchResult, scope: SearchScope): void {
+    this.applyResults(this.filterResultsByScope(results, scope));
+  }
+
+  private applyResults(results: SearchResult): void {
+    this.visibleResults = results;
+    void this.rebuildSearchListItems();
+  }
+
+  private setSearching(value: boolean): void {
+    if (this.isSearching === value) {
+      return;
+    }
+    this.isSearching = value;
+    void this.rebuildSearchListItems();
+  }
+
+  private async yieldUiFrame(): Promise<void> {
+    await new Promise<void>((resolve: () => void) => {
+      setTimeout(() => resolve(), 0);
+    });
+  }
+
+  private buildTaskSectionItems(): SearchListItem[] {
+    const items: SearchListItem[] = [];
+    if (this.visibleResults.tasks.length === 0) {
+      return items;
+    }
+
+    items.push(new SearchSymbolHeaderItem('header_tasks', '任务', $r('sys.symbol.checkmark_circle'), this.theme.brand));
+    this.visibleResults.tasks.forEach((task: TaskUIModel) => {
+      items.push(new SearchTaskItem(`task_${task.dbId}`, task));
+    });
+    return items;
+  }
+
+  private buildHabitSectionItems(): SearchListItem[] {
+    const items: SearchListItem[] = [];
+    if (this.visibleResults.habits.length === 0) {
+      return items;
+    }
+
+    items.push(new SearchSymbolHeaderItem('header_habits', '习惯', $r('sys.symbol.leaf'), $r('app.color.chart_green')));
+    this.visibleResults.habits.forEach((habit: HabitWithDailyStatus) => {
+      items.push(new SearchHabitItem(`habit_${habit.habit.id}`, habit));
+    });
+    return items;
+  }
+
+  private buildInspirationSectionItems(): SearchListItem[] {
+    const items: SearchListItem[] = [];
+    if (this.visibleResults.inspirations.length === 0) {
+      return items;
+    }
+
+    items.push(new SearchImageHeaderItem('header_inspirations', '灵感', $r('app.media.capture')));
+    this.visibleResults.inspirations.forEach((inspiration: InspirationItem) => {
+      items.push(new SearchInspirationItem(`inspiration_${inspiration.id}`, inspiration));
+    });
+    return items;
+  }
+
+  private buildArchivedTaskSectionItems(): SearchListItem[] {
+    const items: SearchListItem[] = [];
+    if (this.visibleResults.archivedTasks.length === 0) {
+      return items;
+    }
+
+    items.push(new SearchSymbolHeaderItem(
+      'header_archived_tasks',
+      '归档任务',
+      $r('sys.symbol.archivebox'),
+      $r('sys.color.ohos_id_color_text_secondary')
+    ));
+    this.visibleResults.archivedTasks.forEach((archived: ArchivedSearchModel) => {
+      items.push(new SearchArchivedItem(archived.id, archived));
+    });
+    return items;
+  }
+
+  private buildArchivedHabitSectionItems(): SearchListItem[] {
+    const items: SearchListItem[] = [];
+    if (this.visibleResults.archivedHabits.length === 0) {
+      return items;
+    }
+
+    items.push(new SearchSymbolHeaderItem(
+      'header_archived_habits',
+      '归档习惯',
+      $r('sys.symbol.archivebox'),
+      $r('sys.color.ohos_id_color_text_secondary')
+    ));
+    this.visibleResults.archivedHabits.forEach((archived: ArchivedSearchModel) => {
+      items.push(new SearchArchivedItem(archived.id, archived));
+    });
+    return items;
+  }
+
+  private async appendSectionItems(buildToken: number, items: SearchListItem[]): Promise<boolean> {
+    if (this.listBuildToken !== buildToken) {
+      return false;
+    }
+    if (items.length === 0) {
+      return true;
+    }
+
+    for (let startIndex = 0; startIndex < items.length; startIndex += this.SEARCH_LIST_APPEND_CHUNK_SIZE) {
+      if (this.listBuildToken !== buildToken) {
+        return false;
+      }
+
+      this.searchListDataSource.appendItems(
+        items.slice(startIndex, Math.min(startIndex + this.SEARCH_LIST_APPEND_CHUNK_SIZE, items.length))
+      );
+      await this.yieldUiFrame();
+    }
+    return this.listBuildToken === buildToken;
+  }
+
+  private async rebuildSearchListItems(): Promise<void> {
+    const buildToken = ++this.listBuildToken;
+    this.searchListDataSource.setItems([new SearchSpacerItem('search_spacer')]);
+
+    if (this.isSearching) {
+      this.searchListDataSource.appendItems([
+        new SearchLoadingItem('search_loading'),
+        new SearchFooterItem('search_footer')
+      ]);
+      return;
+    }
+
+    if (!await this.appendSectionItems(buildToken, this.buildTaskSectionItems())) {
+      return;
+    }
+    if (!await this.appendSectionItems(buildToken, this.buildHabitSectionItems())) {
+      return;
+    }
+    if (!await this.appendSectionItems(buildToken, this.buildInspirationSectionItems())) {
+      return;
+    }
+    if (!await this.appendSectionItems(buildToken, this.buildArchivedTaskSectionItems())) {
+      return;
+    }
+    if (!await this.appendSectionItems(buildToken, this.buildArchivedHabitSectionItems())) {
+      return;
+    }
+
+    if (this.listBuildToken !== buildToken) {
+      return;
+    }
+    this.searchListDataSource.appendItems([new SearchFooterItem('search_footer')]);
+  }
+
+  private onScopeSegmentClick(index: number): void {
+    const targetScope = this.resolveScope(index);
+
+    if (!this.hasSearchTerm) {
+      return;
+    }
+
+    const normalizedQuery = this.searchText.trim();
+    if (normalizedQuery.length === 0) {
+      return;
+    }
+
+    if (this.cachedQuery === normalizedQuery) {
+      this.applyResultsForScope(this.cachedAllResults, targetScope);
+      return;
+    }
+
+    void this.handleSearch(this.searchText, false, targetScope);
   }
 
   // —— 交互操作 ——
@@ -130,7 +573,7 @@ export struct SearchPage {
       } else {
         await this.taskRepo.transitionDDL(taskUI.dbId, TaskStateAction.RESTORE_ACTIVE);
       }
-      this.handleSearch(this.searchText);
+      await this.refreshCurrentResults();
       getContext(this).eventHub.emit('sync_done');
     } catch (e) {
       console.error('Task complete failed', e);
@@ -139,7 +582,7 @@ export struct SearchPage {
 
   private onTaskSecondaryAction(taskUI: TaskUIModel) {
     if (taskUI.taskState === TaskState.ACTIVE) {
-      AlertDialog.show({
+      AlertDialog.show(DialogCompat.withAlertBlurStyle({
         title: '放弃确认',
         message: `确定要放弃任务“${taskUI.title}”吗？`,
         primaryButton: {
@@ -152,16 +595,16 @@ export struct SearchPage {
           fontColor: Color.Red,
           action: async () => {
             await this.taskRepo.transitionDDL(taskUI.dbId, TaskStateAction.MARK_GIVE_UP);
-            this.handleSearch(this.searchText);
+            await this.refreshCurrentResults();
             getContext(this).eventHub.emit('sync_done');
           }
         }
-      });
+      }, BlurStyle.Regular));
       return;
     }
 
     this.taskRepo.transitionDDL(taskUI.dbId, TaskStateAction.MARK_ARCHIVE).then(() => {
-      this.handleSearch(this.searchText);
+      void this.refreshCurrentResults();
       getContext(this).eventHub.emit('sync_done');
     }).catch((e: Error) => {
       console.error('Task archive failed', e);
@@ -182,7 +625,7 @@ export struct SearchPage {
       if (!item.isCompleted && (item.doneCount + 1 >= item.targetCount)) {
         this.confetti.fire();
       }
-      await this.handleSearch(this.searchText);
+      await this.refreshCurrentResults();
       getContext(this).eventHub.emit('sync_done');
     } catch (e) {
       console.error('Habit toggle failed', e);
@@ -191,9 +634,8 @@ export struct SearchPage {
     }
   }
 
-  // [新增] 处理归档项的删除
   private async onArchivedDelete(item: ArchivedSearchModel) {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '永久删除',
       message: '确定要永久删除此归档记录吗？',
       primaryButton: {
@@ -211,15 +653,15 @@ export struct SearchPage {
             } else {
               await this.habitRepo.deleteHabitByDdlId((item.originalItem as Habit).ddlId);
             }
-            promptAction.showToast({ message: '已删除' });
-            this.handleSearch(this.searchText); // 刷新搜索
+            Toast.show({ message: '已删除' });
+            await this.refreshCurrentResults();
             getContext(this).eventHub.emit('sync_done');
           } catch (e) {
-            promptAction.showToast({ message: '删除失败' });
+            Toast.show({ message: '删除失败' });
           }
         }
       }
-    })
+    }, BlurStyle.Regular))
   }
 
   private async saveInspirationDetail(): Promise<void> {
@@ -229,7 +671,7 @@ export struct SearchPage {
 
     const text = this.inspirationDraftText.trim();
     if (!text) {
-      promptAction.showToast({ message: '留一点内容再保存吧' });
+      Toast.show({ message: '留一点内容再保存吧' });
       return;
     }
 
@@ -242,15 +684,15 @@ export struct SearchPage {
     this.isInspirationSheetShow = false;
     this.editingInspiration = null;
     await this.logic.preloadData();
-    await this.handleSearch(this.searchText);
+    await this.refreshCurrentResults();
     getContext(this).eventHub.emit('sync_done');
   }
 
   private async deleteInspiration(item: InspirationItem): Promise<void> {
     await this.inspirationRepo.deleteInspiration(item.id);
-    promptAction.showToast({ message: '已删除' });
+    Toast.show({ message: '已删除' });
     await this.logic.preloadData();
-    await this.handleSearch(this.searchText);
+    await this.refreshCurrentResults();
     getContext(this).eventHub.emit('sync_done');
   }
 
@@ -301,27 +743,17 @@ export struct SearchPage {
 
   @Builder
   private searchInputContent(isTransparentBg: boolean = false) {
-    if (isTransparentBg) {
-      Search({ value: this.searchText, placeholder: '搜索任务、习惯或灵感...' })
-        .searchButton('搜索', { fontColor: this.theme.brand })
-        .id('search_input')
-        .defaultFocus(true)
-        .width('100%')
-        .height(40)
-        .backgroundColor(Color.Transparent)
-        .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
-        .onChange((value: string) => this.handleSearch(value))
-        .margin({ top: 0 })
-    } else {
-      Search({ value: this.searchText, placeholder: '搜索任务、习惯或灵感...' })
-        .searchButton('搜索', { fontColor: this.theme.brand })
-        .id('search_input')
-        .defaultFocus(true)
-        .width('100%')
-        .height(40)
-        .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
-        .onChange((value: string) => this.handleSearch(value))
-    }
+    Search({ value: this.searchText, placeholder: '搜索任务、习惯或灵感...' })
+      .searchButton('搜索', { fontColor: this.theme.brand })
+      .id(this.SEARCH_INPUT_ID)
+      .defaultFocus(true)
+      .width('100%')
+      .height(40)
+      .backgroundColor(isTransparentBg ? Color.Transparent : $r('sys.color.comp_background_tertiary'))
+      .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
+      .onChange((value: string) => this.handleSearch(value))
+      .margin({ top: 0 })
+      .attributeModifier(new ImmersiveMaterialModifier())
   }
 
   @Builder searchBuilder() {
@@ -359,7 +791,7 @@ export struct SearchPage {
         .fontSize(80)
         .fontColor([$r('sys.color.ohos_id_color_text_tertiary')])
         .opacity(0.5)
-      Column({ space: 4 }) {
+      Column({ space: 8 }) {
         Text('输入关键词进行搜索')
           .fontSize(16)
           .fontWeight(FontWeight.Medium)
@@ -368,24 +800,258 @@ export struct SearchPage {
           .fontSize(14)
           .fontColor($r('sys.color.ohos_id_color_text_tertiary'))
       }
+      .alignItems(HorizontalAlign.Center)
     }
     .width('100%')
-    .height('60%')
+    .height('100%')
     .justifyContent(FlexAlign.Center)
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
   }
 
   @Builder buildNoResultPlaceholder() {
-    Column({ space: 12 }) {
+    Row({ space: 12 }) {
       SymbolGlyph($r('sys.symbol.nosign'))
-        .fontSize(60)
+        .fontSize(22)
         .fontColor([$r('sys.color.ohos_id_color_text_tertiary')])
-      Text('未找到相关内容')
-        .fontSize(14)
-        .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+      Column({ space: 4 }) {
+        Text('没有找到匹配内容')
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+        Text('试试换个关键词，或切换搜索范围。')
+          .fontSize(14)
+          .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+      }
+      .alignItems(HorizontalAlign.Start)
+      .layoutWeight(1)
     }
     .width('100%')
-    .height(300)
+    .padding({ left: 16, right: 16, top: 16, bottom: 16 })
+    .backgroundColor($r('sys.color.comp_background_tertiary'))
+    .borderRadius(22)
+  }
+
+  @Builder
+  private buildSearchScopeRow() {
+    Column() {
+      HdsTitleBarSegment({
+        buttons: this.scopeButtons,
+        selectedIndexes: $selectedScopeIndexes,
+        onItemClicked: (index: number) => {
+          this.onScopeSegmentClick(index);
+        },
+        maxFontScale: 2,
+        segmentHeight: this.SCOPE_SEGMENT_HEIGHT,
+        normalWidth: '100%',
+        experimentalWidth: '100%',
+        experimentalHeight: this.SCOPE_EXPERIMENTAL_HEIGHT
+      })
+        .align(Alignment.Center)
+    }
+    .id('search_scope_segment')
+    .width('100%')
+    .height('100%')
+    .padding({ left: 16, right: 16 })
     .justifyContent(FlexAlign.Center)
+    .constraintSize({ maxWidth: 500 })
+  }
+
+  @Builder
+  private buildNoResultState() {
+    Column({ space: 12 }) {
+      this.buildNoResultPlaceholder()
+      Blank()
+        .layoutWeight(1)
+    }
+    .width('100%')
+    .height('100%')
+    .alignItems(HorizontalAlign.Start)
+    .justifyContent(FlexAlign.Start)
+    .padding({ left: 12, right: 12, top: 16, bottom: 24 })
+    .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
+  }
+
+  @Builder
+  private buildLoadingRow() {
+    Row() {
+      LoadingProgress()
+        .width(24)
+        .height(24)
+      Text('搜索中...')
+        .fontSize(14)
+        .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        .margin({ left: 10 })
+    }
+    .width('100%')
+    .justifyContent(FlexAlign.Center)
+    .padding({ top: 24, bottom: 12 })
+  }
+
+  @Builder
+  private sectionHeader(title: string, symbol: Resource, color: ResourceColor | Color) {
+    Row({ space: 8 }) {
+      SymbolGlyph(symbol)
+        .fontSize(18)
+        .fontColor([color])
+
+      Text(title)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('sys.color.ohos_id_color_text_primary'))
+    }
+    .width('100%')
+    .padding({ top: 16, bottom: 4, left: 4 })
+  }
+
+  @Builder
+  private imageSectionHeader(title: string, icon: ResourceStr) {
+    Row({ space: 8 }) {
+      Image(icon)
+        .width(18)
+        .height(18)
+        .objectFit(ImageFit.Contain)
+
+      Text(title)
+        .fontSize(15)
+        .fontWeight(FontWeight.Medium)
+        .fontColor($r('sys.color.ohos_id_color_text_primary'))
+    }
+    .width('100%')
+    .padding({ top: 16, bottom: 4, left: 4 })
+  }
+
+  @Builder
+  private buildTaskSearchItem(item: SearchTaskItem) {
+    DDLItemCardSwipeable({
+      title: item.task.title,
+      remainingTimeAlt: item.task.remainingTimeAlt,
+      note: item.task.note,
+      progress: item.task.progress,
+      isStarred: item.task.isStarred,
+      status: item.task.status,
+      selectionMode: false,
+      selected: false,
+      primaryActionSymbol: item.task.taskState === TaskState.ACTIVE
+        ? $r('sys.symbol.checkmark_circle')
+        : $r('sys.symbol.arrowshape_turn_up_left'),
+      secondaryActionSymbol: item.task.taskState === TaskState.ACTIVE
+        ? $r('sys.symbol.flag')
+        : $r('sys.symbol.archivebox'),
+      secondaryActionColor: item.task.taskState === TaskState.ACTIVE
+        ? $r('app.color.chart_yellow')
+        : $r('app.color.chart_red'),
+      onPrimaryAction: (): Promise<void> => this.onTaskPrimaryAction(item.task),
+      onSecondaryAction: (): void => this.onTaskSecondaryAction(item.task)
+    })
+  }
+
+  @Builder
+  private buildHabitSearchItem(item: SearchHabitItem) {
+    HabitRow({
+      data: item.habit,
+      status: item.habit.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
+      isSelected: false,
+      canToggle: item.habit.isDueToday ?? true,
+      remainingText: item.habit.dueStateText ?? '',
+      disableProgressAnimation: true,
+      onToggle: (): Promise<void> => this.onHabitToggle(item.habit),
+      onLongPress: () => {}
+    })
+  }
+
+  @Builder
+  private buildInspirationSearchItem(item: SearchInspirationItem) {
+    InspirationSearchCard({
+      item: item.inspiration,
+      onCardClick: (): void => this.openInspirationDetail(item.inspiration),
+      onDelete: (): void => { void this.deleteInspiration(item.inspiration); },
+      onAiTask: (): void => this.openAiTaskFromText(item.inspiration.text),
+      onAiHabit: (): void => this.openAiHabitFromText(item.inspiration.text)
+    })
+  }
+
+  private buildArchivedMetaText(item: ArchivedSearchModel): string {
+    if (item.detail1.length > 0 && item.detail2.length > 0) {
+      return `${item.detail1} · ${item.detail2}`;
+    }
+    if (item.detail1.length > 0) {
+      return item.detail1;
+    }
+    return item.detail2;
+  }
+
+  @Builder
+  private buildArchivedSearchItem(item: SearchArchivedItem) {
+    Column({ space: 8 }) {
+      Row({ space: 8 }) {
+        Text(item.archived.title)
+          .fontSize(18)
+          .fontWeight(FontWeight.Bold)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .layoutWeight(1)
+          .maxLines(2)
+          .textOverflow({ overflow: TextOverflow.Ellipsis })
+
+        if (item.archived.badgeText.length > 0) {
+          Text(item.archived.badgeText)
+            .fontSize(10)
+            .fontColor(this.theme.indicatorUndergo)
+            .padding({ left: 8, right: 8, top: 4, bottom: 4 })
+            .backgroundColor(this.theme.bgUndergo40)
+            .borderRadius(10)
+        }
+      }
+      .width('100%')
+      .alignItems(VerticalAlign.Top)
+
+      Text(this.buildArchivedMetaText(item.archived))
+        .fontSize(11)
+        .fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        .width('100%')
+
+      if (item.archived.note.length > 0) {
+        Text(item.archived.note)
+          .fontSize(12)
+          .fontColor($r('sys.color.ohos_id_color_text_tertiary'))
+          .width('100%')
+          .lineHeight(18)
+      }
+    }
+    .width('100%')
+    .padding({ left: 16, right: 16, top: 14, bottom: 14 })
+    .backgroundColor($r('sys.color.comp_background_secondary'))
+    .borderRadius(24)
+    .clip(true)
+    .gesture(
+      LongPressGesture()
+        .onAction(() => {
+          void this.onArchivedDelete(item.archived);
+        })
+    )
+  }
+
+  @Builder
+  private buildSearchListItem(item: SearchListItem) {
+    if (item.type === SearchListItemType.SPACER) {
+      Column().height(8)
+    } else if (item.type === SearchListItemType.LOADING) {
+      this.buildLoadingRow()
+    } else if (item.type === SearchListItemType.FOOTER) {
+      Column().height(100)
+    } else if (item.type === SearchListItemType.SYMBOL_HEADER) {
+      this.sectionHeader((item as SearchSymbolHeaderItem).title, (item as SearchSymbolHeaderItem).symbol,
+        (item as SearchSymbolHeaderItem).color)
+    } else if (item.type === SearchListItemType.IMAGE_HEADER) {
+      this.imageSectionHeader((item as SearchImageHeaderItem).title, (item as SearchImageHeaderItem).icon)
+    } else if (item.type === SearchListItemType.TASK) {
+      this.buildTaskSearchItem(item as SearchTaskItem)
+    } else if (item.type === SearchListItemType.HABIT) {
+      this.buildHabitSearchItem(item as SearchHabitItem)
+    } else if (item.type === SearchListItemType.INSPIRATION) {
+      this.buildInspirationSearchItem(item as SearchInspirationItem)
+    } else {
+      this.buildArchivedSearchItem(item as SearchArchivedItem)
+    }
   }
 
   @Builder inspirationSheetBuilder() {
@@ -437,144 +1103,58 @@ export struct SearchPage {
     })
   }
 
+  private hasVisibleResults(): boolean {
+    return this.visibleResults.tasks.length > 0 ||
+      this.visibleResults.habits.length > 0 ||
+      this.visibleResults.inspirations.length > 0 ||
+      this.visibleResults.archivedTasks.length > 0 ||
+      this.visibleResults.archivedHabits.length > 0;
+  }
+
+  private getScopeBottomBuilderHeight(): number {
+    return this.experimentalComponents && this.api23
+      ? this.SCOPE_EXPERIMENTAL_HEIGHT
+      : this.SCOPE_SEGMENT_HEIGHT;
+  }
+
+  private getTopAvoidHeight(): number {
+    return this.statusBarHeight + this.getScopeBottomBuilderHeight();
+  }
+
+  @Builder
+  private searchScopeBottomBuilder() {
+    Column() {
+      this.buildSearchScopeRow();
+    }
+    .width('100%')
+    .height('100%')
+    .opacity(this.hasSearchTerm ? 1 : 0)
+    .enabled(this.hasSearchTerm)
+    .hitTestBehavior(this.hasSearchTerm ? HitTestMode.Transparent : HitTestMode.None)
+  }
+
   build() {
     HdsNavDestination() {
       TopSafeContainer({
-        topAvoidHeight: this.statusBarHeight,
-        bgColor: this.bgColor
+        topAvoidHeight: this.getTopAvoidHeight(),
+        bgColor: this.bgColor,
+        scrollable: false
       }) {
         if (!this.hasSearchTerm) {
           this.buildEmptyPlaceholder()
+        } else if (!this.isSearching && !this.hasVisibleResults()) {
+          this.buildNoResultState()
         } else {
           List({ scroller: this.scroller, space: 10 }) {
-            ListItem() { Column().height(8) }
-
-              // A. 任务组
-              if (this.taskResults.length > 0) {
-                ListItem() {
-                  Text('任务')
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-                    .margin({ top: 16, bottom: -4, left: 12 })
-                }
-                ForEach(this.taskResults, (item: TaskUIModel, index: number) => {
-                  ListItem() {
-                    DDLItemCardSwipeable({
-                      title: item.title,
-                      remainingTimeAlt: item.remainingTimeAlt,
-                      note: item.note,
-                      progress: item.progress,
-                      isStarred: item.isStarred,
-                      status: item.status,
-                      selectionMode: false,
-                      selected: false,
-                      primaryActionSymbol: item.taskState === TaskState.ACTIVE
-                        ? $r('sys.symbol.checkmark_circle')
-                        : $r('sys.symbol.arrowshape_turn_up_left'),
-                      secondaryActionSymbol: item.taskState === TaskState.ACTIVE
-                        ? $r('sys.symbol.flag')
-                        : $r('sys.symbol.archivebox'),
-                      secondaryActionColor: item.taskState === TaskState.ACTIVE
-                        ? $r('app.color.chart_yellow')
-                        : $r('app.color.chart_red'),
-                      onPrimaryAction: (): Promise<void> => this.onTaskPrimaryAction(item),
-                      onSecondaryAction: (): void => this.onTaskSecondaryAction(item)
-                    })
-                  }
-                  .attributeModifier(new FloatUpModifier(index, 15, false))
-                }, (item: TaskUIModel) => `task_${item.dbId}`)
+            LazyForEach(this.searchListDataSource, (item: SearchListItem) => {
+              ListItem() {
+                this.buildSearchListItem(item);
               }
-
-              // B. 习惯组
-              if (this.habitResults.length > 0) {
-                ListItem() {
-                  Text('习惯')
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-                    .margin({ top: 16, bottom: -4, left: 12 })
-                }
-                ForEach(this.habitResults, (item: HabitWithDailyStatus, index: number) => {
-                  ListItem() {
-                    HabitRow({
-                      data: item,
-                      status: item.isCompleted ? DDLStatus.COMPLETED : DDLStatus.UNDERGO,
-                      isSelected: false,
-                      canToggle: true,
-                      remainingText: "",
-                      onToggle: (): Promise<void> => this.onHabitToggle(item),
-                      onLongPress: () => {}
-                    })
-                  }
-                  .attributeModifier(new FloatUpModifier(index + 5, 15, false))
-                }, (item: HabitWithDailyStatus) => `habit_${item.habit.id}`)
-              }
-
-              if (this.inspirationResults.length > 0) {
-                ListItem() {
-                  Text('灵感')
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-                    .margin({ top: 16, bottom: -4, left: 12 })
-                }
-                ForEach(this.inspirationResults, (item: InspirationItem, index: number) => {
-                  ListItem() {
-                    InspirationSearchCard({
-                      item: item,
-                      onCardClick: (): void => this.openInspirationDetail(item),
-                      onDelete: (): void => { void this.deleteInspiration(item); },
-                      onAiTask: (): void => this.openAiTaskFromText(item.text),
-                      onAiHabit: (): void => this.openAiHabitFromText(item.text)
-                    })
-                  }
-                  .attributeModifier(new FloatUpModifier(index + 9, 15, false))
-                }, (item: InspirationItem) => `inspiration_${item.id}`)
-              }
-
-              // [新增] C. 归档组
-              if (this.archivedResults.length > 0) {
-                ListItem() {
-                  Text('归档内容')
-                    .fontSize(14)
-                    .fontWeight(FontWeight.Bold)
-                    .fontColor($r('sys.color.ohos_id_color_text_secondary'))
-                    .margin({ top: 16, bottom: -4, left: 12 })
-                }
-                ForEach(this.archivedResults, (item: ArchivedSearchModel, index: number) => {
-                  ListItem() {
-                    // [新增] 使用归档卡片
-                    ArchivedDDLItemCard({
-                      title: item.title,
-                      startTime: item.detail1,   // 对应左下
-                      completeTime: item.detail2, // 对应右下
-                      note: item.note,
-                      badgeText: item.badgeText,
-                      showRestore: false,
-                      onDelete: (): Promise<void> => this.onArchivedDelete(item)
-                    })
-                  }
-                  .attributeModifier(new FloatUpModifier(index + 10, 15, false))
-                }, (item: ArchivedSearchModel) => item.id)
-              }
-
-              // D. 搜索无结果
-              if (this.taskResults.length === 0 &&
-                this.habitResults.length === 0 &&
-                this.inspirationResults.length === 0 &&
-                this.archivedResults.length === 0) {
-                ListItem() {
-                  this.buildNoResultPlaceholder()
-                }
-              }
-
-            ListItem().height(100)
+            }, (item: SearchListItem) => item.id)
           }
           .width('100%')
           .scrollBar(BarState.Off)
           .padding({ left: 12, right: 12 })
-          .transition(TransitionEffect.OPACITY.animation({ duration: 200 }))
           .expandSafeArea([SafeAreaType.SYSTEM], [SafeAreaEdge.TOP, SafeAreaEdge.BOTTOM])
         }
 
@@ -590,10 +1170,6 @@ export struct SearchPage {
               this.isInspirationSheetShow = false;
               this.editingInspiration = null;
             },
-            title: {
-              title: '编辑灵感',
-              subtitle: '保留它的原始样子，之后再整理'
-            }
           })
 
         Blank()
@@ -629,6 +1205,13 @@ export struct SearchPage {
         title: { mainTitle: '' },
         stackBuilder: () => {
           this.searchBuilder();
+        },
+        bottomBuilder: {
+          builder: () => {
+            this.searchScopeBottomBuilder();
+          },
+          height: this.getScopeBottomBuilderHeight(),
+          showType: BottomBuilderShowType.DIRECTLY_SHOW
         },
         backIcon: {
           action: this.backAction

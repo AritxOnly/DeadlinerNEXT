@@ -24,6 +24,8 @@ import {
   APP_BREAKPOINT_DEFAULT,
   APP_BREAKPOINT_STORAGE_KEY
 } from "../../../common/layout/AppBreakpoints";
+import { ImmersivePopupSurface } from '../../../common/ui/ImmersivePopupSurface';
+import { Toast } from '../../../common/ui/Toast';
 
 @Component
 export struct OverviewPage {
@@ -139,88 +141,77 @@ export struct OverviewPage {
   @State isHelpPopupShow: boolean = false
 
   @Builder helpPopupBuilder() {
-    Column({ space: 8 }) {
-      if (this.selectedIndexes[0] === 0) {
-        // === 0: OverviewStatsSection (概览) ===
-        Text("概览说明")
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('sys.color.ohos_id_color_text_primary'))
-          .margin({ bottom: 4 })
+    ImmersivePopupSurface({ widthValue: 280, paddingValue: 16, radius: 12 }) {
+      Column({ space: 8 }) {
+        if (this.selectedIndexes[0] === 0) {
+          Text("概览说明")
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.ohos_id_color_text_primary'))
+            .margin({ bottom: 4 })
 
-        // 1. 完成分布 (CompletionTimeCard)
-        Text() {
-          Span("• 完成分布：").fontWeight(FontWeight.Medium)
-          Span("统计任务完成的时间段（如深夜、上午等），柱状图越长代表该时段完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 完成分布：").fontWeight(FontWeight.Medium)
+            Span("统计任务完成的时间段（如深夜、上午等），柱状图越长代表该时段完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
 
-        // 2. 历史统计 (HistoryStatsCard)
-        Text() {
-          Span("• 历史统计：").fontWeight(FontWeight.Medium)
-          Span("点击环形图扇区").fontColor($r('sys.color.ohos_id_color_text_primary')) // Highlight interaction
-          Span("，中间圆环内将显示该状态（完成/待办/逾期）的具体数值。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 历史统计：").fontWeight(FontWeight.Medium)
+            Span("点击环形图扇区").fontColor($r('sys.color.ohos_id_color_text_primary'))
+            Span("，中间圆环内将显示该状态（完成/待办/逾期）的具体数值。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
+        } else if (this.selectedIndexes[0] === 1) {
+          Text("趋势说明")
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.ohos_id_color_text_primary'))
+            .margin({ bottom: 4 })
 
-      } else if (this.selectedIndexes[0] === 1) {
-        // === 1: TrendAnalysisSection (趋势) ===
-        Text("趋势说明")
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('sys.color.ohos_id_color_text_primary'))
-          .margin({ bottom: 4 })
+          Text() {
+            Span("• 本周情况：").fontWeight(FontWeight.Medium)
+            Span("展示每日完成任务数。点击右上角").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+            Span("「显示逾期」").fontColor($r('app.color.chart_red'))
+            Span("开关，可对比每日逾期数量。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
 
-        // 1. 本周情况 (DailyCompletedCard)
-        Text() {
-          Span("• 本周情况：").fontWeight(FontWeight.Medium)
-          Span("展示每日完成任务数。点击右上角").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-          Span("「显示逾期」").fontColor($r('app.color.chart_red')) // Highlight specific UI element
-          Span("开关，可对比每日逾期数量。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 每月趋势：").fontWeight(FontWeight.Medium)
+            Span("展示近12个月的任务总量、完成量及逾期量走势，帮助您分析长期效率变化。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
 
-        // 2. 每月趋势 (MonthlyTrendCard)
-        Text() {
-          Span("• 每月趋势：").fontWeight(FontWeight.Medium)
-          Span("展示近12个月的任务总量、完成量及逾期量走势，帮助您分析长期效率变化。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 近4周完成：").fontWeight(FontWeight.Medium)
+            Span("对比最近4周的周完成量，直观查看短期内的效率波动。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
 
-        // 3. 近4周完成 (PrevWeeksCard)
-        Text() {
-          Span("• 近4周完成：").fontWeight(FontWeight.Medium)
-          Span("对比最近4周的周完成量，直观查看短期内的效率波动。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 活跃热力图：").fontWeight(FontWeight.Medium)
+            Span("按天展示最近一段时间的活跃程度，颜色越深表示当天完成任务越多，可快速识别持续投入和断档区间。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
+        } else if (this.selectedIndexes[0] === 2) {
+          Text("看板说明")
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .fontColor($r('sys.color.ohos_id_color_text_primary'))
+            .margin({ bottom: 4 })
 
-        Text() {
-          Span("• 活跃热力图：").fontWeight(FontWeight.Medium)
-          Span("按天展示最近一段时间的活跃程度，颜色越深表示当天完成任务越多，可快速识别持续投入和断档区间。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 数据汇总：").fontWeight(FontWeight.Medium)
+            Span("基于您的所有任务数据计算出的关键指标（如总任务数、平均耗时等）。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
 
-      } else if (this.selectedIndexes[0] === 2) {
-        // === 2: DashboardSection (看板) ===
-        Text("看板说明")
-          .fontSize(16)
-          .fontWeight(FontWeight.Medium)
-          .fontColor($r('sys.color.ohos_id_color_text_primary'))
-          .margin({ bottom: 4 })
-
-        Text() {
-          Span("• 数据汇总：").fontWeight(FontWeight.Medium)
-          Span("基于您的所有任务数据计算出的关键指标（如总任务数、平均耗时等）。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
-
-        Text() {
-          Span("• 变化指标：").fontWeight(FontWeight.Medium)
-          Span("部分指标显示的箭头（").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-          Span("↑").fontColor($r('app.color.chart_green'))
-          Span("/").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-          Span("↓").fontColor($r('app.color.chart_red'))
-          Span("）代表与上周期相比的变化幅度。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        }.fontSize(14).lineHeight(20)
+          Text() {
+            Span("• 变化指标：").fontWeight(FontWeight.Medium)
+            Span("部分指标显示的箭头（").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+            Span("↑").fontColor($r('app.color.chart_green'))
+            Span("/").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+            Span("↓").fontColor($r('app.color.chart_red'))
+            Span("）代表与上周期相比的变化幅度。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          }.fontSize(14).lineHeight(20)
+        }
       }
+      .alignItems(HorizontalAlign.Start)
     }
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .borderRadius(12)
-    .width(280)
   }
 
   @Builder SortSheetBuilder() {
@@ -258,7 +249,7 @@ export struct OverviewPage {
           if (this.selectedIndexes[0] <= 1) {
             this.isSortSheetShow = true;
           } else {
-            promptAction.showToast({ message: '当前页面暂不支持排序' });
+            Toast.show({ message: '当前页面暂不支持排序' });
           }
         }
       })
@@ -283,7 +274,6 @@ export struct OverviewPage {
       builder: this.helpPopupBuilder,
       placement: Placement.Bottom,
       mask: false,
-      backgroundBlurStyle: BlurStyle.Regular,
       enableArrow: true,
       onStateChange: (e) => {
         if (!e.isVisible) {
@@ -340,87 +330,84 @@ export struct OverviewPage {
     );
     PaperTalkUtils.openPrintOrStore(this.context, payload).catch((error: Error) => {
       console.error(`[OverviewPage] Share monthly summary failed: ${error}`);
-      promptAction.showToast({ message: '暂时无法打开纸语或应用商店' });
+      Toast.show({ message: '暂时无法打开纸语或应用商店' });
     });
   }
 
   @Builder
   private overviewHelpBuilderWide() {
-    Column({ space: 8 }) {
-      Text("概览说明")
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
-        .margin({ bottom: 4 })
-      Text() {
-        Span("• 完成分布：").fontWeight(FontWeight.Medium)
-        Span("统计任务完成的时间段，柱状图越长代表该时段完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
-      Text() {
-        Span("• 历史统计：").fontWeight(FontWeight.Medium)
-        Span("点击环形图扇区，中间圆环内将显示该状态的具体数值。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
+    ImmersivePopupSurface({ widthValue: 280, paddingValue: 16, radius: 12 }) {
+      Column({ space: 8 }) {
+        Text("概览说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+        Text() {
+          Span("• 完成分布：").fontWeight(FontWeight.Medium)
+          Span("统计任务完成的时间段，柱状图越长代表该时段完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+        Text() {
+          Span("• 历史统计：").fontWeight(FontWeight.Medium)
+          Span("点击环形图扇区，中间圆环内将显示该状态的具体数值。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+      }
+      .alignItems(HorizontalAlign.Start)
     }
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .borderRadius(12)
-    .width(280)
   }
 
   @Builder
   private trendHelpBuilderWide() {
-    Column({ space: 8 }) {
-      Text("趋势说明")
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
-        .margin({ bottom: 4 })
-      Text() {
-        Span("• 本周情况：").fontWeight(FontWeight.Medium)
-        Span("展示每日完成任务数。点击右上角").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        Span("「显示逾期」").fontColor($r('app.color.chart_red'))
-        Span("开关，可对比每日逾期数量。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
-      Text() {
-        Span("• 每月趋势：").fontWeight(FontWeight.Medium)
-        Span("展示近12个月的任务总量、完成量及逾期量走势。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
-      Text() {
-        Span("• 活跃热力图：").fontWeight(FontWeight.Medium)
-        Span("按天展示最近一段时间的任务活跃度，颜色越深表示当天完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
+    ImmersivePopupSurface({ widthValue: 280, paddingValue: 16, radius: 12 }) {
+      Column({ space: 8 }) {
+        Text("趋势说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+        Text() {
+          Span("• 本周情况：").fontWeight(FontWeight.Medium)
+          Span("展示每日完成任务数。点击右上角").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("「显示逾期」").fontColor($r('app.color.chart_red'))
+          Span("开关，可对比每日逾期数量。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+        Text() {
+          Span("• 每月趋势：").fontWeight(FontWeight.Medium)
+          Span("展示近12个月的任务总量、完成量及逾期量走势。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+        Text() {
+          Span("• 活跃热力图：").fontWeight(FontWeight.Medium)
+          Span("按天展示最近一段时间的任务活跃度，颜色越深表示当天完成任务越多。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+      }
+      .alignItems(HorizontalAlign.Start)
     }
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .borderRadius(12)
-    .width(280)
   }
 
   @Builder
   private dashboardHelpBuilderWide() {
-    Column({ space: 8 }) {
-      Text("看板说明")
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
-        .margin({ bottom: 4 })
-      Text() {
-        Span("• 数据汇总：").fontWeight(FontWeight.Medium)
-        Span("基于您的所有任务数据计算出的关键指标。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
-      Text() {
-        Span("• 变化指标：").fontWeight(FontWeight.Medium)
-        Span("箭头（").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        Span("↑").fontColor($r('app.color.chart_green'))
-        Span("/").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-        Span("↓").fontColor($r('app.color.chart_red'))
-        Span("）代表与上周期相比的变化幅度。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
-      }.fontSize(14).lineHeight(20)
+    ImmersivePopupSurface({ widthValue: 280, paddingValue: 16, radius: 12 }) {
+      Column({ space: 8 }) {
+        Text("看板说明")
+          .fontSize(16)
+          .fontWeight(FontWeight.Medium)
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .margin({ bottom: 4 })
+        Text() {
+          Span("• 数据汇总：").fontWeight(FontWeight.Medium)
+          Span("基于您的所有任务数据计算出的关键指标。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+        Text() {
+          Span("• 变化指标：").fontWeight(FontWeight.Medium)
+          Span("箭头（").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("↑").fontColor($r('app.color.chart_green'))
+          Span("/").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+          Span("↓").fontColor($r('app.color.chart_red'))
+          Span("）代表与上周期相比的变化幅度。").fontColor($r('sys.color.ohos_id_color_text_secondary'))
+        }.fontSize(14).lineHeight(20)
+      }
+      .alignItems(HorizontalAlign.Start)
     }
-    .alignItems(HorizontalAlign.Start)
-    .padding(16)
-    .borderRadius(12)
-    .width(280)
   }
 
   private buildWideTitleMenus(): HdsNavigationMenuItemOptions[] {

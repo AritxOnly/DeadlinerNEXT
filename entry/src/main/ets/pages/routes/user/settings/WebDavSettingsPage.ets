@@ -11,6 +11,7 @@ import { TaskRepository } from "../../../../common/repository/TaskRepository";
 import { HdsNavDestination, HdsNavDestinationAttribute } from "@kit.UIDesignKit";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 import { TopSafeContainer } from "../../../components/TopSafeContainer";
+import { Toast } from '../../../../common/ui/Toast';
 
 // 选项接口定义
 interface SyncOption {
@@ -189,7 +190,7 @@ export struct SettingsWebDavPage {
                   }
                   await LocalValues.getInstance().setTombstoneRetentionDays(this.tombstoneRetentionDays);
 
-                  promptAction.showToast({ message: '开始同步...' });
+                  Toast.show({ message: '开始同步...' });
 
                   const repo = TaskRepository.getInstance();
                   repo.setContext(getContext(this) as common.UIAbilityContext);
@@ -198,14 +199,14 @@ export struct SettingsWebDavPage {
                   const success = await repo.syncNow();
 
                   if (success) {
-                    promptAction.showToast({ message: '同步成功！' });
+                    Toast.show({ message: '同步成功！' });
                     getContext(this).eventHub.emit('sync_done');
                   } else {
-                    promptAction.showToast({ message: '无数据变更或同步遇到问题，请检查网络/配置。' });
+                    Toast.show({ message: '无数据变更或同步遇到问题，请检查网络/配置。' });
                   }
                 } catch (e) {
                   console.error(`Sync Error: ${e}`);
-                  promptAction.showToast({ message: `发生错误: ${e.message}` });
+                  Toast.show({ message: `发生错误: ${e.message}` });
                 } finally {
                   this.isSyncing = false;
                 }

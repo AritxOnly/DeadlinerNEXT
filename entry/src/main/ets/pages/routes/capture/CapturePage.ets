@@ -21,6 +21,7 @@ import {
   APP_BREAKPOINT_STORAGE_KEY,
   AppBreakpointUtils
 } from '../../../common/layout/AppBreakpoints';
+import { Toast } from '../../../common/ui/Toast';
 
 @Component
 export struct CapturePage {
@@ -116,13 +117,13 @@ export struct CapturePage {
   private async saveInputAsInspiration() {
     const text = this.inputText.trim();
     if (!text) {
-      promptAction.showToast({ message: '先写下一句想法吧' });
+      Toast.show({ message: '先写下一句想法吧' });
       return;
     }
 
     await this.repo.createInspiration(text);
     this.inputText = '';
-    promptAction.showToast({ message: '已保留这条灵感' });
+    Toast.show({ message: '已保留这条灵感' });
     await this.loadItems();
     getContext(this).eventHub.emit('sync_done');
   }
@@ -140,7 +141,7 @@ export struct CapturePage {
 
     const text = this.detailDraftText.trim();
     if (!text) {
-      promptAction.showToast({ message: '留一点内容再保存吧' });
+      Toast.show({ message: '留一点内容再保存吧' });
       return;
     }
 
@@ -150,7 +151,7 @@ export struct CapturePage {
       createdAt: this.editingItem.createdAt,
       updatedAt: this.editingItem.updatedAt
     });
-    promptAction.showToast({ message: '已更新' });
+    Toast.show({ message: '已更新' });
     this.isDetailSheetShow = false;
     this.editingItem = null;
     await this.loadItems();
@@ -162,7 +163,7 @@ export struct CapturePage {
       return;
     }
     await this.repo.deleteInspiration(this.editingItem.id);
-    promptAction.showToast({ message: '已删除' });
+    Toast.show({ message: '已删除' });
     this.isDetailSheetShow = false;
     this.editingItem = null;
     await this.loadItems();
@@ -171,7 +172,7 @@ export struct CapturePage {
 
   private async deleteSingleItem(item: InspirationItem): Promise<void> {
     await this.repo.deleteInspiration(item.id);
-    promptAction.showToast({ message: '已删除' });
+    Toast.show({ message: '已删除' });
     await this.loadItems();
     getContext(this).eventHub.emit('sync_done');
   }
@@ -200,14 +201,14 @@ export struct CapturePage {
 
   private async deleteSelectedItems() {
     if (this.selectedIds.length === 0) {
-      promptAction.showToast({ message: '先选中一些灵感' });
+      Toast.show({ message: '先选中一些灵感' });
       return;
     }
 
     for (let i = 0; i < this.selectedIds.length; i++) {
       await this.repo.deleteInspiration(this.selectedIds[i]);
     }
-    promptAction.showToast({ message: `已删除 ${this.selectedIds.length} 条灵感` });
+    Toast.show({ message: `已删除 ${this.selectedIds.length} 条灵感` });
     this.exitSelectionMode();
     await this.loadItems();
     getContext(this).eventHub.emit('sync_done');
@@ -220,7 +221,7 @@ export struct CapturePage {
   private async mergeSelectedItems() {
     const selected = this.selectedItems();
     if (selected.length < 2) {
-      promptAction.showToast({ message: '至少选择两条灵感再合并' });
+      Toast.show({ message: '至少选择两条灵感再合并' });
       return;
     }
 
@@ -243,7 +244,7 @@ export struct CapturePage {
     if (mergedItem) {
       this.openItem(mergedItem);
     }
-    promptAction.showToast({ message: '已合并，接下来可以让 AI 帮你整理' });
+    Toast.show({ message: '已合并，接下来可以让 AI 帮你整理' });
   }
 
   private guessTitleFromText(text: string): string {
@@ -873,7 +874,7 @@ export struct CapturePage {
                   if (this.selectedIds.length >= 2) {
                     void this.mergeSelectedItems();
                   } else {
-                    promptAction.showToast({ message: '至少选择两条灵感再合并' });
+                    Toast.show({ message: '至少选择两条灵感再合并' });
                   }
                 }
               }

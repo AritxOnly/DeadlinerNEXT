@@ -23,6 +23,8 @@ import {
 import { MATERIAL_OPTIONS } from './OnboardingConfig';
 import { MaterialOption, SyncOption } from './OnboardingTypes';
 import { GuideContainer } from './OnboardingCorePages';
+import { DialogCompat } from '../../../common/ui/DialogCompat';
+import { Toast } from '../../../common/ui/Toast';
 
 @Component
 struct OnboardingHeader {
@@ -98,12 +100,12 @@ export struct HuaweiLoginPage {
           })
         }
         this.isLoggedIn = true;
-        promptAction.showToast({ message: '登录成功' });
+        Toast.show({ message: '登录成功' });
       },
       onSignInFail: (e: BusinessError) => {
         console.error(`AGC Login Failed: ${e.code}, ${e.message}`);
         if (e.code !== 1001502012) {
-          promptAction.showToast({ message: `登录验证失败: ${e.message}` });
+          Toast.show({ message: `登录验证失败: ${e.message}` });
         }
       },
       onSignOutSucc: () => {},
@@ -324,15 +326,15 @@ export struct NotificationPage {
                     this.allowNotification = true;
                   }).catch(() => {
                     this.allowNotification = false;
-                    promptAction.showToast({ message: '开启通知失败，请检查系统权限' });
+                    Toast.show({ message: '开启通知失败，请检查系统权限' });
                   });
                 } else if (!isOn && this.allowNotification) {
                   this.allowNotification = true;
-                  promptAction.showDialog({
+                  promptAction.showDialog(DialogCompat.withPromptBlurStyle({
                     title: '无法直接关闭',
                     message: '请前往系统设置中的“通知和状态栏”关闭本应用通知权限。',
                     buttons: [{ text: '知道了', color: '#007DFF' }]
-                  });
+                  }, BlurStyle.Regular));
                 }
               }
             })
@@ -662,7 +664,7 @@ export struct AiPage {
               .onClick(async () => {
                 if (this.apiKey.trim().length === 0 || this.isTesting) {
                   if (this.apiKey.trim().length === 0) {
-                    promptAction.showToast({ message: '请输入 API Key' });
+                    Toast.show({ message: '请输入 API Key' });
                   }
                   return;
                 }
@@ -673,10 +675,10 @@ export struct AiPage {
                   await local.setDeepSeekApiKey(this.apiKey);
                   await local.updateAIConfig(this.provider, this.model, this.baseUrl);
                   await AIService.getInstance().extractTasks('Hi');
-                  promptAction.showToast({ message: '验证通过，配置已生效' });
+                  Toast.show({ message: '验证通过，配置已生效' });
                 } catch (error) {
                   console.error('[Guide] ai verify failed:', error);
-                  promptAction.showToast({ message: '验证失败，请检查 Key 与网络' });
+                  Toast.show({ message: '验证失败，请检查 Key 与网络' });
                 } finally {
                   this.isTesting = false;
                 }
@@ -751,12 +753,12 @@ export struct PersonalizationPage {
       onComplete: (croppedUri: string, isBlur: boolean) => {
         this.isBackgroundSheetShow = false;
         ThemeManager.setCustomBackground(croppedUri, isBlur);
-        promptAction.showToast({ message: '自定义背景已生效' });
+        Toast.show({ message: '自定义背景已生效' });
       },
       onClearBackground: () => {
         this.isBackgroundSheetShow = false;
         ThemeManager.clearCustomBackground();
-        promptAction.showToast({ message: '已恢复默认背景' });
+        Toast.show({ message: '已恢复默认背景' });
       }
     })
   }

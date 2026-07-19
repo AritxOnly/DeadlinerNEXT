@@ -6,6 +6,8 @@ import { DDLItem, Habit, HabitPeriod, HabitGoalType } from '../../model/DDLModel
 import { ArchivedDDLItemCard } from '../components/TaskItemCard';
 import { ITheme } from '../../common/theme/ThemeModel';
 import { TaskStateAction, TaskStateMachine } from '../../model/TaskStateMachine';
+import { DialogCompat } from '../../common/ui/DialogCompat';
+import { Toast } from '../../common/ui/Toast';
 
 @Component
 export struct ArchivePanelView {
@@ -69,10 +71,10 @@ export struct ArchivePanelView {
     try {
       await this.taskRepo.transitionDDL(item.id, TaskStateAction.UNARCHIVE);
       await this.refreshData();
-      promptAction.showToast({ message: '已恢复到主列表' });
+      Toast.show({ message: '已恢复到主列表' });
     } catch (e) {
       console.error(`Restore task failed: ${e}`);
-      promptAction.showToast({ message: '恢复失败' });
+      Toast.show({ message: '恢复失败' });
     }
   }
 
@@ -89,23 +91,22 @@ export struct ArchivePanelView {
     try {
       await this.habitRepo.unarchiveHabit(item.id);
       await this.refreshData();
-      promptAction.showToast({ message: '习惯已恢复到主列表' });
+      Toast.show({ message: '习惯已恢复到主列表' });
     } catch (e) {
       console.error(`Restore habit failed: ${e}`);
-      promptAction.showToast({ message: '恢复失败' });
+      Toast.show({ message: '恢复失败' });
     }
   }
 
   // 抽离通用的删除弹窗逻辑
   showDeleteDialog(type: string, name: string, deleteAction: () => Promise<void>) {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '永久删除',
       message: `确定要永久删除${type}“${name}”吗？此操作不可恢复。`,
       autoCancel: true,
       alignment: DialogAlignment.Bottom,
       offset: { dx: 0, dy: -20 }, // 微调位置
       gridCount: 4, // 弹窗宽度占用栅格数
-      backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
         fontColor: this.theme.brand,
@@ -117,14 +118,14 @@ export struct ArchivePanelView {
         action: async () => {
           try {
             await deleteAction();
-            promptAction.showToast({ message: '已删除' });
+            Toast.show({ message: '已删除' });
           } catch (e) {
             console.error(`Delete failed: ${e}`);
-            promptAction.showToast({ message: '删除失败' });
+            Toast.show({ message: '删除失败' });
           }
         }
       }
-    });
+    }, BlurStyle.Regular));
   }
 
   private formatDate(dateStr?: string): string {

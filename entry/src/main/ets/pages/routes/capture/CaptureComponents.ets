@@ -1,5 +1,6 @@
 import { HdsNavigation, HdsNavigationTitleMode } from '@kit.UIDesignKit';
 import { ITheme } from '../../../common/theme/ThemeModel';
+import { ImmersivePopupSurface } from '../../../common/ui/ImmersivePopupSurface';
 import { InspirationItem } from '../../../model/InspirationModels';
 import { BlurBackgroundModifier } from '../../../utils/animation/BlurBackgroundModifier';
 import { PressEffectModifier } from '../../../utils/animation/PressModifier';
@@ -374,29 +375,30 @@ export struct InspirationEditSheet {
 
   @Builder
   private manualPopupBuilder() {
-    Column({ space: 6 }) {
-      Button('直接整理成任务')
-        .type(ButtonType.Capsule)
-        .width('100%')
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
-        .backgroundColor($r('sys.color.comp_background_secondary'))
-        .onClick((): void => {
-          this.isManualPopupShow = false;
-          this.onDirectTask();
-        })
+    ImmersivePopupSurface({ widthValue: 180, paddingValue: 10, radius: 16 }) {
+      Column({ space: 6 }) {
+        Button('直接整理成任务')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .backgroundColor($r('sys.color.comp_background_secondary'))
+          .onClick((): void => {
+            this.isManualPopupShow = false;
+            this.onDirectTask();
+          })
 
-      Button('直接整理成习惯')
-        .type(ButtonType.Capsule)
-        .width('100%')
-        .fontColor($r('sys.color.ohos_id_color_text_primary'))
-        .backgroundColor($r('sys.color.comp_background_secondary'))
-        .onClick((): void => {
-          this.isManualPopupShow = false;
-          this.onDirectHabit();
-        })
+        Button('直接整理成习惯')
+          .type(ButtonType.Capsule)
+          .width('100%')
+          .fontColor($r('sys.color.ohos_id_color_text_primary'))
+          .backgroundColor($r('sys.color.comp_background_secondary'))
+          .onClick((): void => {
+            this.isManualPopupShow = false;
+            this.onDirectHabit();
+          })
+      }
+      .width('100%')
     }
-    .width(180)
-    .padding(10)
   }
 
   build() {

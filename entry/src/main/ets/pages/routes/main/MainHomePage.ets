@@ -28,7 +28,7 @@ import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 import { HdsTitleBarMenuButton } from '../../components/HdsTitleBarMenuButton'
 import { HdsTitleBarSegment } from '../../components/HdsTitleBarSegment'
 import { AISheetController } from '../../components/AISheetController'
-import { HomeFocusLayout, HomeFocusPanel, HomeFocusRailMode, HomeFocusSegment } from '../../components/HomeFocusPanel'
+import { SideDashboard } from '../../components/SideDashboard'
 import { SearchPage } from './search/SearchPage'
 import { AddDialogTablet } from '../../components/AddDialogTablet'
 import { MainProfileQuickSheet, ProfileAvatarMenuButton } from '../../components/MainProfileEntry'
@@ -358,14 +358,6 @@ export struct MainHomePage {
     return this.currentIndex === MainTabIndex.TASKS;
   }
 
-  private getCurrentHomeFocusSegment(): HomeFocusSegment {
-    return this.isTaskTab() ? HomeFocusSegment.TASKS : HomeFocusSegment.HABITS;
-  }
-
-  private getRailSegment(): HomeFocusSegment {
-    return this.usesWideSplitLayout() ? HomeFocusSegment.ALL : this.getCurrentHomeFocusSegment();
-  }
-
   private getFreeTopAvoidHeight(): number {
     return this.statusBarHeight + this.topContentHeight;
   }
@@ -622,12 +614,8 @@ export struct MainHomePage {
         .color($r('sys.color.ohos_id_color_list_separator'))
         .opacity(0.5)
 
-      HomeFocusPanel({
-        segment: this.getRailSegment(),
-        layout: HomeFocusLayout.RAIL,
-        railMode: HomeFocusRailMode.MEDIUM
-      })
-        .width(164)
+      SideDashboard()
+        .width(132)
         .height('100%')
         .padding({ top: this.getMiniTopAvoidHeight(), left: 10, right: 10, bottom: 24 })
     }
@@ -851,14 +839,10 @@ export struct MainHomePage {
             .color($r('sys.color.ohos_id_color_list_separator'))
             .opacity(0.5)
 
-          HomeFocusPanel({
-            segment: this.getRailSegment(),
-            layout: HomeFocusLayout.RAIL,
-            railMode: HomeFocusRailMode.WIDE
-          })
-            .width(176)
+          SideDashboard()
+            .width(108)
             .height('100%')
-            .padding({ top: this.getMiniTopAvoidHeight() + this.statusBarHeight, left: 12, right: 12, bottom: 24 })
+            .padding({ top: this.getMiniTopAvoidHeight() + this.statusBarHeight })
         }
       }
       .width('100%')

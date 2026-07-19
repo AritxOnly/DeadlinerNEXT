@@ -24,6 +24,8 @@ import {
   APP_BREAKPOINT_STORAGE_KEY,
   AppBreakpointUtils
 } from '../common/layout/AppBreakpoints';
+import { Toast } from '../common/ui/Toast';
+import { API23_UI_DEFAULT } from '../common/local/ExperimentalComponentsPolicy';
 
 interface TabData {
   title: string,
@@ -66,7 +68,7 @@ struct Index {
   @StorageProp('statusBarHeight') @Watch('syncTopAvoidExtraHeight') statusBarHeight: number = 38;
   @StorageProp('topAvoidExtraHeight') topAvoidExtraHeight: number = 0;
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
-  @StorageProp(C.KEY_ENABLE_API23) enableApi23: boolean = false;
+  @StorageProp(C.KEY_ENABLE_API23) enableApi23: boolean = API23_UI_DEFAULT;
   @StorageLink('NotificationPermissionRequestInProgress') @Watch('onNotificationPermissionFlowChange')
   isNotificationPermissionRequestInProgress: boolean = false;
 
@@ -239,7 +241,7 @@ struct Index {
 
         if (fixedProfile.nickname) {
           console.info('[Fix] User repaired successfully.');
-          promptAction.showToast({ message: '用户信息已同步' });
+          Toast.show({ message: '用户信息已同步' });
         }
       } else {
         console.info('[Fix] User profile is healthy.');
@@ -392,7 +394,7 @@ struct Index {
 
   // 定义 Tab 数据
   private tabs: Array<TabData> = [
-    { title: '清单', icon: $r('sys.symbol.house_fill_1'), index: 0 },
+    { title: '清单', icon: $r('sys.symbol.house_fill'), index: 0 },
     { title: '概览', icon: $r('sys.symbol.data_proportion_fill'), index: 1 },
     { title: '灵感', icon: $r('app.media.capture'), index: 2 },
     { title: 'AI', icon: $r('app.media.lifi'), index: 3 },

@@ -1,4 +1,5 @@
 import { ITheme } from "../../common/theme/ThemeModel";
+import { ImmersivePopupSurface } from "../../common/ui/ImmersivePopupSurface";
 
 @CustomDialog
 export struct OverviewSettingsDialog {
@@ -13,54 +14,53 @@ export struct OverviewSettingsDialog {
 
   build() {
     Column() {
-      Text("概览设置").fontSize(20).fontWeight(FontWeight.Bold).margin({ bottom: 20 })
-
-      // 滑块区域
-      Row() {
-        Text("统计月数").layoutWeight(1)
-        Text(`${this.tempMonthlyCount} 个月`).fontColor(Color.Gray)
-      }.width('100%').margin({ bottom: 10 })
-
-      Slider({
-        value: this.tempMonthlyCount,
-        min: 1,
-        max: 12,
-        step: 1,
-        style: SliderStyle.OutSet
-      })
-        .showSteps(true)
-        .onChange((value: number, mode: SliderChangeMode) => {
-          this.tempMonthlyCount = value;
-        })
-
-      Divider().margin({ top: 15, bottom: 15 })
-
-      // 开关区域
-      Row() {
+      ImmersivePopupSurface({ paddingValue: 16, radius: 36, fallbackBlurStyle: BlurStyle.Thick }) {
         Column() {
-          Text("显示逾期任务").fontSize(16)
-          Text("在每日统计中包含逾期").fontSize(12).fontColor(Color.Gray)
-        }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+          Text("概览设置").fontSize(20).fontWeight(FontWeight.Bold).margin({ bottom: 20 })
 
-        Toggle({ type: ToggleType.Switch, isOn: this.tempShowOverdue })
-          .onChange((isOn: boolean) => {
-            this.tempShowOverdue = isOn;
-          })
-      }.width('100%')
+          Row() {
+            Text("统计月数").layoutWeight(1)
+            Text(`${this.tempMonthlyCount} 个月`).fontColor(Color.Gray)
+          }.width('100%').margin({ bottom: 10 })
 
-      // 按钮
-      Row() {
-        Button("确定")
-          .onClick(() => {
-            this.controller.close();
+          Slider({
+            value: this.tempMonthlyCount,
+            min: 1,
+            max: 12,
+            step: 1,
+            style: SliderStyle.OutSet
           })
-          .width('100%')
-          .backgroundColor(this.buttonBgColor)
-      }.margin({ top: 30 })
+            .showSteps(true)
+            .onChange((value: number, mode: SliderChangeMode) => {
+              this.tempMonthlyCount = value;
+            })
+
+          Divider().margin({ top: 15, bottom: 15 })
+
+          Row() {
+            Column() {
+              Text("显示逾期任务").fontSize(16)
+              Text("在每日统计中包含逾期").fontSize(12).fontColor(Color.Gray)
+            }.alignItems(HorizontalAlign.Start).layoutWeight(1)
+
+            Toggle({ type: ToggleType.Switch, isOn: this.tempShowOverdue })
+              .onChange((isOn: boolean) => {
+                this.tempShowOverdue = isOn;
+              })
+          }.width('100%')
+
+          Row() {
+            Button("确定")
+              .onClick(() => {
+                this.controller.close();
+              })
+              .width('100%')
+              .backgroundColor(this.buttonBgColor)
+          }.margin({ top: 30 })
+        }
+        .width('100%')
+      }
     }
-    .padding(16)
     .margin(16)
-    .borderRadius(36)
-    .backgroundBlurStyle(BlurStyle.Thick)
   }
 }

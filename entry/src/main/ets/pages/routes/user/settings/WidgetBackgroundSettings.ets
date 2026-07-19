@@ -13,6 +13,7 @@ import { formBindingData } from '@kit.FormKit';
 import { WidgetUpdater } from '../../../../utils/WidgetUpdater';
 import { image } from '@kit.ImageKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
+import { Toast } from '../../../../common/ui/Toast';
 
 let storage = new LocalStorage();
 
@@ -83,7 +84,7 @@ struct WidgetBackgroundSettings {
 
     this.updateDesktopWidget();
 
-    promptAction.showToast({ message: '已恢复默认样式' });
+    Toast.show({ message: '已恢复默认样式' });
   }
 
   /**
@@ -177,11 +178,11 @@ struct WidgetBackgroundSettings {
       // 触发更新
       this.updateDesktopWidget();
 
-      promptAction.showToast({ message: '背景已设置' });
+      Toast.show({ message: '背景已设置' });
 
     } catch (e) {
       console.error('Save/Scale image failed', JSON.stringify(e));
-      promptAction.showToast({ message: '图片处理失败' });
+      Toast.show({ message: '图片处理失败' });
     } finally {
       if (pixelMap) pixelMap.release();
       if (imageSource) imageSource.release();

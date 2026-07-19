@@ -18,6 +18,7 @@ import { AIPanelView } from "../../common/AIPanelView";
 import { SupportPanelView } from "../../common/SupportPanelView";
 import { getImmersiveTitleBarStyle } from "../../../common/style/NavStyles";
 import { ITheme } from "../../../common/theme/ThemeModel";
+import { DialogCompat } from "../../../common/ui/DialogCompat";
 import { FriendshipLinksPage } from "./settings/FriendshipLinksPage";
 import {
   APP_BREAKPOINT_DEFAULT,
@@ -148,13 +149,12 @@ export struct UserPage {
   }
 
   private showTurnOnBasicDialog() {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '开启基础模式',
       message: '开启后将清除所有高级设置（AI Key、WebDAV 账号等）并退出当前华为账号。\n\n此操作不可撤销，确定要继续吗？',
       autoCancel: false,
       alignment: DialogAlignment.Bottom,
       offset: { dx: 0, dy: -20 },
-      backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
         action: () => {
@@ -175,7 +175,7 @@ export struct UserPage {
           LocalValues.getInstance().setBasicMode(true);
         }
       }
-    });
+    }, BlurStyle.Regular));
   }
 
   @State isArchiveSheetShow: boolean = false;

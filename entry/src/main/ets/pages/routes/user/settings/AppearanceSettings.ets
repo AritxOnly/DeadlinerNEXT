@@ -18,6 +18,11 @@ import { ITheme } from '../../../../common/theme/ThemeModel';
 import { ImageCropSheet } from './components/ImageCropSheet';
 import { IconSelectSheet } from './components/IconSelectSheet';
 import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from '../../../../common/layout/AppBreakpoints';
+import { Toast } from '../../../../common/ui/Toast';
+import {
+  canShowExperimentalComponentsSetting,
+  EXPERIMENTAL_COMPONENTS_DEFAULT
+} from '../../../../common/local/ExperimentalComponentsPolicy';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -54,9 +59,7 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
   @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) weight: number = 600;
   @StorageLink(C.KEY_ENABLE_API23) api23: boolean = true;
-  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = true;
-
-  @StorageLink(C.KEY_SHOW_MINIBAR) showMiniBar: boolean = (deviceInfo.distributionOSApiVersion >= 60100);
+  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = EXPERIMENTAL_COMPONENTS_DEFAULT;
 
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
@@ -110,13 +113,13 @@ struct AppearanceSettings {
       onComplete: (croppedUri: string, isBlur: boolean) => {
         this.isBackgroundSheetShow = false;
         ThemeManager.setCustomBackground(croppedUri, isBlur);
-        promptAction.showToast({ message: '自定义背景已生效' });
+        Toast.show({ message: '自定义背景已生效' });
       },
       onClearBackground: () => {
         // 用户点击了“恢复默认”
         this.isBackgroundSheetShow = false;
         ThemeManager.clearCustomBackground();
-        promptAction.showToast({ message: '已恢复默认背景' });
+        Toast.show({ message: '已恢复默认背景' });
       }
     })
   }
@@ -235,7 +238,7 @@ struct AppearanceSettings {
               .enabled(deviceInfo.distributionOSApiVersion >= 60100)
 
             if (this.api23 && deviceInfo.distributionOSApiVersion >= 60100) {
-              SettingsDivider()
+              SubSettingsDivider()
 
               SettingsSelect({
                 title: '材质等级',
@@ -249,14 +252,16 @@ struct AppearanceSettings {
                 }
               })
 
-              SubSettingsDivider()
+              if (canShowExperimentalComponentsSetting()) {
+                SubSettingsDivider()
 
-              SubSettingsSwitch({
-                title: '实验性组件',
-                subtitle: '开启后，主页顶部按钮将优先使用实验性的沉浸光感组件。',
-                isOn: this.experimentalComponents,
-                onChange: (isOn): Promise<void> => LocalValues.getInstance().setExperimentalComponents(isOn)
-              })
+                SubSettingsSwitch({
+                  title: '实验性组件',
+                  subtitle: '开启后，主页顶部按钮将优先使用实验性的沉浸光感组件。',
+                  isOn: this.experimentalComponents,
+                  onChange: (isOn): Promise<void> => LocalValues.getInstance().setExperimentalComponents(isOn)
+                })
+              }
             }
           }
 

@@ -11,6 +11,7 @@ import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 import { MarkdownView } from "../../../components/MarkdownView";
 import { LETTER_CONTENT } from "./LetterPage";
 import { ITheme } from "../../../../common/theme/ThemeModel";
+import { DialogCompat } from "../../../../common/ui/DialogCompat";
 import { APP_BREAKPOINT_DEFAULT, APP_BREAKPOINT_STORAGE_KEY, AppBreakpointUtils } from "../../../../common/layout/AppBreakpoints";
 
 @Builder
@@ -56,7 +57,7 @@ export struct AboutPage {
   }
 
   private showRevokeDialog() {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '撤回隐私协议',
       message: '撤回协议后，应用将无法继续为您提供服务，并会自动退出账号，清除您的 WebDAV 与 AI API Key 设置。下次启动应用时，您需要重新同意协议。\n\n确定要撤回吗？',
       autoCancel: true,
@@ -83,9 +84,8 @@ export struct AboutPage {
             this.context.terminateSelf();
           }
         }
-      },
-      backgroundBlurStyle: BlurStyle.Regular
-    })
+      }
+    }, BlurStyle.Regular))
   }
 
   private privacyUrl: string = 'resource://rawfile/privacy_agreement.html';

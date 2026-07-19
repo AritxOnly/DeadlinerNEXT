@@ -1,3 +1,4 @@
+import { Toast } from '../../../../../common/ui/Toast';
 import * as image_cropper from "@candies/image_cropper";
 import { ImageCropper } from "@candies/image_cropper";
 import { image } from '@kit.ImageKit';
@@ -114,7 +115,7 @@ export struct ImageCropSheet {
 
   private async cropAndSave(): Promise<void> {
     if (!this.imageSource) {
-      promptAction.showToast({ message: '请先选择图片' });
+      Toast.show({ message: '请先选择图片' });
       return;
     }
 

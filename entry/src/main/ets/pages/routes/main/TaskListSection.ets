@@ -13,6 +13,8 @@ import { TaskDetailSheet } from "./modify/task/TaskDetailSheet";
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 import { ITheme } from "../../../common/theme/ThemeModel";
 import { TaskState, TaskStateAction } from "../../../model/TaskStateMachine";
+import { DialogCompat } from "../../../common/ui/DialogCompat";
+import { Toast } from '../../../common/ui/Toast';
 
 export interface TaskUIModel {
   title: string;
@@ -227,10 +229,10 @@ export struct TaskListSection {
         this.confetti.fire();
       }
       await this.loadData();
-      promptAction.showToast({ message: successMessage });
+      Toast.show({ message: successMessage });
     } catch (e) {
       console.error(`Task action failed: ${e}`);
-      promptAction.showToast({ message: '操作失败' });
+      Toast.show({ message: '操作失败' });
     }
   }
 
@@ -256,7 +258,7 @@ export struct TaskListSection {
   }
 
   private confirmGiveUp(dbId: number, title: string) {
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '放弃确认',
       message: `确定要放弃任务“${title}”吗？`,
       autoCancel: true,
@@ -273,16 +275,15 @@ export struct TaskListSection {
         action: async () => {
           await this.performTaskAction(dbId, TaskStateAction.MARK_GIVE_UP, '任务已放弃');
         }
-      },
-      backgroundBlurStyle: BlurStyle.Thick
-    });
+      }
+    }, BlurStyle.Thick));
   }
 
   private handleDelete(dbId: number, title: string) {
     VibrationUtils.vibrateMedium();
 
     // 弹出确认框
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '删除确认',
       message: `确定要删除任务 "${title}" 吗？`,
       autoCancel: true,
@@ -302,15 +303,14 @@ export struct TaskListSection {
           try {
             await this.repo.deleteDDL(dbId);
             await this.loadData();
-            promptAction.showToast({ message: $r('app.string.toast_deletion') });
+            Toast.show({ message: $r('app.string.toast_deletion') });
           } catch (e) {
             console.error(`Delete failed: ${e}`);
-            promptAction.showToast({ message: '删除失败' });
+            Toast.show({ message: '删除失败' });
           }
         }
-      },
-      backgroundBlurStyle: BlurStyle.Thick
-    })
+      }
+    }, BlurStyle.Thick))
   }
 
   // 进入多选模式
@@ -367,7 +367,7 @@ export struct TaskListSection {
       if (skippedCount > 0) {
         message += `，${skippedCount} 项当前状态无法完成`;
       }
-      promptAction.showToast({ message: message });
+      Toast.show({ message: message });
       this.exitSelectionMode();
       await this.loadData();
     } catch (e) {
@@ -402,13 +402,13 @@ export struct TaskListSection {
         message += `，${skippedCount} 项当前状态无法归档`;
       }
 
-      promptAction.showToast({ message: message });
+      Toast.show({ message: message });
 
       this.exitSelectionMode();
       await this.loadData();
     } catch (e) {
       console.error('Batch archive failed:', e);
-      promptAction.showToast({ message: '批量归档失败' });
+      Toast.show({ message: '批量归档失败' });
     }
   }
 
@@ -416,7 +416,7 @@ export struct TaskListSection {
     if (this.selectedIds.length === 0) return;
 
     VibrationUtils.vibrateMedium();
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '批量删除',
       message: `确定要删除选中的 ${this.selectedIds.length} 个任务吗？此操作不可恢复。`,
       autoCancel: true,
@@ -435,36 +435,35 @@ export struct TaskListSection {
             for (const id of this.selectedIds) {
               await this.repo.deleteDDL(id);
             }
-            promptAction.showToast({ message: '删除成功' });
+            Toast.show({ message: '删除成功' });
             this.exitSelectionMode();
             await this.loadData();
           } catch (e) {
             console.error('Batch delete failed:', e);
           }
         }
-      },
-      backgroundBlurStyle: BlurStyle.Regular
-    });
+      }
+    }, BlurStyle.Regular));
   }
 
   private async openTaskDetail(taskId: number) {
     try {
       const task = await this.repo.getDDLById(taskId);
       if (!task) {
-        promptAction.showToast({ message: '找不到该任务' });
+        Toast.show({ message: '找不到该任务' });
         return;
       }
       this.detailTask = task;
       this.isDetailSheetShow = true;
     } catch (e) {
       console.error('Open detail failed:', e);
-      promptAction.showToast({ message: '无法打开任务详情' });
+      Toast.show({ message: '无法打开任务详情' });
     }
   }
 
   private async handleBatchEdit() {
     if (this.selectedIds.length === 0) {
-      promptAction.showToast({ message: '未选中任何任务' });
+      Toast.show({ message: '未选中任何任务' });
       return;
     }
     const targetId = this.selectedIds[0];

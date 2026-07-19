@@ -13,6 +13,8 @@ import { ReminderScheduler } from "../../../utils/notification/ReminderScheduler
 import { PressEffectModifier } from "../../../utils/animation/PressModifier";
 import { ITheme } from "../../../common/theme/ThemeModel";
 import { DDLStatus } from "../../../model/DDLStatus"
+import { DialogCompat } from "../../../common/ui/DialogCompat";
+import { Toast } from '../../../common/ui/Toast';
 
 interface EbbinState {
   isDue: boolean;
@@ -95,7 +97,7 @@ export struct HabitListSection {
 
   async handleRequestSetAlarm() {
     if (this.selectedDdlIds.size !== 1) {
-      promptAction.showToast({ message: '请选择一个待办来设置提醒' });
+      Toast.show({ message: '请选择一个待办来设置提醒' });
       return;
     }
 
@@ -139,14 +141,14 @@ export struct HabitListSection {
       const allHabits = await this.repo.getAllHabits();
       await ReminderScheduler.refreshHabits(allHabits);
 
-      promptAction.showToast({ message: enabled ? `已设置提醒: ${timeStr}` : '提醒已关闭' });
+      Toast.show({ message: enabled ? `已设置提醒: ${timeStr}` : '提醒已关闭' });
 
       await this.refreshAll(this.selectedDate);
       this.exitSelectionMode();
 
     } catch (e) {
       console.error('Set alarm failed:', e);
-      promptAction.showToast({ message: '设置失败' });
+      Toast.show({ message: '设置失败' });
     }
   }
 
@@ -335,7 +337,7 @@ export struct HabitListSection {
       // 艾宾浩斯非复习日阻断打卡
       const ebState = this.getEbbinghausState(item.habit, this.selectedDate);
       if (!ebState.isDue) {
-        promptAction.showToast({ message: '今天不是该记忆周期的复习日' });
+        Toast.show({ message: '今天不是该记忆周期的复习日' });
         return;
       }
 
@@ -387,7 +389,7 @@ export struct HabitListSection {
     });
 
     if (targets.length === 0) {
-      promptAction.showToast({ message: '没有可打卡的待办' });
+      Toast.show({ message: '没有可打卡的待办' });
       this.exitSelectionMode();
       return;
     }
@@ -397,12 +399,12 @@ export struct HabitListSection {
         return this.repo.insertRecord(item.habit.id, this.selectedDate, 1);
       }));
 
-      promptAction.showToast({ message: `已打卡 ${targets.length} 个待办` });
+      Toast.show({ message: `已打卡 ${targets.length} 个待办` });
       this.refreshAll(this.selectedDate);
       this.exitSelectionMode();
     } catch (e) {
       console.error('Batch complete failed:', e);
-      promptAction.showToast({ message: '操作失败' });
+      Toast.show({ message: '操作失败' });
     }
   }
 
@@ -411,14 +413,13 @@ export struct HabitListSection {
 
     VibrationUtils.vibrateMedium();
 
-    AlertDialog.show({
+    AlertDialog.show(DialogCompat.withAlertBlurStyle({
       title: '删除待办',
       message: `确定要删除选中的 ${this.selectedDdlIds.size} 个待办吗？此操作不可恢复。`,
       autoCancel: true,
       alignment: DialogAlignment.Bottom,
       offset: { dx: 0, dy: -20 },
       gridCount: 4,
-      backgroundBlurStyle: BlurStyle.Regular,
       primaryButton: {
         value: '取消',
         fontColor: this.theme.brand,
@@ -432,17 +433,17 @@ export struct HabitListSection {
             const idsToDelete = Array.from(this.selectedDdlIds);
             await Promise.all(idsToDelete.map(ddlId => this.repo.deleteHabitByDdlId(ddlId)));
 
-            promptAction.showToast({ message: '删除成功' });
+            Toast.show({ message: '删除成功' });
             this.refreshAll(this.selectedDate);
             this.exitSelectionMode();
             getContext(this).eventHub.emit('sync_done');
           } catch (e) {
             console.error('Batch delete failed:', e);
-            promptAction.showToast({ message: '删除失败' });
+            Toast.show({ message: '删除失败' });
           }
         }
       }
-    })
+    }, BlurStyle.Regular))
   }
 
   async handleBatchArchive() {
@@ -457,18 +458,18 @@ export struct HabitListSection {
         return this.repo.updateHabit(updatedHabit);
       }));
 
-      promptAction.showToast({ message: `已归档 ${targets.length} 个待办` });
+      Toast.show({ message: `已归档 ${targets.length} 个待办` });
       this.refreshAll(this.selectedDate);
       this.exitSelectionMode();
     } catch (e) {
       console.error('Batch archive failed:', e);
-      promptAction.showToast({ message: '归档失败' });
+      Toast.show({ message: '归档失败' });
     }
   }
 
   handleBatchEdit() {
     if (this.selectedDdlIds.size === 0) {
-      promptAction.showToast({ message: '未选中任何待办' });
+      Toast.show({ message: '未选中任何待办' });
       return;
     }
 
@@ -476,7 +477,7 @@ export struct HabitListSection {
     const targetItem = this.allHabitsCache.find(it => it.habit.ddlId === ddlId);
 
     if (!targetItem) {
-      promptAction.showToast({ message: '未找到待办数据' });
+      Toast.show({ message: '未找到待办数据' });
       return;
     }
 

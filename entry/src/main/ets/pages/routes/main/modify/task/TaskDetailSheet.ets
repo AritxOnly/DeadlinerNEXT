@@ -6,6 +6,7 @@ import { DateTimeUtils } from '../../../../../utils/DateTimeUtils';
 import { TaskStateMachine } from '../../../../../model/TaskStateMachine';
 import { TaskEditSheet } from './TaskEditSheet';
 import { HdsNavigation, HdsNavigationTitleMode } from '@kit.UIDesignKit';
+import { Toast } from '../../../../../common/ui/Toast';
 
 @Component
 struct TaskDetailSubTaskRow {
@@ -152,7 +153,7 @@ export struct TaskDetailSheet {
       this.animateProgressIn();
     } catch (e) {
       console.error(`[TaskDetailSheet] loadDetail failed: ${e}`);
-      promptAction.showToast({ message: '加载任务详情失败' });
+      Toast.show({ message: '加载任务详情失败' });
     }
   }
 
@@ -166,7 +167,7 @@ export struct TaskDetailSheet {
       console.error(`[TaskDetailSheet] loadSubTasks failed: ${e}`);
       this.subTasks = [];
       this.bumpSubTaskRenderVersion();
-      promptAction.showToast({ message: '加载子任务失败' });
+      Toast.show({ message: '加载子任务失败' });
     } finally {
       this.isPlanLoading = false;
     }
@@ -275,7 +276,7 @@ export struct TaskDetailSheet {
         rollbackTask.isStared = oldStar;
         this.currentTask = rollbackTask;
       }
-      promptAction.showToast({ message: '星标更新失败' });
+      Toast.show({ message: '星标更新失败' });
     } finally {
       this.isSavingStar = false;
     }
@@ -377,7 +378,7 @@ export struct TaskDetailSheet {
       this.subTasks[index] = source;
       this.subTasks = this.subTasks.slice();
       this.bumpSubTaskRenderVersion();
-      promptAction.showToast({ message: '更新子任务失败' });
+      Toast.show({ message: '更新子任务失败' });
     } finally {
       this.isMutatingPlan = false;
     }
@@ -414,7 +415,7 @@ export struct TaskDetailSheet {
       }
     } catch (e) {
       console.error(`[TaskDetailSheet] submitSubTask failed: ${e}`);
-      promptAction.showToast({ message: '新增子任务失败' });
+      Toast.show({ message: '新增子任务失败' });
     } finally {
       this.isMutatingPlan = false;
     }
@@ -458,7 +459,7 @@ export struct TaskDetailSheet {
       this.subTasks[index] = source;
       this.subTasks = this.subTasks.slice();
       this.bumpSubTaskRenderVersion();
-      promptAction.showToast({ message: '更新子任务失败' });
+      Toast.show({ message: '更新子任务失败' });
     } finally {
       this.isMutatingPlan = false;
     }
@@ -475,7 +476,7 @@ export struct TaskDetailSheet {
       await this.onTaskChanged();
     } catch (e) {
       console.error(`[TaskDetailSheet] deleteSubTask failed: ${e}`);
-      promptAction.showToast({ message: '删除子任务失败' });
+      Toast.show({ message: '删除子任务失败' });
     } finally {
       this.isMutatingPlan = false;
     }

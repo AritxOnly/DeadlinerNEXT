@@ -3,6 +3,7 @@ import { WebParams } from '../common/WebBrowserPage'; // 调整引用路径
 import { common, Want } from '@kit.AbilityKit';
 import { commentManager } from '@kit.AppGalleryKit';
 import { promptAction } from '@kit.ArkUI';
+import { Toast } from '../../common/ui/Toast';
 
 @Component
 export struct SupportPanelView {
@@ -35,7 +36,7 @@ export struct SupportPanelView {
         .catch((error: BusinessError<Object>) => {
           console.error('Deadliner', `showCommentDialog failed, Code: ${error.code}, message: ${error.message}`);
 
-          if (error.code == 1021500009) promptAction.showToast({
+          if (error.code == 1021500009) Toast.show({
             message: '您已评分'
           })
 

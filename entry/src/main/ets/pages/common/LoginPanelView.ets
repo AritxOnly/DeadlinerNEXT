@@ -5,6 +5,7 @@ import { BusinessError } from '@kit.BasicServicesKit';
 import auth from '@hw-agconnect/auth';
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { ITheme } from '../../common/theme/ThemeModel';
+import { Toast } from '../../common/ui/Toast';
 
 @Component
 export struct LoginPanelView {
@@ -63,7 +64,7 @@ export struct LoginPanelView {
         }
 
         console.info('AGC Login Success');
-        promptAction.showToast({ message: '登录成功' });
+        Toast.show({ message: '登录成功' });
 
         // 更新全局状态，通知外部关闭弹窗或刷新 UI
         AppStorage.setOrCreate('isLoggedIn', true);
@@ -72,7 +73,7 @@ export struct LoginPanelView {
         console.error(`AGC Login Failed: ${e.code}, ${e.message}`);
         // 只有非取消类的错误才弹窗，避免打扰用户
         if (e.code !== 1001502012) {
-          promptAction.showToast({ message: `登录验证失败: ${e.message}` });
+          Toast.show({ message: `登录验证失败: ${e.message}` });
         }
       },
       onSignOutSucc: () => {},

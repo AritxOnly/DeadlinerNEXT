@@ -10,6 +10,7 @@ import { IntroHeroPage, LottieScenePage, PrivacyAgreementPage } from './onboardi
 import { AiPage, HuaweiLoginPage, ImmersiveEffectPage, NotificationPage, PersonalizationPage, SyncPage } from './onboarding/OnboardingSetupPages';
 import { GuidePageId, LottieSceneMeta, PANEL_BG, RawFileResourceManager } from './onboarding/OnboardingTypes';
 import { HelpDetailSheet } from '../routes/user/manual/HelpDetailSheet';
+import { Toast } from '../../common/ui/Toast';
 
 @Component
 export struct LottieOnboardingSheet {
@@ -134,7 +135,7 @@ export struct LottieOnboardingSheet {
     if (pageId === 'privacy') {
       if (!this.privacyAccepted) {
         this.logLifecycle('handleNext:blockByPrivacyUnchecked');
-        promptAction.showToast({ message: '请先勾选同意隐私协议' });
+        Toast.show({ message: '请先勾选同意隐私协议' });
         return;
       }
       if (this.privacyRequired) {

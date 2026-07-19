@@ -21,7 +21,7 @@ export struct TopSafeContainer {
   // 顶部需要避让的高度（通常是 状态栏高度 + 标题栏高度）
   @Prop topAvoidHeight: number = 0;
 
-  scrollable: boolean = true
+  @Prop scrollable: boolean = true
 
   // 外层滚动控制器
   scroller: Scroller = new Scroller();

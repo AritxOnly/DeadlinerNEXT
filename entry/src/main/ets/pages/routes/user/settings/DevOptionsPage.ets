@@ -6,6 +6,7 @@ import { BusinessError } from "@kit.BasicServicesKit";
 import { ReminderUtils } from "../../../../utils/notification/ReminderUtils";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
 import { ITheme } from "../../../../common/theme/ThemeModel";
+import { Toast } from '../../../../common/ui/Toast';
 
 @Builder
 export function DevOptionsBuilder(name: string, param: Object) {
@@ -23,7 +24,7 @@ export struct DevOptionsPage {
 
   // 辅助方法：生成 toast
   private toast(msg: string) {
-    promptAction.showToast({ message: msg, duration: 2000 });
+    Toast.show({ message: msg, duration: 2000 });
   }
 
   build() {

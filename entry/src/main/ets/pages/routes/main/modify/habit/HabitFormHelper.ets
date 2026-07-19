@@ -6,6 +6,7 @@ import { DatabaseHelper } from '../../../../../common/data/DatabaseHelper';
 import { DeadlineType, HabitGoalType, HabitPeriod } from '../../../../../model/DDLModels';
 import { AIService } from '../../../../../ai/AIServcice';
 import { DateTimeUtils } from '../../../../../utils/DateTimeUtils';
+import { Toast } from '../../../../../common/ui/Toast';
 
 export interface AIParseResult {
   name: string;
@@ -40,7 +41,7 @@ export class HabitFormHelper {
     totalTarget: string
   ): Promise<boolean> { // 返回 true 代表保存成功
     if (!name.trim()) {
-      promptAction.showToast({ message: '请输入习惯名称' });
+      Toast.show({ message: '请输入习惯名称' });
       return false;
     }
 
@@ -52,7 +53,7 @@ export class HabitFormHelper {
     if (!HabitFormHelper.isSimpleMode(pIndex)) {
       times = parseInt(timesPerPeriod);
       if (isNaN(times) || times <= 0) {
-        promptAction.showToast({ message: '请输入有效的单次目标' });
+        Toast.show({ message: '请输入有效的单次目标' });
         return false;
       }
 
@@ -61,7 +62,7 @@ export class HabitFormHelper {
       if (currentGoalType === HabitGoalType.TOTAL) {
         total = parseInt(totalTarget);
         if (isNaN(total) || total <= 0) {
-          promptAction.showToast({ message: '请输入有效的总目标' });
+          Toast.show({ message: '请输入有效的总目标' });
           return false;
         }
       }
@@ -88,11 +89,11 @@ export class HabitFormHelper {
         ddlId, name, currentPeriod, times, currentGoalType, total, ""
       );
 
-      promptAction.showToast({ message: '创建成功' });
+      Toast.show({ message: '创建成功' });
       return true;
     } catch (e) {
       console.error(`Add habit failed: ${e}`);
-      promptAction.showToast({ message: '创建失败: ' + (e.message || e) });
+      Toast.show({ message: '创建失败: ' + (e.message || e) });
       return false;
     }
   }
@@ -100,7 +101,7 @@ export class HabitFormHelper {
   // —— AI 解析逻辑 ——
   static async parseAIInput(aiInputText: string): Promise<AIParseResult | null> {
     if (!aiInputText || !aiInputText.trim()) {
-      promptAction.showToast({ message: '请输入内容后再尝试' });
+      Toast.show({ message: '请输入内容后再尝试' });
       return null;
     }
 
@@ -133,10 +134,10 @@ export class HabitFormHelper {
           total: total
         };
       } else {
-        promptAction.showToast({ message: '未能识别出习惯，请尝试换种说法' });
+        Toast.show({ message: '未能识别出习惯，请尝试换种说法' });
       }
     } catch (err) {
-      promptAction.showToast({ message: `抱歉，遇到了一些问题：${err.message || '网络连接失败'}` });
+      Toast.show({ message: `抱歉，遇到了一些问题：${err.message || '网络连接失败'}` });
     }
     return null;
   }

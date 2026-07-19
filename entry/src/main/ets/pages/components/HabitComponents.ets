@@ -17,6 +17,8 @@ export interface HabitWithDailyStatus {
   doneCount: number;
   targetCount: number;
   isCompleted: boolean;
+  isDueToday?: boolean;
+  dueStateText?: string;
 }
 
 @Component
@@ -424,6 +426,7 @@ export struct HabitRow {
   @Prop isSelected: boolean;
   @Prop canToggle: boolean;
   @Prop remainingText: string;
+  @Prop disableProgressAnimation: boolean = false;
 
   onToggle: () => void = () => {};
   onLongPress: () => void = () => {};
@@ -511,18 +514,30 @@ export struct HabitRow {
 
         // 进度条前景
         if (this.getProgress() > 0) {
-          Row()
-            .width(`${this.getProgress() * 100}%`)
-            .height('100%')
-            .linearGradient({
-              direction: GradientDirection.Right,
-              colors: [
-                // 渐变色：直接使用对应的资源 Getter
-                [this.getIndicatorColor50(), 0.0],
-                [this.getIndicatorColor70(), 1.0]
-              ]
-            })
-            .animation({ duration: 800, curve: Curve.Smooth })
+          if (this.disableProgressAnimation) {
+            Row()
+              .width(`${this.getProgress() * 100}%`)
+              .height('100%')
+              .linearGradient({
+                direction: GradientDirection.Right,
+                colors: [
+                  [this.getIndicatorColor50(), 0.0],
+                  [this.getIndicatorColor70(), 1.0]
+                ]
+              })
+          } else {
+            Row()
+              .width(`${this.getProgress() * 100}%`)
+              .height('100%')
+              .linearGradient({
+                direction: GradientDirection.Right,
+                colors: [
+                  [this.getIndicatorColor50(), 0.0],
+                  [this.getIndicatorColor70(), 1.0]
+                ]
+              })
+              .animation({ duration: 800, curve: Curve.Smooth })
+          }
         }
 
         // 文本内容行

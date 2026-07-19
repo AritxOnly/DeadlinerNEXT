@@ -2,6 +2,7 @@ import { DDLStatus } from "../../model/DDLStatus";
 import { ColorUtils } from "../../utils/ColorUtils";
 import { common } from "@kit.AbilityKit";
 import { ITheme } from "../../common/theme/ThemeModel";
+import { ImmersivePopupSurface } from "../../common/ui/ImmersivePopupSurface";
 
 @Component
 export struct ArchivedDDLItemCard {
@@ -39,15 +40,12 @@ export struct ArchivedDDLItemCard {
 
   @Builder
   notePopupBuilder() {
-    Column() {
+    ImmersivePopupSurface({ maxWidthValue: 280, paddingValue: 16, radius: 16 }) {
       Text(this.note)
         .fontSize(14)
         .fontColor(this.titleColor)
         .lineHeight(20)
     }
-    .padding(16)
-    .constraintSize({ maxWidth: 280 })
-    .borderRadius(16)
   }
 
   build() {

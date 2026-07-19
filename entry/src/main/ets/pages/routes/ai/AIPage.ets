@@ -254,7 +254,7 @@ export struct AIPage {
     AIWorkspaceView({
       bypassHuaweiLogin: true,
       topAvoidHeight: this.workspaceTopAvoidHeight(),
-      bottomPadding: this.usesWideLayout() ? 42 : 24,
+      bottomPadding: this.usesWideLayout() ? 42 : 28,
       startNewChatSignal: this.newChatSignal,
       externalSessionSnapshot: this.selectedHistoryId ? null : this.currentSessionSnapshot,
       externalSessionVersion: this.workspaceSessionVersion,

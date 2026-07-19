@@ -4,6 +4,7 @@ import { SettingsSection, SubSettingsSwitch } from '../../../../components/Setti
 import { promptAction } from '@kit.ArkUI';
 import { IndicatorMap, IndicatorSet } from '../../../../../common/theme/ThemeModel';
 import { WidgetUpdater } from '../../../../../utils/WidgetUpdater';
+import { Toast } from '../../../../../common/ui/Toast';
 
 interface ChartOption {
   key: string;
@@ -289,7 +290,7 @@ export struct ColorCustomizer {
           if (context) {
             await WidgetUpdater.updateAllWidgets(context);
           }
-          promptAction.showToast({
+          Toast.show({
             message: '主题设置成功！'
           })
         })

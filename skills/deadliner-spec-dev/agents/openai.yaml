@@ -1,0 +1,7 @@
+interface:
+  display_name: "Deadliner Spec Dev"
+  short_description: "Deadliner 新功能 SDD、分层与校验规范 Skill"
+  default_prompt: "Use $deadliner-spec-dev to plan and implement a Deadliner feature with SDD, modular boundaries, and validation guardrails."
+
+policy:
+  allow_implicit_invocation: true

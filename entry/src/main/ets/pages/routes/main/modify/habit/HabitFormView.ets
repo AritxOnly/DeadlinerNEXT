@@ -68,6 +68,7 @@ export struct HabitFormView {
           AITextInput({
             text: $aiInputText,
             placeholder: "例如：每天背20个单词...",
+            inputEnabled: !this.isAILoading,
             onAITriggered: this.onAITriggered
           })
         }

@@ -8,6 +8,8 @@ import { HelpDetailSheet } from "../manual/HelpDetailSheet";
 import { ITheme } from "../../../../common/theme/ThemeModel";
 import { HdsNavDestination, HdsNavDestinationAttribute } from "@kit.UIDesignKit";
 import { getImmersiveTitleBarStyle } from "../../../../common/style/NavStyles";
+import { DialogCompat } from "../../../../common/ui/DialogCompat";
+import { Toast } from '../../../../common/ui/Toast';
 
 @Builder
 export function SettingsAIBuilder(name: string, param: Object) {
@@ -177,7 +179,7 @@ export struct LifiAISettingsPage {
           .backgroundColor(this.buttonBg)
           .onClick(async () => {
             if (this.apiKey.trim().length === 0) {
-              promptAction.showToast({ message: '请输入 API Key' });
+              Toast.show({ message: '请输入 API Key' });
               return;
             }
 
@@ -196,7 +198,7 @@ export struct LifiAISettingsPage {
 
               // 3. 成功
               this.isVerified = true;
-              promptAction.showToast({ message: '验证通过，配置已生效' });
+              Toast.show({ message: '验证通过，配置已生效' });
 
             } catch (e) {
               this.isVerified = false;
@@ -217,14 +219,14 @@ export struct LifiAISettingsPage {
               }
 
               // 4. 失败提示，引导用户检查 Key
-              AlertDialog.show({
+              AlertDialog.show(DialogCompat.withAlertBlurStyle({
                 title: '验证失败',
                 message: `无法连接至 AI 服务。\n错误信息：${msg}\n\n请确保您的 API Key 正确且已在相关平台完成实名认证。`,
                 confirm: {
                   value: '知道了',
                   action: () => {}
                 }
-              })
+              }, BlurStyle.Regular))
             } finally {
               this.isTesting = false;
             }

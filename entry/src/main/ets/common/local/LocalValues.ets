@@ -3,6 +3,10 @@ import { SettingsConstants as C } from './SettingsConstants';
 import { SecureStorage } from './SecureStorage';
 import { MainButtonType } from './LocalModels';
 import { deviceInfo } from '@kit.BasicServicesKit';
+import {
+  canShowExperimentalComponentsSetting,
+  defaultExperimentalComponentsEnabled
+} from './ExperimentalComponentsPolicy';
 
 interface WebDavAuthInterface {
   user: string;
@@ -162,7 +166,9 @@ export class LocalValues {
       const minibar = await this.pref.get(C.KEY_SHOW_MINIBAR, (deviceInfo.distributionOSApiVersion >= 60100));
       AppStorage.setOrCreate(C.KEY_SHOW_MINIBAR, minibar);
 
-      const experimentalComponents = await this.pref.get(C.KEY_EXPERIMENTAL_COMPONENTS, true);
+      const experimentalComponents = canShowExperimentalComponentsSetting()
+        ? await this.pref.get(C.KEY_EXPERIMENTAL_COMPONENTS, defaultExperimentalComponentsEnabled())
+        : false;
       AppStorage.setOrCreate(C.KEY_EXPERIMENTAL_COMPONENTS, experimentalComponents);
 
       const overviewOrder = await this.pref.get(C.KEY_OVERVIEW_CARD_ORDER, []) as string[];
@@ -688,11 +694,14 @@ export class LocalValues {
   }
 
   getExperimentalComponents(): boolean {
-    return AppStorage.get(C.KEY_EXPERIMENTAL_COMPONENTS) ?? true;
+    return canShowExperimentalComponentsSetting()
+      ? (AppStorage.get(C.KEY_EXPERIMENTAL_COMPONENTS) ?? defaultExperimentalComponentsEnabled())
+      : false;
   }
 
   async setExperimentalComponents(enable: boolean) {
-    await this.setValue(C.KEY_EXPERIMENTAL_COMPONENTS, enable);
+    await this.setValue(C.KEY_EXPERIMENTAL_COMPONENTS,
+      canShowExperimentalComponentsSetting() ? enable : false);
   }
 
   getSyncMode(): string {

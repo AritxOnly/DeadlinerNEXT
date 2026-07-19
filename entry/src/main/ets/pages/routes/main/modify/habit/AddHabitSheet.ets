@@ -88,7 +88,7 @@ export struct AddHabitSheet {
     }
     .titleBar({
       content: {
-        title: { mainTitle: "创建新待办" },
+        title: { mainTitle: "创建新习惯" },
         menu: { value: [{ content: { icon: $r('sys.symbol.checkmark'), action: async () => this.saveHabit() } }] },
         subIcon: { content: { icon: $r('sys.symbol.xmark'), action: this.onDone } }
       }

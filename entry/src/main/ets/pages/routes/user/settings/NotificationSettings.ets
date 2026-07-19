@@ -15,6 +15,8 @@ import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { ITheme } from '../../../../common/theme/ThemeModel';
+import { DialogCompat } from '../../../../common/ui/DialogCompat';
+import { Toast } from '../../../../common/ui/Toast';
 
 @Builder
 export function NotificationSettingsBuilder() {
@@ -94,19 +96,19 @@ struct NotificationSettings {
                     this.allowNotification = true;
                   }).catch(() => {
                     this.allowNotification = false;
-                    promptAction.showToast({ message: '开启通知失败，请前往系统设置' });
+                    Toast.show({ message: '开启通知失败，请前往系统设置' });
                   });
                 }
                 else if (!isOn && this.allowNotification) {
                   // B. 用户想关闭 -> 引导去系统设置
                   this.allowNotification = true; // UI 强制回弹，因为只有系统能改
-                  promptAction.showDialog({
+                  promptAction.showDialog(DialogCompat.withPromptBlurStyle({
                     title: '无法直接关闭',
                     message: '为了保证系统稳定性，请前往“系统设置-通知和状态栏”中关闭本应用的通知权限。',
                     buttons: [
                       { text: '知道了', color: '#007DFF' }
                     ]
-                  });
+                  }, BlurStyle.Regular));
                 }
               }
             })
@@ -148,7 +150,7 @@ struct NotificationSettings {
 
                   if (isOn) {
                     // 开启：先弹窗，用户确认后才真正开启
-                    TimePickerDialog.show({
+                    TimePickerDialog.show(DialogCompat.withTimePickerBlurStyle({
                       selected: this.getSelectedDate(),
                       useMilitaryTime: true,
                       selectedTextStyle: { color: this.theme.brand },
@@ -173,7 +175,7 @@ struct NotificationSettings {
                         // 用户取消，强制回拨为 false
                         this.dailySummary = false;
                       }
-                    })
+                    }, BlurStyle.Regular))
                   } else {
                     // 关闭：直接执行
                     this.dailySummary = false;

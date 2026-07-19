@@ -1,5 +1,6 @@
 import { ThemeManager } from "../common/theme/ThemeManager";
 import { ITheme } from "../common/theme/ThemeModel";
+import { DialogCompat } from "../common/ui/DialogCompat";
 
 export class DateTimeUtils {
   /**
@@ -9,7 +10,7 @@ export class DateTimeUtils {
    */
   static showDateTimePicker(currentModel: Date, onFinish: (date: Date) => void) {
     // 1. 显示日期选择器
-    DatePickerDialog.show({
+    DatePickerDialog.show(DialogCompat.withDatePickerBlurStyle({
       start: new Date("2000-1-1"),
       end: new Date("2100-12-31"),
       selected: currentModel, // 默认选中当前时间
@@ -23,7 +24,7 @@ export class DateTimeUtils {
         tempDate.setMinutes(currentModel.getMinutes());
 
         // 3. 立即显示时间选择器
-        TimePickerDialog.show({
+        TimePickerDialog.show(DialogCompat.withTimePickerBlurStyle({
           // 🔥 核心修复点：这里必须传 tempDate (包含了新日期的对象)
           // 如果传 currentModel，标题栏就会显示旧日期
           selected: tempDate,
@@ -35,19 +36,16 @@ export class DateTimeUtils {
             // 5. 通过回调返回最终结果
             onFinish(tempDate);
           },
-          // 统一样式
-          backgroundBlurStyle: BlurStyle.Regular,
           selectedTextStyle: { color: ThemeManager.getCurrentTheme().brand },
           acceptButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand },
           cancelButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand }
-        })
+        }, BlurStyle.Regular))
       },
       // 统一样式
-      backgroundBlurStyle: BlurStyle.Regular,
       selectedTextStyle: { color: ThemeManager.getCurrentTheme().brand },
       acceptButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand },
       cancelButtonStyle: { fontColor: ThemeManager.getCurrentTheme().brand }
-    })
+    }, BlurStyle.Regular))
   }
 
   /**

@@ -3,6 +3,7 @@ import { ITheme } from '../../../../../common/theme/ThemeModel';
 import { Habit, HabitGoalType, HabitPeriod, HabitStatus } from '../../../../../model/DDLModels';
 import { HabitFormView } from './HabitFormView';
 import { HabitFormHelper } from './HabitFormHelper';
+import { Toast } from '../../../../../common/ui/Toast';
 
 @Component
 export struct HabitEditSheet {
@@ -60,7 +61,7 @@ export struct HabitEditSheet {
   private async saveHabitEdit() {
     // 1. 基础校验
     if (!this.name.trim()) {
-      promptAction.showToast({ message: '请输入习惯名称' });
+      Toast.show({ message: '请输入习惯名称' });
       return;
     }
 
@@ -77,7 +78,7 @@ export struct HabitEditSheet {
     if (!isSimple) {
       times = parseInt(this.timesPerPeriod);
       if (isNaN(times) || times <= 0) {
-        promptAction.showToast({ message: '请输入有效的单次目标' });
+        Toast.show({ message: '请输入有效的单次目标' });
         return;
       }
 
@@ -86,7 +87,7 @@ export struct HabitEditSheet {
       if (newGoalType === HabitGoalType.TOTAL) {
         total = parseInt(this.totalTarget);
         if (isNaN(total) || total <= 0) {
-          promptAction.showToast({ message: '请输入有效的总目标' });
+          Toast.show({ message: '请输入有效的总目标' });
           return;
         }
       }
@@ -94,7 +95,7 @@ export struct HabitEditSheet {
 
     try {
       if (!this.editingHabit) {
-        promptAction.showToast({ message: '数据异常' });
+        Toast.show({ message: '数据异常' });
         return;
       }
 
@@ -123,12 +124,12 @@ export struct HabitEditSheet {
       await this.onSave(updatedHabit);
 
       // 5. UI 反馈与关闭
-      promptAction.showToast({ message: '修改成功' });
+      Toast.show({ message: '修改成功' });
       this.isShow = false;
 
     } catch (e) {
       console.error(`Update habit failed: ${e}`);
-      promptAction.showToast({ message: '修改失败' });
+      Toast.show({ message: '修改失败' });
     }
   }
 

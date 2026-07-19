@@ -1,4 +1,5 @@
 import { ITheme } from "../../common/theme/ThemeModel";
+import { ImmersivePopupSurface } from "../../common/ui/ImmersivePopupSurface";
 
 @CustomDialog
 export struct AddDialogTablet {
@@ -42,51 +43,50 @@ export struct AddDialogTablet {
 
   build() {
     Column() {
-      // --- 标题 ---
-      Text('新建...')
-        .fontSize(20)
-        .fontWeight(FontWeight.Bold)
+      ImmersivePopupSurface({ paddingValue: 24, radius: 36, fallbackBlurStyle: BlurStyle.Thick }) {
+        Column() {
+          Text('新建...')
+            .fontSize(20)
+            .fontWeight(FontWeight.Bold)
+            .width('100%')
+            .textAlign(TextAlign.Start)
+            .margin({ bottom: 20, top: 8, left: 4 })
+
+          Row({ space: 16 }) {
+            Column() {
+              this.SelectionCard(
+                '任务',
+                $r('sys.symbol.list_checkmark'),
+                this.theme.brand,
+                this.onAddTask
+              )
+            }.layoutWeight(1)
+
+            Column() {
+              this.SelectionCard(
+                '习惯',
+                $r('sys.symbol.arrow_clockwise'),
+                $r('app.color.chart_green'),
+                this.onAddHabit
+              )
+            }.layoutWeight(1)
+          }
+          .width('100%')
+
+          Button('取消')
+            .width('100%')
+            .margin({ top: 24 })
+            .backgroundColor(Color.Transparent)
+            .fontColor(this.theme.accent)
+            .fontSize(16)
+            .fontWeight(FontWeight.Medium)
+            .onClick(() => {
+              this.controller.close();
+            })
+        }
         .width('100%')
-        .textAlign(TextAlign.Start)
-        .margin({ bottom: 20, top: 8, left: 4 })
-
-      // --- 选项区域 (并排) ---
-      Row({ space: 16 }) {
-        // 1. 新建任务卡片
-        Column() {
-          this.SelectionCard(
-            '任务',
-            $r('sys.symbol.list_checkmark'),
-            this.theme.brand,
-            this.onAddTask
-          )
-        }.layoutWeight(1) // 均分宽度
-
-        // 2. 新建习惯卡片
-        Column() {
-          this.SelectionCard(
-            '习惯',
-            $r('sys.symbol.arrow_clockwise'),
-            $r('app.color.chart_green'),
-            this.onAddHabit
-          )
-        }.layoutWeight(1) // 均分宽度
       }
-      .width('100%')
-
-      // --- 底部取消按钮 ---
-      Button('取消')
-        .width('100%')
-        .margin({ top: 24 })
-        .backgroundColor(Color.Transparent) // 透明背景
-        .fontColor(this.theme.accent)  // 品牌色字体
-        .fontSize(16)
-        .fontWeight(FontWeight.Medium)
-        .onClick(() => {
-          this.controller.close();
-        })
     }
-    .padding(24)
     .width('100%')
   }
 }

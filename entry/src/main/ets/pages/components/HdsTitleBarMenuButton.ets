@@ -3,8 +3,8 @@ import { getHdsMaterialLevelRaw } from '../../common/style/MaterialLevel';
 import { BlurBackgroundModifier } from '../../utils/animation/BlurBackgroundModifier';
 import { HdsMiniBarButton } from './infra/HdsMiniBarButton';
 import { Symbol } from './infra/Symbol';
-import { uiMaterial } from '@kit.ArkUI';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { ImmersiveMaterialModifier } from '../../common/style/SystemMaterialCompat';
+import { API23_UI_DEFAULT, EXPERIMENTAL_COMPONENTS_DEFAULT } from '../../common/local/ExperimentalComponentsPolicy';
 
 @Component
 export struct HdsTitleBarMenuButton {
@@ -19,8 +19,8 @@ export struct HdsTitleBarMenuButton {
   @Require onButtonClick: () => void;
 
   @StorageProp('customBackgroundImage') customBg: string = '';
-  @StorageProp(C.KEY_ENABLE_API23) api23: boolean = false;
-  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = true;
+  @StorageProp(C.KEY_ENABLE_API23) api23: boolean = API23_UI_DEFAULT;
+  @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = EXPERIMENTAL_COMPONENTS_DEFAULT;
 
   @StorageProp(C.KEY_API23_MATERIAL_LEVEL) materialLevel: string = 'EXQUISITE';
 
@@ -54,32 +54,18 @@ export struct HdsTitleBarMenuButton {
         this.buttonIcon()
       }
     } else {
-      if (deviceInfo.apiAvailable('26.0.0')) {
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          this.buttonIcon()
-        }
-        .width(this.buttonSize)
-        .height(this.buttonSize)
-        .attributeModifier(
-          new BlurBackgroundModifier((!!this.customBg && this.api23), $r('sys.color.comp_background_tertiary')))
-        .onClick(() => {
-          this.handleClick();
-        })
-        .enabled(this.isEnabled)
-        .systemMaterial(
-          new uiMaterial.ImmersiveMaterial()
-        )
-      } else {
-        Button({ type: ButtonType.Circle, stateEffect: true }) {
-          this.buttonIcon()
-        }
-        .width(this.buttonSize)
-        .height(this.buttonSize)
-        .onClick(() => {
-          this.handleClick();
-        })
-        .enabled(this.isEnabled)
+      Button({ type: ButtonType.Circle, stateEffect: true }) {
+        this.buttonIcon()
       }
+      .width(this.buttonSize)
+      .height(this.buttonSize)
+      .attributeModifier(
+        new BlurBackgroundModifier((!!this.customBg && this.api23), $r('sys.color.comp_background_tertiary')))
+      .attributeModifier(new ImmersiveMaterialModifier())
+      .onClick(() => {
+        this.handleClick();
+      })
+      .enabled(this.isEnabled)
     }
   }
 }
