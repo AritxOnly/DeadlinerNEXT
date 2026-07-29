@@ -53,8 +53,11 @@ export class SettingsConstants {
   static readonly KEY_AUTO_ARCHIVE_DAYS = 'auto_archive_days';
   static readonly KEY_TOMBSTONE_RETENTION_DAYS = 'tombstone_retention_days';
 
-  static readonly KEY_ENABLE_API23 = 'enable_api23';
-  static readonly KEY_API23_MATERIAL_LEVEL = 'material_level';
+  // Keep the persisted keys stable while exposing version-neutral names in code.
+  static readonly KEY_ENABLE_IMMERSIVE_MATERIAL = 'enable_api23';
+  static readonly KEY_MATERIAL_LEVEL = 'material_level';
+  static readonly KEY_ENABLE_API23 = SettingsConstants.KEY_ENABLE_IMMERSIVE_MATERIAL;
+  static readonly KEY_API23_MATERIAL_LEVEL = SettingsConstants.KEY_MATERIAL_LEVEL;
   static readonly KEY_EXPERIMENTAL_COMPONENTS = 'experimental_components';
 
   static readonly KEY_OVERVIEW_CARD_ORDER = 'overview_card_order';

@@ -11,12 +11,12 @@ import { common, Want } from '@kit.AbilityKit';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { promptAction, window } from '@kit.ArkUI';
 import { ThemeSelectSheet } from './components/ThemeSelectSheet';
-import { deviceInfo } from '@kit.BasicServicesKit';
 import { photoAccessHelper } from '@kit.MediaLibraryKit';
 import { ThemeManager } from '../../../../common/theme/ThemeManager';
 import { ITheme } from '../../../../common/theme/ThemeModel';
 import { ImageCropSheet } from './components/ImageCropSheet';
 import { IconSelectSheet } from './components/IconSelectSheet';
+import { HarmonyOSCapabilities } from '../../../../common/platform/HarmonyOSCapabilities';
 
 @Builder
 export function AppearanceSettingsBuilder() {
@@ -51,10 +51,10 @@ struct AppearanceSettings {
   @StorageLink(C.KEY_CONFETTI_AFTER_FINISHED) confetti: boolean = true;
   @StorageLink(C.KEY_ENGLISH_SOMEWHERE) english: boolean = true;
   @StorageLink(C.KEY_ADD_SYMBOL_WEIGHT) weight: number = 600;
-  @StorageLink(C.KEY_ENABLE_API23) api23: boolean = true;
+  @StorageLink(C.KEY_ENABLE_IMMERSIVE_MATERIAL) immersiveMaterial: boolean = true;
   @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = true;
 
-  @StorageLink(C.KEY_SHOW_MINIBAR) showMiniBar: boolean = (deviceInfo.distributionOSApiVersion >= 60100);
+  @StorageLink(C.KEY_SHOW_MINIBAR) showMiniBar: boolean = HarmonyOSCapabilities.supportsImmersiveMaterial();
 
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) tabletSd: boolean = true;
@@ -225,19 +225,19 @@ struct AppearanceSettings {
 
           SettingsSection({ title: '界面显示' }) {
             SubSettingsSwitch({
-              title: "沉浸光感视效",
-              subtitle: "API23以上可以打开该选项获得最佳的视觉体验 (需重启生效)。",
-              isOn: this.api23,
-              onChange: (isOn): Promise<void> => LocalValues.getInstance().setApi23Enable(isOn)
+              title: $r('app.string.immersive_material_title'),
+              subtitle: $r('app.string.immersive_material_description'),
+              isOn: this.immersiveMaterial,
+              onChange: (isOn): Promise<void> => LocalValues.getInstance().setImmersiveMaterialEnabled(isOn)
             })
-              .enabled(deviceInfo.distributionOSApiVersion >= 60100)
+              .enabled(HarmonyOSCapabilities.supportsImmersiveMaterial())
 
-            if (this.api23 && deviceInfo.distributionOSApiVersion >= 60100) {
+            if (this.immersiveMaterial && HarmonyOSCapabilities.supportsImmersiveMaterial()) {
               SettingsDivider()
 
               SettingsSelect({
-                title: '材质等级',
-                subtitle: '选择沉浸光感材质等级',
+                title: $r('app.string.material_level_title'),
+                subtitle: $r('app.string.material_level_description'),
                 options: this.menuOptions,
                 selectedIndex: $currentSelectIndex,
                 onChange: (index, value) => {
@@ -250,15 +250,15 @@ struct AppearanceSettings {
               SubSettingsDivider()
 
               SubSettingsSwitch({
-                title: '实验性组件',
-                subtitle: '开启后，主页顶部按钮将优先使用实验性的沉浸光感组件。',
+                title: $r('app.string.immersive_components_title'),
+                subtitle: $r('app.string.immersive_components_description'),
                 isOn: this.experimentalComponents,
                 onChange: (isOn): Promise<void> => LocalValues.getInstance().setExperimentalComponents(isOn)
               })
             }
           }
 
-          // if (this.api23 && deviceInfo.distributionOSApiVersion >= 60100) {
+          // The mini bar remains hidden until its product interaction is finalized.
           //   SettingsSection() {
           //     SubSettingsSwitch({
           //       title: "底栏 Lifi AI 入口",

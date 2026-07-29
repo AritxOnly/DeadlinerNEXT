@@ -1,6 +1,5 @@
 import { DividerShowType, HdsNavigation, HdsNavigationMenuItemOptions, HdsNavigationTitleMode } from '@kit.UIDesignKit';
 import { promptAction } from '@kit.ArkUI';
-import { deviceInfo } from '@kit.BasicServicesKit';
 import { ITheme } from '../../common/theme/ThemeModel';
 import { getImmersiveTitleBarStyle } from '../../common/style/NavStyles';
 import { ManualDataManager } from '../../common/manual/ManualModel';
@@ -10,6 +9,7 @@ import { IntroHeroPage, LottieScenePage, PrivacyAgreementPage } from './onboardi
 import { AiPage, HuaweiLoginPage, ImmersiveEffectPage, NotificationPage, PersonalizationPage, SyncPage } from './onboarding/OnboardingSetupPages';
 import { GuidePageId, LottieSceneMeta, PANEL_BG, RawFileResourceManager } from './onboarding/OnboardingTypes';
 import { HelpDetailSheet } from '../routes/user/manual/HelpDetailSheet';
+import { HarmonyOSCapabilities } from '../../common/platform/HarmonyOSCapabilities';
 
 @Component
 export struct LottieOnboardingSheet {
@@ -51,7 +51,7 @@ export struct LottieOnboardingSheet {
   }
 
   private pageIds(): GuidePageId[] {
-    return buildGuidePageIds(deviceInfo.distributionOSApiVersion >= 60100, this.lottieScenes);
+    return buildGuidePageIds(HarmonyOSCapabilities.supportsImmersiveMaterial(), this.lottieScenes);
   }
 
   private currentPageId(): GuidePageId {

@@ -7,6 +7,7 @@
 
     { "name": "brand", "value": "#FF7CA6D6"},
     { "name": "brand_50", "value": "#807CA6D6"},
+    { "name": "accent", "value": "#FFF08A7E" },
 
     { "name": "brand_vibrant", "value": "#FF5C9DFF" },
     { "name": "brand_vibrant_50", "value": "#805C9DFF" },
@@ -77,9 +78,15 @@
     { "name": "func_manual", "value": "#80CBC4" },
     { "name": "font_primary", "value": "#FFFFFF"},
     { "name": "font_secondary", "value": "#B3B3B3"},
+    { "name": "font_tertiary", "value": "#99FFFFFF" },
+    { "name": "font_fourth", "value": "#66FFFFFF" },
+    { "name": "font_on_primary", "value": "#FF000000" },
     { "name": "font_emphasize", "value": "#FFFFFF"},
     { "name": "icon_primary", "value": "#FFFFFF"},
     { "name": "icon_secondary", "value": "#B3B3B3"},
+    { "name": "icon_tertiary", "value": "#99FFFFFF" },
+    { "name": "icon_fourth", "value": "#66FFFFFF" },
+    { "name": "icon_on_primary", "value": "#FF000000" },
     { "name": "icon_emphasize", "value": "#FFFFFF"},
     { "name": "background_primary", "value": "#000000"},
     { "name": "background_secondary", "value": "#191919"},
@@ -280,6 +287,8 @@
 
     { "name": "widget_bg_grad_start", "value": "#FF1A1D21" },
     { "name": "widget_bg_grad_end", "value": "#FF141619" },
-    { "name": "widget_item_bg", "value": "#FF282C31" }
+    { "name": "widget_item_bg", "value": "#FF282C31" },
+
+    { "name": "item_title_font", "value": "#E6FFFFFF" }
   ]
 }

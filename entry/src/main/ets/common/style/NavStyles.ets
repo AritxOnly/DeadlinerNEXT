@@ -1,9 +1,9 @@
 import { LengthMetrics } from '@kit.ArkUI';
 import { hdsMaterial, HdsNavigationTitleBarStyle, ScrollEffectType, TitleBarStyleOptions } from '@kit.UIDesignKit';
 import { ThemeManager } from '../theme/ThemeManager';
-import { deviceInfo } from '@kit.BasicServicesKit';
 import { LocalValues } from '../local/LocalValues';
 import { getHdsMaterialLevel } from './MaterialLevel';
+import { HarmonyOSCapabilities } from '../platform/HarmonyOSCapabilities';
 
 /**
  * 获取统一的沉浸式标题栏样式配置
@@ -16,7 +16,8 @@ export function getImmersiveTitleBarStyle(
   disableMaterial: boolean = false,
   level?: string,
 ) : TitleBarStyleOptions {
-  if (deviceInfo.distributionOSApiVersion >= 60100 && LocalValues.getInstance().getApi23Enable()) {
+  if (HarmonyOSCapabilities.supportsImmersiveMaterial() &&
+    LocalValues.getInstance().isImmersiveMaterialEnabled()) {
     return {
       scrollEffectOpts: {
         // enableScrollEffect: !isWideScreen,

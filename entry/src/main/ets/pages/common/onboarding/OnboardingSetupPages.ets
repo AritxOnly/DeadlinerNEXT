@@ -1,7 +1,7 @@
 import auth from '@hw-agconnect/auth';
 import { LoginWithHuaweiIDButton, loginComponentManager } from '@kit.AccountKit';
 import { promptAction } from '@kit.ArkUI';
-import { BusinessError, deviceInfo } from '@kit.BasicServicesKit';
+import { BusinessError } from '@kit.BasicServicesKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { ITheme } from '../../../common/theme/ThemeModel';
 import { LocalValues } from '../../../common/local/LocalValues';
@@ -22,6 +22,7 @@ import {
 } from '../../components/SettingsComponents';
 import { MATERIAL_OPTIONS } from './OnboardingConfig';
 import { MaterialOption, SyncOption } from './OnboardingTypes';
+import { HarmonyOSCapabilities } from '../../../common/platform/HarmonyOSCapabilities';
 import { GuideContainer } from './OnboardingCorePages';
 
 @Component
@@ -364,7 +365,7 @@ export struct NotificationPage {
 export struct ImmersiveEffectPage {
   @Prop @Watch('onActiveChanged') isActive: boolean = false;
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
-  @StorageLink(C.KEY_ENABLE_API23) api23: boolean = true;
+  @StorageLink(C.KEY_ENABLE_IMMERSIVE_MATERIAL) immersiveMaterial: boolean = true;
   @State materialLevel: string = 'EXQUISITE';
   @State menuOptions: SelectOption[] = [
     { value: '自适应' },
@@ -419,7 +420,7 @@ export struct ImmersiveEffectPage {
             .translate({ y: this.visible ? 0 : 20 })
             .animation({ duration: 450, curve: Curve.EaseOut, delay: 50 })
 
-          Text('如果你的设备是 60100+，这里可以先打开沉浸光感，并快速挑一个你喜欢的材质等级。')
+          Text($r('app.string.onboarding_immersive_material_description'))
             .fontSize(15)
             .lineHeight(24)
             .fontColor($r('app.color.font_secondary'))
@@ -435,12 +436,13 @@ export struct ImmersiveEffectPage {
             SubSettingsSwitch({
               title: '沉浸光感视效',
               subtitle: '打开后可获得更完整的沉浸材质与光感效果。',
-              isOn: this.api23,
-              onChange: (isOn: boolean): Promise<void> => LocalValues.getInstance().setApi23Enable(isOn)
+              isOn: this.immersiveMaterial,
+              onChange: (isOn: boolean): Promise<void> =>
+                LocalValues.getInstance().setImmersiveMaterialEnabled(isOn)
             })
               .enabled(this.currentPageEnabled())
 
-            if (this.api23 && this.currentPageEnabled()) {
+            if (this.immersiveMaterial && this.currentPageEnabled()) {
               SettingsDivider()
 
               SettingsSelect({
@@ -469,7 +471,7 @@ export struct ImmersiveEffectPage {
   }
 
   private currentPageEnabled(): boolean {
-    return deviceInfo.distributionOSApiVersion >= 60100;
+    return HarmonyOSCapabilities.supportsImmersiveMaterial();
   }
 }
 

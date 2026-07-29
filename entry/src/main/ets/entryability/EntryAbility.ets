@@ -1,6 +1,6 @@
 import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { display, ThemeControl, window } from '@kit.ArkUI';
+import { display, window } from '@kit.ArkUI';
 import { LocalValues } from '../common/local/LocalValues';
 import { DatabaseHelper } from '../common/data/DatabaseHelper';
 import { TaskRepository } from '../common/repository/TaskRepository';
@@ -17,6 +17,7 @@ import { ThemeManager } from '../common/theme/ThemeManager';
 import { DynamicIconUtils } from '../utils/DynamicIconUtils';
 import { AIService } from '../ai/AIServcice';
 import { AppBreakpointUtils, APP_BREAKPOINT_STORAGE_KEY } from '../common/layout/AppBreakpoints';
+import { HarmonyOSCapabilities } from '../common/platform/HarmonyOSCapabilities';
 
 const DOMAIN = 0x0000;
 
@@ -76,8 +77,7 @@ export default class EntryAbility extends UIAbility {
 
     this.mainWindowClass = windowStage.getMainWindowSync();
 
-    let systemProperties = this.mainWindowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
-    AppStorage.set("statusBarHeight", systemProperties.topRect.height);
+    this.handleResponsiveImmersive(windowStage);
 
     windowStage.loadContent('pages/Index', (err) => {
       if (err.code) {
@@ -87,7 +87,8 @@ export default class EntryAbility extends UIAbility {
 
       hilog.info(DOMAIN, 'testTag', 'Succeeded in loading the content.');
 
-      this.handleResponsiveImmersive(windowStage);
+      // ThemeControl takes effect only after ArkUI has attached page content.
+      ThemeManager.reapplySystemTheme();
 
       this.context.eventHub.on('refresh_window_mode', () => {
         let windowClass = windowStage.getMainWindowSync();
@@ -169,16 +170,18 @@ export default class EntryAbility extends UIAbility {
     this.updateWindowMode(windowClass);
 
     // 3. 监听窗口尺寸变化 (用户旋转屏幕或折叠屏展开/折叠时触发)
-    windowClass.on('windowSizeChange', (size) => {
+    windowClass.on('windowSizeChange', (_size: window.Size) => {
       this.updateWindowMode(windowClass);
     });
 
     // 4. 保持避让区域监听 (用于全屏模式下的精确避让)
-    windowClass.on('avoidAreaChange', (data) => {
+    windowClass.on('avoidAreaChange', (data: window.AvoidAreaOptions) => {
       if (data.type === window.AvoidAreaType.TYPE_SYSTEM) {
-        AppStorage.setOrCreate('topRectHeight', data.area.topRect.height);
+        const topHeightVp = this.pxToVp(data.area.topRect.height);
+        AppStorage.setOrCreate('statusBarHeight', topHeightVp);
+        AppStorage.setOrCreate('topRectHeight', topHeightVp);
       } else if (data.type == window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR) {
-        AppStorage.setOrCreate('bottomRectHeight', data.area.bottomRect.height);
+        AppStorage.setOrCreate('bottomRectHeight', this.pxToVp(data.area.bottomRect.height));
       }
     });
   }
@@ -195,14 +198,23 @@ export default class EntryAbility extends UIAbility {
 
     let breakpoint = AppBreakpointUtils.fromWidthVp(widthVp);
     let isWideScreen = AppBreakpointUtils.isWide(breakpoint);
+    let heightVp = windowProperties.windowRect.height / displayClass.densityPixels;
+    let isHarmonyOS7 = HarmonyOSCapabilities.isHarmonyOS7OrLater();
+    let useImmersiveWindow = isHarmonyOS7 || (isWideScreen && enableTabletUi);
 
     let isDark = this.context.config.colorMode === ConfigurationConstant.ColorMode.COLOR_MODE_DARK;
     AppStorage.setOrCreate(APP_BREAKPOINT_STORAGE_KEY, breakpoint);
     AppStorage.setOrCreate('isWideScreen', isWideScreen);
+    AppStorage.setOrCreate('windowWidthVp', widthVp);
+    AppStorage.setOrCreate('windowHeightVp', heightVp);
+    AppStorage.setOrCreate('isLandscape', widthVp > heightVp);
+    AppStorage.setOrCreate('isCompactHeight', AppBreakpointUtils.isCompactHeight(heightVp));
+    AppStorage.setOrCreate('isHarmonyOS7', isHarmonyOS7);
 
-    if (isWideScreen && enableTabletUi) {
-      windowClass.setWindowLayoutFullScreen(true);
-      windowClass.setWindowSystemBarProperties({
+    windowClass.setImmersiveModeEnabledState(useImmersiveWindow);
+
+    if (useImmersiveWindow) {
+      void windowClass.setWindowSystemBarProperties({
         navigationBarColor: '#00000000',
         statusBarColor: '#00000000',
         statusBarContentColor: isDark ? '#FFFFFF' : '#000000',
@@ -211,8 +223,7 @@ export default class EntryAbility extends UIAbility {
 
       hilog.info(DOMAIN, 'testTag', `Width: ${widthVp}vp breakpoint=${breakpoint}. Mode: Immersive`);
     } else {
-      windowClass.setWindowLayoutFullScreen(false);
-      windowClass.setWindowSystemBarProperties({
+      void windowClass.setWindowSystemBarProperties({
         navigationBarColor: isDark ? '#000000' : '#FFFFFF',
         statusBarColor: '#00000000',
         statusBarContentColor: isDark ? '#FFFFFF' : '#000000',
@@ -223,14 +234,25 @@ export default class EntryAbility extends UIAbility {
     }
 
     this.updateAvoidRects(windowClass);
-  };
+  }
 
-  private updateAvoidRects(windowClass: window.Window) {
+  private pxToVp(valuePx: number): number {
+    const densityPixels = display.getDefaultDisplaySync().densityPixels;
+    if (densityPixels <= 0) {
+      return valuePx;
+    }
+    return valuePx / densityPixels;
+  }
+
+  private updateAvoidRects(windowClass: window.Window): void {
     let topAvoidArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_SYSTEM);
     let bottomAvoidArea = windowClass.getWindowAvoidArea(window.AvoidAreaType.TYPE_NAVIGATION_INDICATOR);
+    let topHeightVp = this.pxToVp(topAvoidArea.topRect.height);
+    let bottomHeightVp = this.pxToVp(bottomAvoidArea.bottomRect.height);
 
-    AppStorage.setOrCreate('topRectHeight', topAvoidArea.topRect.height);
-    AppStorage.setOrCreate('bottomRectHeight', bottomAvoidArea.bottomRect.height);
+    AppStorage.setOrCreate('statusBarHeight', topHeightVp);
+    AppStorage.setOrCreate('topRectHeight', topHeightVp);
+    AppStorage.setOrCreate('bottomRectHeight', bottomHeightVp);
   }
 
   private async requestNotificationPermissionIfNeeded(): Promise<void> {

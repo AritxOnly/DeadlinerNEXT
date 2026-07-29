@@ -6,7 +6,8 @@ export enum AppBreakpoint {
 }
 
 export const APP_BREAKPOINT_STORAGE_KEY: string = 'appBreakpoint';
-export const APP_BREAKPOINT_DEFAULT: AppBreakpoint = AppBreakpoint.MD;
+// Compact is the safest first-frame fallback before the window callback arrives.
+export const APP_BREAKPOINT_DEFAULT: AppBreakpoint = AppBreakpoint.SM;
 
 export const APP_BREAKPOINT_ORDER: AppBreakpoint[] = [
   AppBreakpoint.SM,
@@ -19,6 +20,7 @@ export class AppBreakpointUtils {
   static readonly MD_MIN_WIDTH: number = 600;
   static readonly LG_MIN_WIDTH: number = 840;
   static readonly XL_MIN_WIDTH: number = 1320;
+  static readonly COMPACT_HEIGHT_MAX: number = 480;
 
   static mediaCondition(breakpoint: AppBreakpoint): string {
     switch (breakpoint) {
@@ -50,5 +52,9 @@ export class AppBreakpointUtils {
 
   static isWide(breakpoint: string): boolean {
     return breakpoint === AppBreakpoint.LG || breakpoint === AppBreakpoint.XL;
+  }
+
+  static isCompactHeight(heightVp: number): boolean {
+    return heightVp > 0 && heightVp <= AppBreakpointUtils.COMPACT_HEIGHT_MAX;
   }
 }

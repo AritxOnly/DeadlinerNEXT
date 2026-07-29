@@ -12,7 +12,6 @@ import { ITheme } from '../common/theme/ThemeModel';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { hdsMaterial, HdsNavigation, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
 import { AdaptedHdsTabs } from './components/AdaptedHdsTabs';
-import { deviceInfo } from '@kit.BasicServicesKit';
 import { CapturePage } from './routes/capture/CapturePage';
 import { LottieOnboardingSheet } from './common/LottieOnboardingSheet';
 import { AISheetController } from './components/AISheetController';
@@ -24,6 +23,7 @@ import {
   APP_BREAKPOINT_STORAGE_KEY,
   AppBreakpointUtils
 } from '../common/layout/AppBreakpoints';
+import { HarmonyOSCapabilities } from '../common/platform/HarmonyOSCapabilities';
 
 interface TabData {
   title: string,
@@ -66,18 +66,18 @@ struct Index {
   @StorageProp('statusBarHeight') @Watch('syncTopAvoidExtraHeight') statusBarHeight: number = 38;
   @StorageProp('topAvoidExtraHeight') topAvoidExtraHeight: number = 0;
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
-  @StorageProp(C.KEY_ENABLE_API23) enableApi23: boolean = false;
+  @StorageProp(C.KEY_ENABLE_IMMERSIVE_MATERIAL) immersiveMaterialEnabled: boolean = false;
   @StorageLink('NotificationPermissionRequestInProgress') @Watch('onNotificationPermissionFlowChange')
   isNotificationPermissionRequestInProgress: boolean = false;
 
   getFloatingTabs(): boolean {
-    return (deviceInfo.distributionOSApiVersion >= 60100) && this.enableApi23
+    return HarmonyOSCapabilities.supportsImmersiveMaterial() && this.immersiveMaterialEnabled;
   }
 
   private breakpointListeners: mediaquery.MediaQueryListener[] = [];
 
   private syncTopAvoidExtraHeight(): void {
-    const nextTopAvoidExtraHeight = AppBreakpointUtils.isWide(this.currentBreakpoint) ? this.statusBarHeight + 8 : 0;
+    const nextTopAvoidExtraHeight = AppBreakpointUtils.isWide(this.currentBreakpoint) ? 8 : 0;
     if (this.topAvoidExtraHeight !== nextTopAvoidExtraHeight) {
       AppStorage.setOrCreate('topAvoidExtraHeight', nextTopAvoidExtraHeight);
     }
