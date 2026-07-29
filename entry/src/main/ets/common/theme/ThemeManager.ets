@@ -280,6 +280,11 @@ export class ThemeManager {
     }
   }
 
+  /** Reapply after ArkUI content has been attached to the window. */
+  static reapplySystemTheme(): void {
+    ThemeManager.applySystemTheme(ThemeManager.getCurrentTheme());
+  }
+
   // =================================================================
   // 公共 API (切换逻辑)
   // =================================================================

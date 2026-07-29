@@ -155,6 +155,34 @@
     {
       "name": "hud_clock_desc",
       "value": "任务信息时钟透明组件"
+    },
+    {
+      "name": "immersive_material_title",
+      "value": "沉浸光感视效"
+    },
+    {
+      "name": "immersive_material_description",
+      "value": "HarmonyOS 6.1 及以上支持，HarmonyOS 7 可获得完整空间光感（重启后生效）"
+    },
+    {
+      "name": "material_level_title",
+      "value": "材质等级"
+    },
+    {
+      "name": "material_level_description",
+      "value": "自适应会根据设备性能与温度动态调整光感效果"
+    },
+    {
+      "name": "immersive_components_title",
+      "value": "沉浸光感组件"
+    },
+    {
+      "name": "immersive_components_description",
+      "value": "主页顶部按钮优先使用系统沉浸光感组件"
+    },
+    {
+      "name": "onboarding_immersive_material_description",
+      "value": "在支持的设备上开启沉浸光感，并选择适合当前设备的材质等级。"
     }
   ]
 }

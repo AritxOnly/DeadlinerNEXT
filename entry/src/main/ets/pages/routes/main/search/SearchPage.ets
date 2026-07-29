@@ -1,7 +1,7 @@
 import {
   HdsNavDestination
 } from '@kit.UIDesignKit';
-import { promptAction } from '@kit.ArkUI';
+import { promptAction, uiMaterial } from '@kit.ArkUI';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
 import { HabitRepository } from '../../../../common/repository/HabitRepository';
@@ -22,8 +22,7 @@ import { AddTaskSheet } from '../modify/task/AddTaskSheet';
 import { AddHabitSheet } from '../modify/habit/AddHabitSheet';
 import { getImmersiveTitleBarStyle } from '../../../../common/style/NavStyles';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
-import { getHdsMaterialLevelRaw } from '../../../../common/style/MaterialLevel';
-import { HdsMiniBarButton } from '../../../components/infra/HdsMiniBarButton';
+import { HarmonyOSCapabilities } from '../../../../common/platform/HarmonyOSCapabilities';
 
 @Builder
 export function SearchPageBuilder() {
@@ -68,12 +67,17 @@ export struct SearchPage {
   @State directTaskName: string = '';
   @State directTaskNote: string = '';
   @State directHabitName: string = '';
-  @State searchBarMeasuredWidth: number = 0;
-
-  readonly SEARCH_INPUT_ID = 'search_input';
   @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = true;
-  @StorageProp(C.KEY_ENABLE_API23) api23: boolean = false;
-  @StorageProp(C.KEY_API23_MATERIAL_LEVEL) materialLevel: string = 'EXQUISITE';
+  @StorageProp(C.KEY_ENABLE_IMMERSIVE_MATERIAL) immersiveMaterial: boolean = false;
+
+  private usesNativeMaterialSearch(): boolean {
+    return this.experimentalComponents && this.immersiveMaterial &&
+      HarmonyOSCapabilities.isHarmonyOS7OrLater();
+  }
+
+  private getSearchInputId(): string {
+    return this.usesNativeMaterialSearch() ? 'search_input_material' : 'search_input';
+  }
 
   async aboutToAppear() {
     await this.logic.preloadData();
@@ -85,7 +89,7 @@ export struct SearchPage {
       });
     });
     setTimeout(() => {
-      focusControl.requestFocus(this.SEARCH_INPUT_ID);
+      focusControl.requestFocus(this.getSearchInputId());
     }, 500);
     setTimeout(() => { this.isFirstLoad = false; }, 750);
   }
@@ -295,20 +299,23 @@ export struct SearchPage {
     this.isAddHabitSheetShow = true;
   }
 
-  private resolveSearchBarWidth(): number {
-    return this.searchBarMeasuredWidth > 0 ? this.searchBarMeasuredWidth : 320;
-  }
-
   @Builder
   private searchInputContent(isTransparentBg: boolean = false) {
     if (isTransparentBg) {
       Search({ value: this.searchText, placeholder: '搜索任务、习惯或灵感...' })
         .searchButton('搜索', { fontColor: this.theme.brand })
-        .id('search_input')
+        .id('search_input_material')
         .defaultFocus(true)
         .width('100%')
         .height(40)
         .backgroundColor(Color.Transparent)
+        .systemMaterial(new uiMaterial.ImmersiveMaterial({
+          style: uiMaterial.ImmersiveStyle.REGULAR,
+          colorInvert: true,
+          applyShadow: true,
+          interactive: false,
+          lightEffect: {}
+        }))
         .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
         .onChange((value: string) => this.handleSearch(value))
         .margin({ top: 0 })
@@ -325,24 +332,9 @@ export struct SearchPage {
   }
 
   @Builder searchBuilder() {
-    if (this.experimentalComponents && this.api23) {
+    if (this.usesNativeMaterialSearch()) {
       Row() {
-        Stack({ alignContent: Alignment.Center }) {
-          HdsMiniBarButton({
-            barWidth: this.resolveSearchBarWidth(),
-            barHeight: 52,
-            materialLevel: getHdsMaterialLevelRaw(this.materialLevel)
-          }) {
-            this.searchInputContent(true)
-          }
-        }
-        .width('100%')
-        .height(52)
-        .onAreaChange((_, area) => {
-          if (typeof area.width === 'number' && area.width > 0) {
-            this.searchBarMeasuredWidth = area.width;
-          }
-        })
+        this.searchInputContent(true)
       }
       .padding({ left: 64, right: 16 })
     } else {

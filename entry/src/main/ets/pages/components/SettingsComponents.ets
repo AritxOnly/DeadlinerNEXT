@@ -107,6 +107,9 @@ export struct SettingsItem {
     .margin({ top: 2, bottom: 2, start: LengthMetrics.vp(2), end: LengthMetrics.vp(2) }) // 按钮离容器边缘的间隙
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent) // 点击态
     .animation({ duration: 200 }) // 简单的颜色过渡动画
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;
@@ -159,6 +162,9 @@ export struct SettingsGridItem {
     .borderRadius(20)
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
     .animation({ duration: 200 })
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;
@@ -241,6 +247,9 @@ export struct SettingsSwitch {
     .margin({ top: 2, bottom: 2, start: LengthMetrics.vp(2), end: LengthMetrics.vp(2) })
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
     .animation({ duration: 200 })
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     // 按压效果
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
@@ -457,6 +466,9 @@ export struct SettingsUserProfile {
     .width('100%')
     .padding({ top: 12, bottom: 12, left: 12, right: 12 })
     .backgroundColor(Color.Transparent)
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     .onClick(() => {
       this.handleCardClick();
     })
@@ -527,6 +539,9 @@ export struct SubSettingsSwitch {
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
     .borderRadius(20) // 保持圆角一致
     .animation({ duration: 200 })
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;
@@ -612,6 +627,9 @@ export struct SettingsCheckItem {
     .borderRadius(20)
     .backgroundColor(this.isPressed ? $r('sys.color.ohos_id_color_click_effect') : Color.Transparent)
     .animation({ duration: 200 })
+    .focusable(true)
+    .focusOnTouch(true)
+    .hoverEffect(HoverEffect.Auto)
     .onTouch((event) => {
       if (event.type === TouchType.Down) {
         this.isPressed = true;

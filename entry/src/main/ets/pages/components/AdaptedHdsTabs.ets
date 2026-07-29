@@ -1,13 +1,8 @@
-import { DividerMode, HdsBarStyle, hdsMaterial, HdsTabs,
-  HdsTabsBarChangeMode,
-  HdsTabsController } from '@kit.UIDesignKit';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { DividerMode, hdsMaterial, HdsTabs, HdsTabsController } from '@kit.UIDesignKit';
 import { ITheme } from '../../common/theme/ThemeModel';
 import { LocalValues } from '../../common/local/LocalValues';
 import { getHdsMaterialLevel } from '../../common/style/MaterialLevel';
-import { ThemeManager } from '../../common/theme/ThemeManager';
-import { Symbol } from './infra/Symbol';
-import { SettingsConstants as C } from '../../common/local/SettingsConstants'
+import { HarmonyOSCapabilities } from '../../common/platform/HarmonyOSCapabilities';
 
 @Component
 export struct AdaptedHdsTabs {
@@ -18,6 +13,7 @@ export struct AdaptedHdsTabs {
   @Prop isWideScreen: boolean;
   @Prop tabletUi: boolean;
   @Prop theme: ITheme;
+  @StorageProp('isCompactHeight') isCompactHeight: boolean = false;
 
   // 控制器
   controller: HdsTabsController = new HdsTabsController();
@@ -31,7 +27,8 @@ export struct AdaptedHdsTabs {
   onMiniBarClick?: () => void;
 
   build() {
-    if (deviceInfo.distributionOSApiVersion >= 60100 && LocalValues.getInstance().getApi23Enable()) {
+    if (HarmonyOSCapabilities.supportsImmersiveMaterial() &&
+      LocalValues.getInstance().isImmersiveMaterialEnabled()) {
 
       HdsTabs({
         barPosition: BarPosition.End,
@@ -56,19 +53,21 @@ export struct AdaptedHdsTabs {
           }
         })
         .clip(false)
+        .divider({ mode: DividerMode.NONE })
         .barFloatingStyle({
-          barSideMargin: 24,
-          barBottomMargin: this.isWideScreen ? 24 : 0,
+          barSideMargin: this.isCompactHeight ? 12 : 24,
+          barBottomMargin: this.isCompactHeight ? 8 : (this.isWideScreen ? 24 : 12),
           systemMaterialEffect: {
             materialType: hdsMaterial.MaterialType.IMMERSIVE,
             materialLevel: getHdsMaterialLevel()
           },
           gradientMask: {
             maskColor: $r('app.color.background_primary_50'),
-            maskHeight: 42
+            maskHeight: this.isCompactHeight ? 30 : 42
           },
           lightColor: this.theme.useWhiteGlow ? Color.White : this.theme.brand50,
           adaptToHandedness: this.isWideScreen,
+          thermoCtrl: true
         })
     } else {
       if (this.isWideScreen && this.tabletUi) {

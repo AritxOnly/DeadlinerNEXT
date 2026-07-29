@@ -294,8 +294,8 @@ export struct AIPage {
         Circle()
           .width(this.usesExtraWideLayout() ? 42 : 38)
           .height(this.usesExtraWideLayout() ? 42 : 38)
-          .fill(active ? this.theme.brand : $r('app.color.background_tertiary'))
-          .fillOpacity(active ? 0.16 : 1)
+          .backgroundColor(active ? this.theme.brand : $r('app.color.background_tertiary'))
+          .opacity(active ? 0.16 : 1)
 
         if (active) {
           Image($r('app.media.lifi'))
@@ -412,7 +412,7 @@ export struct AIPage {
         Circle()
           .width(34)
           .height(34)
-          .fill($r('app.color.background_tertiary'))
+          .backgroundColor($r('app.color.background_tertiary'))
 
         SymbolGlyph($r('sys.symbol.archivebox'))
           .fontSize(15)

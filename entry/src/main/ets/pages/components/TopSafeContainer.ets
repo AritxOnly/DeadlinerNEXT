@@ -12,6 +12,8 @@ import { ITheme } from '../../common/theme/ThemeModel';
 export struct TopSafeContainer {
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
   @StorageProp('customBackgroundImage') customBg: string = '';
+  @StorageProp('bottomRectHeight') bottomAvoidHeight: number = 0;
+  @StorageProp('isCompactHeight') isCompactHeight: boolean = false;
 
   @BuilderParam content: () => void;
 
@@ -25,6 +27,11 @@ export struct TopSafeContainer {
 
   // 外层滚动控制器
   scroller: Scroller = new Scroller();
+
+  private getBottomContentInset(): number {
+    const navigationInset = this.isCompactHeight ? 56 : 80;
+    return navigationInset + this.bottomAvoidHeight;
+  }
 
   build() {
     if (this.scrollable) {
@@ -40,6 +47,12 @@ export struct TopSafeContainer {
           if (this.content) {
             this.content()
           }
+
+          // Keep the final control reachable above the floating navigation bar
+          // and the gesture navigation indicator on every window size.
+          Blank()
+            .width('100%')
+            .height(this.getBottomContentInset())
         }
         .width('100%')
 

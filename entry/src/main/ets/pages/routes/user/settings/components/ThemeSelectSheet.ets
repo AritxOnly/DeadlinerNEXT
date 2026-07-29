@@ -6,8 +6,8 @@ import { TopSafeContainer } from '../../../../components/TopSafeContainer';
 import { FloatUpModifier } from '../../../../../utils/animation/FloatUpModifier';
 import { SettingsItem, SettingsSection, SettingsDivider, SubSettingsSwitch } from '../../../../components/SettingsComponents';
 import { IndicatorThemeSheet } from './IndicatorThemeSelect';
-import { deviceInfo } from '@kit.BasicServicesKit';
 import { WidgetUpdater } from '../../../../../utils/WidgetUpdater';
+import { HarmonyOSCapabilities } from '../../../../../common/platform/HarmonyOSCapabilities';
 
 interface ThemeOption {
   key: string;
@@ -132,7 +132,7 @@ export struct ThemeSelectSheet {
 
           Column().height(12)
 
-          if (deviceInfo.distributionOSApiVersion >= 60100) {
+          if (HarmonyOSCapabilities.supportsImmersiveMaterial()) {
             SettingsSection({ bgColor: $r('sys.color.search_container_focus_color') }) {
               SubSettingsSwitch({
                 title: '白光辉映',

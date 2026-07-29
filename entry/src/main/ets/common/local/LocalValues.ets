@@ -2,7 +2,7 @@ import { preferences } from '@kit.ArkData';
 import { SettingsConstants as C } from './SettingsConstants';
 import { SecureStorage } from './SecureStorage';
 import { MainButtonType } from './LocalModels';
-import { deviceInfo } from '@kit.BasicServicesKit';
+import { HarmonyOSCapabilities } from '../platform/HarmonyOSCapabilities';
 
 interface WebDavAuthInterface {
   user: string;
@@ -153,13 +153,14 @@ export class LocalValues {
       const showPaperTalkShare = await this.pref.get(C.KEY_SHOW_PAPERTALK_SHARE, true);
       AppStorage.setOrCreate(C.KEY_SHOW_PAPERTALK_SHARE, showPaperTalkShare);
 
-      const enableApi23 = await this.pref.get(C.KEY_ENABLE_API23, true);
-      AppStorage.setOrCreate(C.KEY_ENABLE_API23, enableApi23);
+      const immersiveMaterialPreference = await this.pref.get(C.KEY_ENABLE_IMMERSIVE_MATERIAL, true) as boolean;
+      const immersiveMaterial = HarmonyOSCapabilities.supportsImmersiveMaterial() && immersiveMaterialPreference;
+      AppStorage.setOrCreate(C.KEY_ENABLE_IMMERSIVE_MATERIAL, immersiveMaterial);
 
-      const materialLevel = await this.pref.get(C.KEY_API23_MATERIAL_LEVEL, 'EXQUISITE');
-      AppStorage.setOrCreate(C.KEY_API23_MATERIAL_LEVEL, materialLevel)
+      const materialLevel = await this.pref.get(C.KEY_MATERIAL_LEVEL, 'ADAPTIVE');
+      AppStorage.setOrCreate(C.KEY_MATERIAL_LEVEL, materialLevel)
 
-      const minibar = await this.pref.get(C.KEY_SHOW_MINIBAR, (deviceInfo.distributionOSApiVersion >= 60100));
+      const minibar = await this.pref.get(C.KEY_SHOW_MINIBAR, HarmonyOSCapabilities.supportsImmersiveMaterial());
       AppStorage.setOrCreate(C.KEY_SHOW_MINIBAR, minibar);
 
       const experimentalComponents = await this.pref.get(C.KEY_EXPERIMENTAL_COMPONENTS, true);
@@ -679,12 +680,20 @@ export class LocalValues {
     await this.setValue(C.KEY_TOMBSTONE_RETENTION_DAYS, days);
   }
 
-  getApi23Enable(): boolean {
-    return AppStorage.get(C.KEY_ENABLE_API23) ?? true;
+  isImmersiveMaterialEnabled(): boolean {
+    return AppStorage.get(C.KEY_ENABLE_IMMERSIVE_MATERIAL) ?? true;
   }
 
-  async setApi23Enable(enable: boolean) {
-    await this.setValue(C.KEY_ENABLE_API23, enable);
+  async setImmersiveMaterialEnabled(enable: boolean): Promise<void> {
+    await this.setValue(C.KEY_ENABLE_IMMERSIVE_MATERIAL, enable);
+  }
+
+  getApi23Enable(): boolean {
+    return this.isImmersiveMaterialEnabled();
+  }
+
+  async setApi23Enable(enable: boolean): Promise<void> {
+    await this.setImmersiveMaterialEnabled(enable);
   }
 
   getExperimentalComponents(): boolean {
@@ -704,21 +713,21 @@ export class LocalValues {
   }
 
   getMaterialLevel(): string {
-    return AppStorage.get(C.KEY_API23_MATERIAL_LEVEL) ?? 'EXQUISITE';
+    return AppStorage.get(C.KEY_MATERIAL_LEVEL) ?? 'ADAPTIVE';
   }
 
   async setMaterialLevel(level: string) {
     const levels = ['ADAPTIVE', 'SMOOTH', 'GENTLE', 'EXQUISITE'];
     const actual = (levels.includes(level)) ? level : 'ADAPTIVE';
-    await this.setValue(C.KEY_API23_MATERIAL_LEVEL, actual);
+    await this.setValue(C.KEY_MATERIAL_LEVEL, actual);
   }
 
   getMiniBar(): boolean {
-    return AppStorage.get(C.KEY_SHOW_MINIBAR) ?? (deviceInfo.distributionOSApiVersion >= 60100);
+    return AppStorage.get(C.KEY_SHOW_MINIBAR) ?? HarmonyOSCapabilities.supportsImmersiveMaterial();
   }
 
   async setMiniBar(enable: boolean) {
-    if (deviceInfo.distributionOSApiVersion >= 60100) {
+    if (HarmonyOSCapabilities.supportsImmersiveMaterial()) {
       await this.setValue(C.KEY_SHOW_MINIBAR, enable);
       return;
     }

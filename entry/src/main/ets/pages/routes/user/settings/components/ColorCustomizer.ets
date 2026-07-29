@@ -13,6 +13,8 @@ interface ChartOption {
 
 @Component
 export struct ColorCustomizer {
+  private colorGenerator: ColorGenerator = new ColorGenerator();
+
   // === 状态管理 ===
   @State hue: number = 210; // 初始蓝色
   @State styleStrength: number = 50; // 0=莫兰迪, 100=生动
@@ -59,16 +61,14 @@ export struct ColorCustomizer {
 
   // 核心刷新逻辑
   private updateColors() {
-    if (!ColorGenerator) return;
-
     // 1. 生成 Brand
-    const brandSwatch = ColorGenerator.generateBrand(this.hue, this.styleStrength);
+    const brandSwatch = this.colorGenerator.generateBrand(this.hue, this.styleStrength);
     this.currentBrand = brandSwatch.color;
 
     // 2. 生成推荐的 Accents
     // 计算当前近似的饱和度传给生成器，保证 Accent 风格一致
     const estimatedSat = 15 + (this.styleStrength / 100) * (90 - 15);
-    this.accentStrategies = ColorGenerator.generateAccentStrategies(this.hue, estimatedSat);
+    this.accentStrategies = this.colorGenerator.generateAccentStrategies(this.hue, estimatedSat);
 
     // 3. 更新当前选中的 Accent
     const activeStrategy = this.accentStrategies.find(s => s.key === this.selectedAccentKey);
@@ -313,6 +313,8 @@ export struct ColorCustomizer {
 // =========================================
 @Component
 struct HueSlider {
+  private colorGenerator: ColorGenerator = new ColorGenerator();
+
   @Link hue: number;
   onHueChange?: (val: number) => void;
 
@@ -409,7 +411,7 @@ struct HueSlider {
   }
 
   getHueHex(h: number): string {
-    return ColorGenerator.hsvToHex(h, 100, 100);
+    return this.colorGenerator.hsvToHex(h, 100, 100);
   }
 }
 

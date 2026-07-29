@@ -774,7 +774,7 @@ export struct MainHomePage {
         RelativeContainer() {
           TaskListSection({
             scroller: this.scroller,
-            topAvoidHeight: this.getMiniTopAvoidHeight() + this.statusBarHeight,
+            topAvoidHeight: this.getMiniTopAvoidHeight(),
             isSelectionMode: $isTaskSelectionMode,
             controller: this.taskController,
             confetti: this.confettiController
@@ -808,7 +808,7 @@ export struct MainHomePage {
         RelativeContainer() {
           HabitListSection({
             scroller: this.dummyScroller,
-            topAvoidHeight: this.getMiniTopAvoidHeight() + this.statusBarHeight,
+            topAvoidHeight: this.getMiniTopAvoidHeight(),
             isSelectionMode: $isHabitSelectionMode,
             controller: this.habitController,
             confetti: this.confettiController
@@ -843,7 +843,7 @@ export struct MainHomePage {
           SideDashboard()
             .width(108)
             .height('100%')
-            .padding({ top: this.getMiniTopAvoidHeight() + this.statusBarHeight })
+            .padding({ top: this.getMiniTopAvoidHeight() })
         }
       }
       .width('100%')

@@ -465,7 +465,9 @@ export struct CapturePage {
             }
           } else {
             HdsListItem({
-              customItemBuilder: this.inspirationRowBuilder.bind(this, item),
+              customItemBuilder: (): void => {
+                this.inspirationRowBuilder(item);
+              },
               swipeActionOptions: {
                 icons: [
                   {
