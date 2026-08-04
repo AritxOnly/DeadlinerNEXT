@@ -1,6 +1,4 @@
-import { ItemRestriction,
-  SegmentButtonTextItem,
-  Theme } from '@kit.ArkUI'
+import { SegmentButtonV2Items, Theme } from '@kit.ArkUI'
 import auth from "@hw-agconnect/auth";
 import { Context } from "@kit.AbilityKit";
 import { HomeFloatingToolbar } from '../../components/HomeFloatingToolbar'
@@ -23,7 +21,6 @@ import { ArchivePanelView } from '../../common/ArchivePanelView'
 import { AddTaskSheet } from './modify/task/AddTaskSheet'
 import { AddHabitSheet } from './modify/habit/AddHabitSheet'
 import { LocalValues } from '../../../common/local/LocalValues'
-import { MainButtonType } from '../../../common/local/LocalModels'
 import { getImmersiveTitleBarStyle } from '../../../common/style/NavStyles'
 import { HdsTitleBarMenuButton } from '../../components/HdsTitleBarMenuButton'
 import { HdsTitleBarSegment } from '../../components/HdsTitleBarSegment'
@@ -46,17 +43,10 @@ enum MainTabIndex {
   SUGGESTS = 2
 }
 
-interface MainHomePageButton {
-  icon: Resource,
-  onClick: () => void,
-  isImage?: boolean
-}
-
 @Component
 export struct MainHomePage {
   @Consume('appPathStack') appPathStack: NavPathStack;
 
-  @StorageLink(C.KEY_BASIC_MODE) isBasicMode: boolean = false;
   @StorageLink(C.KEY_ENABLE_TABLET_UI) tabletUi: boolean = true;
   @StorageLink(C.KEY_TABLET_SIDE_DASHBOARD) sdEnabled: boolean = true;
   @StorageLink('isLoggedIn') @Watch('onLoginStatusChange') isLoggedIn: boolean = false;
@@ -188,8 +178,6 @@ export struct MainHomePage {
   }
 
   aboutToAppear(): void {
-    this.updateButtons();
-
     this.onStartupSettingLoaded();
 
     this.bindController();
@@ -272,60 +260,10 @@ export struct MainHomePage {
     return this.tabletUi && AppBreakpointUtils.isWide(this.currentBreakpoint);
   }
 
-  readonly tabButtons: ItemRestriction<SegmentButtonTextItem> = [
+  readonly tabButtons: SegmentButtonV2Items = new SegmentButtonV2Items([
     { text: '任务' },
     { text: '习惯' }
-  ] as ItemRestriction<SegmentButtonTextItem>;
-
-  readonly mainHomePageButtons: MainHomePageButton[] = [
-    {
-      icon: $r('sys.symbol.archivebox'),
-      onClick: () => { this.isArchiveSheetShow = true; }
-    },
-    {
-      icon: $r('sys.symbol.magnifyingglass'),
-      onClick: () => { this.appPathStack.pushPath({ name: "search" }) }
-    },
-    {
-      icon: $r('app.media.lifi'),
-      onClick: () => { this.openAiPanel() },
-      isImage: true
-    },
-    {
-      icon: $r('sys.symbol.person_crop_circle_fill_1'),
-      onClick: () => { this.openProfileSheet(); }
-    },
-    {
-      icon: $r('sys.symbol.square'),
-      onClick: () => {}
-    }
-  ]
-
-  mapMainHomePageButton(type: MainButtonType): MainHomePageButton {
-    switch (type) {
-      case MainButtonType.ARCHIVE: return this.mainHomePageButtons[0];
-      case MainButtonType.SEARCH: return this.mainHomePageButtons[1];
-      case MainButtonType.AI: return this.mainHomePageButtons[2];
-      case MainButtonType.PROFILE: return this.mainHomePageButtons[3];
-      default: return this.mainHomePageButtons[4];
-    }
-  }
-
-  @StorageLink(C.KEY_MAIN_LEFT_BUTTON) @Watch('updateButtons') leftBtnType: MainButtonType = MainButtonType.ARCHIVE;
-  @StorageLink(C.KEY_MAIN_RIGHT_BUTTON) @Watch('updateButtons') rightBtnType: MainButtonType = MainButtonType.SEARCH;
-
-  @State leftBtn: MainHomePageButton = this.mainHomePageButtons[0];
-  @State rightBtn: MainHomePageButton = this.mainHomePageButtons[1];
-
-  updateButtons() {
-    this.leftBtn = this.mapMainHomePageButton(this.leftBtnType);
-    this.rightBtn = this.mapMainHomePageButton(this.rightBtnType);
-    console.info('HomePage buttons updated:', this.leftBtnType, this.rightBtnType);
-  }
-
-  private isButtonEnabled(type: MainButtonType): boolean {
-    return (type !== MainButtonType.AI) || !this.isBasicMode;
-  }
+  ]);
 
   private buildWideTitleMenus(): HdsNavigationMenuItemOptions[] {
     return [
@@ -362,12 +300,16 @@ export struct MainHomePage {
     return this.statusBarHeight + this.topContentHeight;
   }
 
+  private shouldShowPhoneSearchButton(): boolean {
+    return this.isTaskTab() && this.scrollY >= this.getFreeTopAvoidHeight() - 8;
+  }
+
   private getMiniTopAvoidHeight(): number {
     return this.statusBarHeight + this.MINI_TOP_AVOID_HEIGHT;
   }
 
   private openProfileSheet(): void {
-    this.isProfileSheetShow = false;
+    this.isProfileSheetShow = true;
   }
 
   private closeProfileSheet(): void {
@@ -379,30 +321,15 @@ export struct MainHomePage {
     this.appPathStack.pushPath({ name: 'settingsInteraction' });
   }
 
-  private openMainPageButtonsSettings(): void {
-    this.closeProfileSheet();
-    this.appPathStack.pushPath({ name: 'settingsMainPageButtons' });
-  }
-
   @Builder
   private phoneTopSegment() {
     Stack({ alignContent: Alignment.Center }) {
       if (this.titleMode === HdsNavigationTitleMode.FULL) {
         Row() {
-          if (this.leftBtnType === MainButtonType.PROFILE) {
-            ProfileAvatarMenuButton({
-              avatarUri: this.profileAvatarUri,
-              hasAvatar: this.hasProfileAvatar,
-              onButtonClick: this.leftBtn.onClick
-            })
-          } else {
-            HdsTitleBarMenuButton({
-              icon: this.leftBtn.icon,
-              onButtonClick: this.leftBtn.onClick,
-              isImage: this.leftBtn.isImage,
-              isEnabled: this.isButtonEnabled(this.leftBtnType)
-            })
-          }
+          HdsTitleBarMenuButton({
+            icon: $r('sys.symbol.square_grid_2x2'),
+            onButtonClick: () => {}
+          })
         }
         .width('100%')
         .height('100%')
@@ -417,7 +344,7 @@ export struct MainHomePage {
 
         Column() {
           HdsTitleBarSegment({
-            buttons: this.tabButtons,
+            items: this.tabButtons,
             selectedIndexes: $selectedIndexes,
             maxFontScale: 2,
             segmentHeight: this.SEGMENT_HEIGHT,
@@ -437,21 +364,24 @@ export struct MainHomePage {
         ))
       }
 
-      Row() {
-        if (this.rightBtnType === MainButtonType.PROFILE) {
-          ProfileAvatarMenuButton({
-            avatarUri: this.profileAvatarUri,
-            hasAvatar: this.hasProfileAvatar,
-            onButtonClick: this.rightBtn.onClick
-          })
-        } else {
+      Row({ space: 8 }) {
+        if (this.shouldShowPhoneSearchButton()) {
           HdsTitleBarMenuButton({
-            icon: this.rightBtn.icon,
-            onButtonClick: this.rightBtn.onClick,
-            isImage: this.rightBtn.isImage,
-            isEnabled: this.isButtonEnabled(this.rightBtnType)
+            icon: $r('sys.symbol.magnifyingglass'),
+            onButtonClick: () => {
+              this.appPathStack.pushPath({ name: 'search' });
+            }
           })
+            .transition(TransitionEffect.OPACITY.animation({ duration: 200 }))
         }
+
+        ProfileAvatarMenuButton({
+          avatarUri: this.profileAvatarUri,
+          hasAvatar: this.hasProfileAvatar,
+          onButtonClick: () => {
+            this.openProfileSheet();
+          }
+        })
       }
       .width('100%')
       .height('100%')
@@ -468,7 +398,7 @@ export struct MainHomePage {
   private mediumTopSegment() {
     Column() {
       HdsTitleBarSegment({
-        buttons: this.tabButtons,
+        items: this.tabButtons,
         selectedIndexes: $selectedIndexes,
         maxFontScale: 2,
         segmentHeight: this.SEGMENT_HEIGHT,
@@ -518,6 +448,10 @@ export struct MainHomePage {
       TaskListSection({
         scroller: this.scroller,
         topAvoidHeight: this.getFreeTopAvoidHeight(),
+        showSearchEntry: true,
+        onSearchClick: () => {
+          this.appPathStack.pushPath({ name: 'search' });
+        },
         isSelectionMode: $isTaskSelectionMode,
         controller: this.taskController,
         confetti: this.confettiController
@@ -681,9 +615,6 @@ export struct MainHomePage {
     MainProfileQuickSheet({
       onOpenInteraction: () => {
         this.openInteractionSettings();
-      },
-      onOpenMainButtons: () => {
-        this.openMainPageButtonsSettings();
       },
       onOpenAi: () => {
         this.closeProfileSheet();

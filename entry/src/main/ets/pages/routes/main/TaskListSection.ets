@@ -15,6 +15,7 @@ import { ITheme } from "../../../common/theme/ThemeModel";
 import { TaskState, TaskStateAction } from "../../../model/TaskStateMachine";
 import { DialogCompat } from "../../../common/ui/DialogCompat";
 import { Toast } from '../../../common/ui/Toast';
+import { MaterialPresets } from '../../../common/style/SystemMaterialCompat';
 
 export interface TaskUIModel {
   title: string;
@@ -40,6 +41,8 @@ export struct TaskListSection {
 
   @State isLoading: boolean = true;
   @Prop topAvoidHeight: number = 0;
+  @Prop showSearchEntry: boolean = false;
+  onSearchClick: () => void = () => {};
 
   // 多选模式
   @Link isSelectionMode: boolean;
@@ -55,22 +58,33 @@ export struct TaskListSection {
 
   @StorageLink(C.KEY_PROGRESS_DIRECTION) @Watch('loadData') progressDir: boolean = false;
 
-  async aboutToAppear() {
+  aboutToAppear(): void {
     this.bindController();
 
-    await this.repo.checkAndAutoArchive();
-    await this.loadData();
     // 监听同步完成事件，自动刷新
     getContext(this).eventHub.on('sync_done', () => {
       console.info('[Event] Received sync_done event, reloading...');
-      this.loadData();
+      void this.loadData();
     });
 
+    // Render the section immediately. The KMP read is coalesced in TaskRepository and runs after
+    // ArkUI has received the first frame instead of serializing lifecycle startup behind it.
+    void this.loadData();
+    void this.runStartupMaintenance();
     this.repo.syncNow().catch((e: Error) => console.error(e.message));
   }
 
   aboutToDisappear(): void {
     getContext(this).eventHub.off('sync_done');
+  }
+
+  private async runStartupMaintenance(): Promise<void> {
+    try {
+      await this.repo.checkAndAutoArchive();
+      await this.loadData();
+    } catch (error) {
+      console.error('[TaskList] Startup maintenance failed: ' + String(error));
+    }
   }
 
   // 绑定逻辑到 Controller
@@ -526,6 +540,23 @@ export struct TaskListSection {
             }) {
               ListItem() {
                 Column().height(this.topAvoidHeight).width('100%')
+              }
+
+              if (this.showSearchEntry) {
+                ListItem() {
+                  Search({ value: '', placeholder: '搜索任务' })
+                    .width('100%')
+                    .height(40)
+                    .focusable(false)
+                    .enableKeyboardOnFocus(false)
+                    .backgroundColor(Color.Transparent)
+                    .placeholderColor($r('sys.color.ohos_id_color_text_secondary'))
+                    .attributeModifier(MaterialPresets.buttonGlow())
+                    .onClick(() => {
+                      this.onSearchClick();
+                    })
+                    .margin({ bottom: 0, top: -8 })
+                }
               }
               if (this.taskList.length > 0) {
                   ForEach(this.taskList, (item: TaskUIModel, index: number) => {

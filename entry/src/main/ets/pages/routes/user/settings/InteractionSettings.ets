@@ -1,6 +1,6 @@
 import { LocalValues } from '../../../../common/local/LocalValues';
 import { SettingsConstants as C } from '../../../../common/local/SettingsConstants';
-import { SettingsDivider, SettingsSection, SettingsItem, SubSettingsSwitch,
+import { SettingsDivider, SettingsSection, SubSettingsSwitch,
   SubSettingsDivider,
   SettingsCheckItem,
   SettingsSlider} from '../../../components/SettingsComponents';
@@ -114,15 +114,6 @@ struct InteractionSettings {
               //   onChange: (isOn): Promise<void> => LocalValues.getInstance().setFullScreenAdd(isOn)
               // })
 
-              SubSettingsDivider()
-
-              SettingsItem({
-                title: "主页快捷功能",
-                subtitle: "配置主页顶栏按钮的快捷行为",
-                onItemClick: () => {
-                  this.navigateTo('settingsMainPageButtons');
-                }
-              })
             }
           }
 

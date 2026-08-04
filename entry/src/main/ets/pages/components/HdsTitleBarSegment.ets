@@ -1,12 +1,21 @@
-import { ItemRestriction, SegmentButton, SegmentButtonOptions, SegmentButtonTextItem } from '@kit.ArkUI';
+import {
+  ColorMetrics,
+  LengthMetrics,
+  SegmentButtonV2Items,
+  TabSegmentButtonV2,
+  uiMaterial
+} from '@kit.ArkUI';
 import { SettingsConstants as C } from '../../common/local/SettingsConstants';
 import { getHdsMaterialLevelRaw } from '../../common/style/MaterialLevel';
 import { HdsMiniBarButton } from './infra/HdsMiniBarButton';
-import { API23_UI_DEFAULT, EXPERIMENTAL_COMPONENTS_DEFAULT } from '../../common/local/ExperimentalComponentsPolicy';
+import { API23_UI_DEFAULT,
+  API26_OR_ABOVE,
+  EXPERIMENTAL_COMPONENTS_DEFAULT } from '../../common/local/ExperimentalComponentsPolicy';
+import { buildImmersiveMaterial } from '../../common/style/SystemMaterialCompat';
 
 @Component
 export struct HdsTitleBarSegment {
-  @Require buttons: ItemRestriction<SegmentButtonTextItem>;
+  @Require items: SegmentButtonV2Items;
   @Link selectedIndexes: number[];
 
   @Prop maxFontScale: number = 2;
@@ -24,43 +33,65 @@ export struct HdsTitleBarSegment {
 
   @StorageProp(C.KEY_API23_MATERIAL_LEVEL) materialLevel: string = 'EXQUISITE';
 
-  private buildDefaultOptions(): SegmentButtonOptions {
-    return SegmentButtonOptions.tab({
-      buttons: this.buttons,
-      backgroundBlurStyle: (!!this.customBg && this.api23) ? BlurStyle.Thin : BlurStyle.NONE,
-      selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-      backgroundColor: $r('sys.color.comp_background_tertiary'),
-      buttonPadding: 10
-    });
+  private selectedIndex(): number {
+    return this.selectedIndexes.length > 0 ? this.selectedIndexes[0] : 0;
   }
 
-  private buildExperimentalOptions(): SegmentButtonOptions {
-    return SegmentButtonOptions.tab({
-      buttons: this.buttons,
-      backgroundBlurStyle: BlurStyle.NONE,
-      selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-      backgroundColor: Color.Transparent,
-      buttonPadding: 10
-    });
-  }
-
-  private resolveExperimentalBarWidth(): number {
-    if (this.measuredWidth > 0) {
-      return this.measuredWidth;
-    }
-    return 10 + this.buttons.length * 84;
+  private onSelectedIndexChange(index: number): void {
+    this.selectedIndexes = [index];
   }
 
   @Builder
-  private segmentContent(options: SegmentButtonOptions) {
-    SegmentButton({
-      options: options,
-      selectedIndexes: $selectedIndexes,
-      maxFontScale: this.maxFontScale,
-      onItemClicked: this.onItemClicked
-    })
+  private segmentContent(useImmersiveMaterial: boolean, transparentBackground: boolean) {
+    Column() {
+      if (useImmersiveMaterial) {
+        TabSegmentButtonV2({
+          items: this.items,
+          selectedIndex: this.selectedIndex(),
+          $selectedIndex: (index: number): void => {
+            this.onSelectedIndexChange(index);
+          },
+          onItemClicked: this.onItemClicked,
+          itemMaxFontScale: this.maxFontScale,
+          itemSelectedBackgroundColor: ColorMetrics.resourceColor(
+            $r('app.color.segmented_color_selected')
+          ),
+          itemMinHeight: LengthMetrics.vp(32),
+          buttonBackgroundColor: ColorMetrics.rgba(0, 0, 0, 0),
+          buttonMinHeight: LengthMetrics.vp(40),
+          buttonPadding: LengthMetrics.vp(4),
+          backgroundSystemMaterial: buildImmersiveMaterial({
+            style: uiMaterial.ImmersiveStyle.THIN,
+            interactive: true,
+            lightEffect: true
+          }),
+          enableStateAnimation: true
+        })
+          .offset({ y: -4 })
+      } else {
+        TabSegmentButtonV2({
+          items: this.items,
+          selectedIndex: this.selectedIndex(),
+          $selectedIndex: (index: number): void => {
+            this.onSelectedIndexChange(index);
+          },
+          onItemClicked: this.onItemClicked,
+          itemMaxFontScale: this.maxFontScale,
+          itemSelectedBackgroundColor: ColorMetrics.resourceColor(
+            $r('sys.color.segment_button_v2_tab_selected_item_background')
+          ),
+          buttonBackgroundColor: ColorMetrics.resourceColor(
+            transparentBackground ? Color.Transparent : $r('sys.color.comp_background_tertiary')
+          ),
+          buttonBackgroundBlurStyle: transparentBackground ? BlurStyle.NONE :
+            ((!!this.customBg && this.api23) ? BlurStyle.Thin : BlurStyle.NONE),
+          enableStateAnimation: true
+        })
+      }
+    }
       .width('100%')
       .height(this.segmentHeight)
+      .justifyContent(FlexAlign.Center)
   }
 
   build() {
@@ -72,7 +103,7 @@ export struct HdsTitleBarSegment {
             barHeight: this.experimentalHeight,
             materialLevel: getHdsMaterialLevelRaw(this.materialLevel)
           }) {
-            this.segmentContent(this.buildExperimentalOptions())
+            this.segmentContent(false, true)
           }
         }
       }
@@ -86,7 +117,7 @@ export struct HdsTitleBarSegment {
       .margin({ top: -8 })
     } else {
       Stack({ alignContent: Alignment.Center }) {
-        this.segmentContent(this.buildDefaultOptions())
+        this.segmentContent(API26_OR_ABOVE, false)
       }
       .width(this.normalWidth)
       .height(this.segmentHeight)

@@ -5,7 +5,7 @@ import {
   HdsNavigationTitleMode
 } from "@kit.UIDesignKit";
 import { TopSafeContainer } from "../../components/TopSafeContainer";
-import { ItemRestriction, LengthMetrics, SegmentButtonTextItem, promptAction } from "@kit.ArkUI";
+import { LengthMetrics, SegmentButtonV2Items, promptAction } from "@kit.ArkUI";
 import { DashboardSection } from "./DashboardSection";
 import { OverviewStatsSection } from "./OverviewStatsSection";
 import { TrendAnalysisSection } from "./TrendAnalysisSection";
@@ -51,11 +51,11 @@ export struct OverviewPage {
   @State isOverviewHelpShow: boolean = false;
   @State isTrendHelpShow: boolean = false;
   @State isDashboardHelpShow: boolean = false;
-  readonly tabButtons: ItemRestriction<SegmentButtonTextItem> = [
+  readonly tabButtons: SegmentButtonV2Items = new SegmentButtonV2Items([
     { text: '总览' },
     { text: '趋势' },
     { text: '上月' }
-  ] as ItemRestriction<SegmentButtonTextItem>;
+  ]);
 
   aboutToAppear(): void {
     this.viewModel.loadData().then(() => {
@@ -90,7 +90,7 @@ export struct OverviewPage {
   @Builder tabSegment() {
     Column() {
       HdsTitleBarSegment({
-        buttons: this.tabButtons,
+        items: this.tabButtons,
         selectedIndexes: $selectedIndexes,
         maxFontScale: 2,
         segmentHeight: this.SEGMENT_HEIGHT,
@@ -112,7 +112,7 @@ export struct OverviewPage {
   private mediumTabSegment() {
     Column() {
       HdsTitleBarSegment({
-        buttons: this.tabButtons,
+        items: this.tabButtons,
         selectedIndexes: $selectedIndexes,
         maxFontScale: 2,
         segmentHeight: this.SEGMENT_HEIGHT,

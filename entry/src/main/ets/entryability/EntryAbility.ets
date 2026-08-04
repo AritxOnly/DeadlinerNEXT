@@ -2,13 +2,13 @@ import { AbilityConstant, Configuration, ConfigurationConstant, UIAbility, Want 
 import { hilog } from '@kit.PerformanceAnalysisKit';
 import { display, ThemeControl, window } from '@kit.ArkUI';
 import { LocalValues } from '../common/local/LocalValues';
-import { DatabaseHelper } from '../common/data/DatabaseHelper';
 import { TaskRepository } from '../common/repository/TaskRepository';
 import { WidgetUpdater } from '../utils/WidgetUpdater';
 import { buffer } from '@kit.ArkTS';
 import auth from '@hw-agconnect/auth'
 import { ReminderDataManager } from '../utils/notification/ReminderDataManager';
 import { HabitRepository } from '../common/repository/HabitRepository';
+import { InspirationRepository } from '../common/repository/InspirationRepository';
 import { deviceInfo } from '@kit.BasicServicesKit';
 import { notificationManager } from '@kit.NotificationKit';
 import { ManualDataManager } from '../common/manual/ManualModel';
@@ -18,6 +18,7 @@ import { DynamicIconUtils } from '../utils/DynamicIconUtils';
 import { AIService } from '../ai/AIServcice';
 import { AppBreakpointUtils, APP_BREAKPOINT_STORAGE_KEY } from '../common/layout/AppBreakpoints';
 import { API23_UI_DEFAULT, EXPERIMENTAL_COMPONENTS_DEFAULT } from '../common/local/ExperimentalComponentsPolicy';
+import { KmpMigrationService, KmpMigrationState } from '../common/migration/KmpMigrationService';
 
 const DOMAIN = 0x0000;
 
@@ -31,40 +32,28 @@ export default class EntryAbility extends UIAbility {
       AppStorage.setOrCreate(C.KEY_ENABLE_API23, API23_UI_DEFAULT);
       AppStorage.setOrCreate(C.KEY_EXPERIMENTAL_COMPONENTS, EXPERIMENTAL_COMPONENTS_DEFAULT);
       AppStorage.setOrCreate(C.KEY_API23_MATERIAL_LEVEL, 'EXQUISITE');
+      TaskRepository.getInstance().setContext(this.context);
+      HabitRepository.getInstance().setContext(this.context);
+      InspirationRepository.getInstance().setContext(this.context);
+      const migration: KmpMigrationService = KmpMigrationService.getInstance();
+      const migrationReady = migration.start(this.context);
 
       await ThemeManager.init(this.context);
 
       await LocalValues.getInstance().init(this.context);
-      await AIService.getInstance().init(this.context);
 
       if (this.mainWindowClass) {
         hilog.info(DOMAIN, 'testTag', 'LocalValues loaded after window created, refreshing window mode...');
         this.updateWindowMode(this.mainWindowClass);
       }
 
-      await DatabaseHelper.getInstance().init(this.context);
-      TaskRepository.getInstance().setContext(this.context)
+      void this.initializeDeferredServices(migrationReady);
     } catch (err) {
-      hilog.error(DOMAIN, 'testTag', 'Failed to set colorMode. Cause: %{public}s', JSON.stringify(err));
+      hilog.error(DOMAIN, 'testTag', 'Startup failed. Cause: %{public}s', String(err));
     }
     hilog.info(DOMAIN, 'testTag', '%{public}s', 'Ability onCreate');
 
-    let file = await this.context.resourceManager.getRawFileContent('agconnect-services.json');
-    let json: string = buffer.from(file.buffer).toString();
-    auth.init(this.context, json);
-
-    console.info('[EntryAbility] Initializing ReminderDataManager...');
-    await ReminderDataManager.getInstance().init(this.context);
-    await ManualDataManager.getInstance().loadMenu(this.context)
-
-    await TaskRepository.getInstance().initialReminderCheck();
-    await HabitRepository.getInstance().initialReminderCheck();
-
-    DynamicIconUtils.refreshSeasonIconIfNeeded(this.context);
-
-    this.checkLoginStatus();
-
-    this.handleWidgetRoute(want);
+    void this.initializeNonBlockingServices(want);
   }
 
   onNewWant(want: Want, launchParam: AbilityConstant.LaunchParam): void {
@@ -129,6 +118,38 @@ export default class EntryAbility extends UIAbility {
     }).catch((err: BusinessError) => {
       hilog.debug(DOMAIN, 'testTag', 'Window not ready during config update (Expected in onCreate): ' + err.code);
     });
+  }
+
+  /** Startup work that must not delay WindowStage creation or the first ArkUI frame. */
+  private async initializeDeferredServices(migrationReady: Promise<KmpMigrationState>): Promise<void> {
+    try {
+      await migrationReady;
+      await AIService.getInstance().init(this.context);
+      console.info('[EntryAbility] KMP-dependent services initialized after migration.');
+    } catch (error) {
+      hilog.error(DOMAIN, 'testTag', 'Deferred KMP startup failed: %{public}s', String(error));
+    }
+  }
+
+  /** Non-visual services may initialize after the ability has returned control to ArkUI. */
+  private async initializeNonBlockingServices(want: Want): Promise<void> {
+    try {
+      const file = await this.context.resourceManager.getRawFileContent('agconnect-services.json');
+      const json: string = buffer.from(file.buffer).toString();
+      auth.init(this.context, json);
+
+      console.info('[EntryAbility] Initializing ReminderDataManager...');
+      await ReminderDataManager.getInstance().init(this.context);
+      await ManualDataManager.getInstance().loadMenu(this.context);
+      await TaskRepository.getInstance().initialReminderCheck();
+      await HabitRepository.getInstance().initialReminderCheck();
+
+      DynamicIconUtils.refreshSeasonIconIfNeeded(this.context);
+      this.checkLoginStatus();
+      this.handleWidgetRoute(want);
+    } catch (error) {
+      hilog.error(DOMAIN, 'testTag', 'Deferred startup service failed: %{public}s', String(error));
+    }
   }
 
   private checkLoginStatus() {

@@ -1,9 +1,9 @@
 import { common } from '@kit.AbilityKit';
 import { hilog } from '@kit.PerformanceAnalysisKit';
-import { DeadlinerCore, extractTasksJson } from 'libffi_ohos.so';
-import { AIHabit, AITask, AIToolCall, AIToolResult, MixedResult } from '../model/AIModels';
+import { AIHabit, AITask, AIToolCall, AIToolResult, MixedResult, MonthlyAnalysisResult } from '../model/AIModels';
 import { LocalValues } from '../../common/local/LocalValues';
-import { MemoryBank, MemoryFragment } from '../model/MemoryModels';
+import { MemoryBank } from '../model/MemoryModels';
+import { KmpPersistenceService } from '../../common/kmp/KmpPersistenceService';
 import {
   AdapterCreateHabitPayload,
   AdapterCreateTaskPayload,
@@ -21,25 +21,12 @@ interface CoreLifecycleEvent {
   message?: string | null;
 }
 
-interface CoreToolRequestMeta {
-  executionMode?: string;
-}
-
-interface CoreMetaWrapper {
-  _meta?: CoreToolRequestMeta;
-}
-
-interface CoreToolRequestArgsEnvelope {
-  meta?: CoreToolRequestMeta | null;
-}
-
 interface CoreToolRequestEvent {
   type: string;
   id: string;
   toolName: string;
   argsJson: string;
-  argsObject?: Object | null;
-  argsEnvelope?: CoreToolRequestArgsEnvelope | null;
+  executionMode?: string | null;
 }
 
 interface CoreFinishEvent {
@@ -49,6 +36,8 @@ interface CoreFinishEvent {
   habits?: AIHabit[] | null;
   chatResponse?: string | null;
   sessionSummary?: string | null;
+  newMemories?: string[] | null;
+  userProfile?: string | null;
 }
 
 interface CoreThinkingEvent {
@@ -70,18 +59,36 @@ interface CoreMemoryCommittedEvent {
   newRevision?: number;
 }
 
-interface CoreSnapshotFragment {
-  id: string;
-  content: string;
-  category: string;
-  timestamp: string;
-  importance: number;
+interface KmpLifiConfig {
+  apiKey: string;
+  baseUrl: string;
+  model: string;
+  timezone: string;
 }
 
-interface CoreMemorySnapshot {
-  revision?: number;
-  fragments?: CoreSnapshotFragment[] | null;
-  userProfile?: string;
+interface KmpAiTaskPayload {
+  title: string;
+  dueAt?: string | null;
+  note?: string | null;
+}
+
+interface KmpAiHabitPayload {
+  name: string;
+  period: string;
+  timesPerPeriod: number;
+  goalType: string;
+  totalTarget?: number | null;
+}
+
+interface KmpMonthlyAnalysisPayload {
+  summary: string;
+  keywords: string[];
+}
+
+interface KmpMonthlyAnalysisRequest {
+  monthName: string;
+  metricsSummary: string;
+  completedTaskNames: string[];
 }
 
 class EmptyObject {
@@ -109,7 +116,6 @@ export class DeadlinerCoreService {
   private static readonly LOG_TAG: string = 'LifiCore';
 
   private context: common.Context | null = null;
-  private core: DeadlinerCore | null = null;
   private configSignature: string = '';
   private progressHandler?: (update: CoreProgressUpdate) => void;
   private uiSessionId: number = 0;
@@ -133,34 +139,30 @@ export class DeadlinerCoreService {
 
   public startUiSession(): void {
     this.uiSessionId += 1;
-    this.core = null;
+    KmpPersistenceService.getInstance().lifiReset();
     this.configSignature = '';
     this.logInfo(`startUiSession session=${this.uiSessionId}`);
   }
 
   public async processInput(text: string): Promise<MixedResult> {
-    await this.ensureCore();
+    const configPayload: string = this.ensureConfigPayload();
     this.discardPendingEvents('before processInput');
-    await this.pushMemorySnapshotToCore();
-    const core = this.requireCore();
     this.logInfo(`processInput start text=${text}`);
-    await core.processInput(text);
+    await KmpPersistenceService.getInstance().lifiProcessInput(configPayload, text);
     const result = await this.collectResult();
     await this.awaitMemorySettle(result, 'processInput');
-    await this.pullMemorySnapshotFromCore();
     this.logInfo(`processInput finish toolCalls=${result.toolCalls?.length ?? 0} tasks=${result.tasks?.length ?? 0} habits=${result.habits?.length ?? 0} memories=${result.newMemories?.length ?? 0}`);
     return result;
   }
 
   public async submitToolResult(toolResult: AIToolResult): Promise<MixedResult> {
-    await this.ensureCore();
-    const core = this.requireCore();
+    this.ensureConfigPayload();
     this.discardPendingEvents('before submitToolResult');
     this.logInfo(`submitToolResult start tool=${toolResult.tool} id=${toolResult.id} result=${toolResult.resultJson}`);
-    await core.submitToolResult(toolResult.id, toolResult.resultJson);
+    await KmpPersistenceService.getInstance()
+      .lifiSubmitToolResult(toolResult.id, toolResult.tool, toolResult.resultJson);
     const result = await this.collectResult();
     await this.awaitMemorySettle(result, 'submitToolResult');
-    await this.pullMemorySnapshotFromCore();
     this.logInfo(`submitToolResult finish tool=${toolResult.tool} chat=${result.chatResponse ? 'yes' : 'no'} memories=${result.newMemories?.length ?? 0}`);
     return result;
   }
@@ -186,13 +188,58 @@ export class DeadlinerCoreService {
     return result;
   }
 
-  public extractTasks(text: string, preferredLang: string): AITask[] {
-    const payloadText: string = extractTasksJson(text, preferredLang);
-    const payload: AITask[] = JSON.parse(payloadText) as AITask[];
-    return payload;
+  public async extractTasks(text: string, preferredLang: string): Promise<AITask[]> {
+    const payloadText: string = await KmpPersistenceService.getInstance()
+      .lifiExtractTasksJson(this.ensureConfigPayload(), text);
+    const payload: KmpAiTaskPayload[] = JSON.parse(payloadText) as KmpAiTaskPayload[];
+    const tasks: AITask[] = [];
+    for (const item of payload) {
+      const task: AITask = { name: item.title, dueTime: item.dueAt ?? undefined, note: item.note ?? undefined };
+      tasks.push(task);
+    }
+    return tasks;
   }
 
-  private async ensureCore(): Promise<void> {
+  public async extractHabits(text: string, preferredLang: string): Promise<AIHabit[]> {
+    const payloadText: string = await KmpPersistenceService.getInstance()
+      .lifiExtractHabitsJson(this.ensureConfigPayload(), text);
+    const payload: KmpAiHabitPayload[] = JSON.parse(payloadText) as KmpAiHabitPayload[];
+    const habits: AIHabit[] = [];
+    for (const item of payload) {
+      const habit: AIHabit = {
+        name: item.name,
+        period: item.period,
+        timesPerPeriod: item.timesPerPeriod,
+        goalType: item.goalType,
+        totalTarget: item.totalTarget ?? undefined
+      };
+      habits.push(habit);
+    }
+    return habits;
+  }
+
+  public async generateMonthlyAnalysis(
+    monthName: string,
+    metricsSummary: string,
+    completedTaskNames: string[]
+  ): Promise<MonthlyAnalysisResult> {
+    const request: KmpMonthlyAnalysisRequest = {
+      monthName: monthName,
+      metricsSummary: metricsSummary,
+      completedTaskNames: completedTaskNames
+    };
+    const payloadText: string = await KmpPersistenceService.getInstance()
+      .lifiGenerateMonthlyAnalysisJson(this.ensureConfigPayload(), JSON.stringify(request));
+    const payload: KmpMonthlyAnalysisPayload = JSON.parse(payloadText) as KmpMonthlyAnalysisPayload;
+    return {
+      month: monthName,
+      summary: payload.summary,
+      keywords: payload.keywords,
+      generatedAt: new Date().toISOString()
+    };
+  }
+
+  private ensureConfigPayload(): string {
     if (!this.context) {
       throw new Error('DeadlinerCore 尚未初始化上下文');
     }
@@ -206,34 +253,25 @@ export class DeadlinerCoreService {
       throw new Error('请先在设置中填写 API Key');
     }
 
-    const nextSignature = `${apiKey}::${baseUrl}::${modelId}`;
-    if (this.core && this.configSignature === nextSignature) {
-      return;
-    }
-
-    const storagePath = `${this.context.filesDir}/deadliner_ai_core`;
-    this.core = new DeadlinerCore(apiKey, baseUrl, modelId, storagePath, 'harmony');
+    const nextSignature = apiKey + '::' + baseUrl + '::' + modelId;
     this.configSignature = nextSignature;
-  }
-
-  private requireCore(): DeadlinerCore {
-    if (!this.core) {
-      throw new Error('DeadlinerCore 尚未创建');
-    }
-    return this.core;
+    const config: KmpLifiConfig = {
+      apiKey: apiKey,
+      baseUrl: baseUrl,
+      model: modelId,
+      timezone: 'Asia/Shanghai'
+    };
+    return JSON.stringify(config);
   }
 
   private async collectResult(): Promise<EmptyMixedResult> {
     const result: EmptyMixedResult = new EmptyMixedResult();
     let sawToolRequest = false;
-    let sawOrchestrationCompleted = false;
-    let sawMemoryCommitSignal = false;
-    let idleRoundsAfterFinish = 0;
+    let sawFinish = false;
 
     for (let round = 0; round < 240; round++) {
       const events = this.drainEventObjects();
       if (events.length > 0) {
-        idleRoundsAfterFinish = 0;
         for (const event of events) {
           const eventType = this.readEventType(event);
           if (eventType === 'toolRequest') {
@@ -254,16 +292,15 @@ export class DeadlinerCoreService {
             result.habits = finishEvent.habits ?? undefined;
             result.chatResponse = finishEvent.chatResponse ?? undefined;
             result.sessionSummary = finishEvent.sessionSummary ?? undefined;
+            result.newMemories = finishEvent.newMemories ?? undefined;
+            result.userProfile = finishEvent.userProfile ?? undefined;
+            sawFinish = true;
             this.logInfo(`event finish intent=${finishEvent.primaryIntent ?? ''} tasks=${finishEvent.tasks?.length ?? 0} habits=${finishEvent.habits?.length ?? 0}`);
           } else if (eventType === 'memoryCommitted') {
             const memoryEvent = event as CoreMemoryCommittedEvent;
             result.newMemories = memoryEvent.addedMemories ?? undefined;
-            if (memoryEvent.profileUpdated) {
-              result.userProfile = this.requireCore().getUserProfile();
-            }
             this.emitProgress('memory', this.memoryCommittedMessage(memoryEvent));
             this.logInfo(`event memoryCommitted added=${memoryEvent.addedMemories?.length ?? 0} profileUpdated=${memoryEvent.profileUpdated ? 'true' : 'false'} revision=${memoryEvent.newRevision ?? -1}`);
-            sawMemoryCommitSignal = true;
           } else if (eventType === 'error') {
             const errorEvent = event as CoreErrorEvent;
             this.logError(`event error message=${errorEvent.message}`);
@@ -281,27 +318,15 @@ export class DeadlinerCoreService {
             ) {
               sawToolRequest = true;
             }
-            if (lifecycle.stage === 'orchestration' && lifecycle.status === 'completed') {
-              sawOrchestrationCompleted = true;
-            }
-            if (lifecycle.stage === 'memory_commit' && lifecycle.status === 'completed') {
-              sawMemoryCommitSignal = true;
-            }
           }
         }
-      } else if (sawOrchestrationCompleted) {
-        idleRoundsAfterFinish += 1;
       }
 
-      const pendingCount = this.requireCore().pendingEventCount();
+      const pendingCount: number = KmpPersistenceService.getInstance().lifiPendingEventCount();
       if (sawToolRequest && pendingCount === 0) {
         break;
       }
-      if (sawOrchestrationCompleted && sawMemoryCommitSignal && pendingCount === 0) {
-        break;
-      }
-      if (sawOrchestrationCompleted && pendingCount === 0 && idleRoundsAfterFinish >= 30) {
-        this.logInfo('memory commit grace window elapsed without additional events');
+      if (sawFinish && pendingCount === 0) {
         break;
       }
 
@@ -316,35 +341,15 @@ export class DeadlinerCoreService {
       return;
     }
 
-    const core = this.requireCore();
-    for (let round = 0; round < 150; round++) {
-      const syncJson = core.getLastMemorySyncJson();
-      if (syncJson && syncJson.length > 0) {
-        this.logInfo(`${source} observed getLastMemorySyncJson at round=${round}`);
-        return;
-      }
-
-      const events = this.drainEventObjects();
-      if (events.length > 0) {
-        for (const event of events) {
-          this.applyPostFinishEvent(result, event);
-        }
-      }
-
-      if (result.newMemories && result.newMemories.length > 0) {
-        this.logInfo(`${source} observed memoryCommitted event at round=${round}`);
-        return;
-      }
-
-      await new Promise<void>((resolve) => setTimeout(resolve, 20));
+    const events: Object[] = this.drainEventObjects();
+    for (const event of events) {
+      this.applyPostFinishEvent(result, event);
     }
-
-    this.logInfo(`${source} memory settle timeout`);
+    await this.applyKmpMemoryResult(result, source);
   }
 
   private drainEventObjects(): Object[] {
-    const core = this.requireCore();
-    const serialized: string = core.drainEventsJson();
+    const serialized: string = KmpPersistenceService.getInstance().lifiDrainEventsJson();
     if (!serialized || serialized === '[]') {
       return [];
     }
@@ -370,9 +375,6 @@ export class DeadlinerCoreService {
     if (eventType === 'memoryCommitted') {
       const memoryEvent = event as CoreMemoryCommittedEvent;
       result.newMemories = memoryEvent.addedMemories ?? undefined;
-      if (memoryEvent.profileUpdated) {
-        result.userProfile = this.requireCore().getUserProfile();
-      }
       this.emitProgress('memory', this.memoryCommittedMessage(memoryEvent));
       this.logInfo(`post-finish memoryCommitted added=${memoryEvent.addedMemories?.length ?? 0} profileUpdated=${memoryEvent.profileUpdated ? 'true' : 'false'} revision=${memoryEvent.newRevision ?? -1}`);
       return;
@@ -400,7 +402,7 @@ export class DeadlinerCoreService {
 
   private buildToolCall(toolEvent: CoreToolRequestEvent): AIToolCall {
     const argsObject = this.parseToolArgsObject(toolEvent.argsJson);
-    const executionMode = this.parseExecutionMode(toolEvent.argsJson);
+    const executionMode = toolEvent.executionMode ?? undefined;
     const toolCall: AIToolCall = {
       id: toolEvent.id,
       tool: toolEvent.toolName,
@@ -422,16 +424,8 @@ export class DeadlinerCoreService {
     return parsed;
   }
 
-  private parseExecutionMode(argsJson: string): string | undefined {
-    const parsed = JSON.parse(argsJson) as CoreMetaWrapper;
-    return parsed._meta?.executionMode;
-  }
-
   private discardPendingEvents(reason: string): void {
-    if (!this.core) {
-      return;
-    }
-    const pendingCount = this.core.pendingEventCount();
+    const pendingCount: number = KmpPersistenceService.getInstance().lifiPendingEventCount();
     if (pendingCount <= 0) {
       return;
     }
@@ -524,57 +518,15 @@ export class DeadlinerCoreService {
     return 'Deadliner 已完成记忆同步。';
   }
 
-  private async pushMemorySnapshotToCore(): Promise<void> {
-    const core = this.requireCore();
+  private async applyKmpMemoryResult(result: EmptyMixedResult, source: string): Promise<void> {
     const bank = MemoryBank.getInstance();
-    const fragments: CoreSnapshotFragment[] = [];
-
-    for (const fragment of bank.fragments) {
-      const snapshotFragment: CoreSnapshotFragment = {
-        id: fragment.id,
-        content: fragment.content,
-        category: fragment.category,
-        timestamp: new Date(fragment.timestamp).toISOString(),
-        importance: fragment.importance
-      };
-      fragments.push(snapshotFragment);
+    for (const memory of result.newMemories ?? []) {
+      await bank.saveMemory(memory);
     }
-
-    const snapshot: CoreMemorySnapshot = {
-      revision: 0,
-      fragments: fragments,
-      userProfile: bank.userProfile
-    };
-    this.logInfo(`pushMemorySnapshot fragments=${fragments.length} profile=${bank.userProfile.length > 0}`);
-    await core.replaceMemorySnapshot(JSON.stringify(snapshot));
-  }
-
-  private async pullMemorySnapshotFromCore(): Promise<void> {
-    const core = this.requireCore();
-    const rawText: string = core.exportMemorySnapshot();
-    if (!rawText) {
-      this.logInfo('pullMemorySnapshot skipped empty snapshot');
-      return;
+    if (result.userProfile) {
+      await bank.saveUserProfile(result.userProfile);
     }
-
-    const snapshot: CoreMemorySnapshot = JSON.parse(rawText) as CoreMemorySnapshot;
-    const bank = MemoryBank.getInstance();
-    const fragments: MemoryFragment[] = [];
-
-    for (const fragment of snapshot.fragments ?? []) {
-      const memoryFragment: MemoryFragment = {
-        id: fragment.id,
-        content: fragment.content,
-        category: fragment.category,
-        timestamp: new Date(fragment.timestamp).getTime(),
-        importance: fragment.importance
-      };
-      fragments.push(memoryFragment);
-    }
-
-    await bank.replaceAllFragments(fragments);
-    await bank.setUserProfileAllowEmpty(snapshot.userProfile ?? '');
-    this.logInfo(`pullMemorySnapshot applied fragments=${fragments.length} profile=${(snapshot.userProfile ?? '').length > 0}`);
+    this.logInfo(source + ' applied KMP memory result count=' + String(result.newMemories?.length ?? 0));
   }
 
   private logInfo(message: string): void {

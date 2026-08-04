@@ -1,38 +1,5 @@
 // ==========================================
-// 1. API 请求/响应模型 (DeepSeek/OpenAI 兼容)
-// 结合了 ArkTS 的详细定义 (Usage 等)
-// ==========================================
-
-export interface Message {
-  role: string;
-  content: string;
-}
-
-export interface ChatRequest {
-  model: string;
-  messages: Message[];
-  stream?: boolean;
-  temperature?: number;
-}
-
-export interface ChatResponse {
-  choices: Choice[];
-  usage?: Usage;
-}
-
-export interface Choice {
-  message: Message;
-  finish_reason?: string;
-}
-
-export interface Usage {
-  prompt_tokens?: number;
-  completion_tokens?: number;
-  total_tokens?: number;
-}
-
-// ==========================================
-// 2. AI 核心业务实体模型 (Data Transfer Objects)
+// AI 核心业务实体模型 (Data Transfer Objects)
 // 结合了 ArkTS 的详细类型和 iOS 的字段
 // ==========================================
 

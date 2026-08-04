@@ -1,3 +1,4 @@
+import { ImmersiveMaterialModifier } from "../../common/style/SystemMaterialCompat";
 import { SettingsSection, SettingsVerticalDivider } from "./SettingsComponents";
 
 @Component
@@ -106,13 +107,15 @@ export struct ProfileAvatarMenuButton {
     .onClick(() => {
       this.onButtonClick();
     })
+    .attributeModifier(new ImmersiveMaterialModifier({
+      lightEffect: true, interactive: true
+    }))
   }
 }
 
 @Component
 export struct MainProfileQuickSheet {
   onOpenInteraction?: () => void;
-  onOpenMainButtons?: () => void;
   onOpenAi?: () => void;
 
   build() {
@@ -167,18 +170,6 @@ export struct MainProfileQuickSheet {
             action: () => {
               if (this.onOpenInteraction) {
                 this.onOpenInteraction();
-              }
-            }
-          })
-
-          MainQuickActionCard({
-            title: '手机按钮布局',
-            subtitle: '只处理手机端的主页快捷按钮摆放，不碰平板布局。',
-            icon: $r('sys.symbol.slider_horizontal_2'),
-            accentColor: $r('app.color.chart_blue'),
-            action: () => {
-              if (this.onOpenMainButtons) {
-                this.onOpenMainButtons();
               }
             }
           })

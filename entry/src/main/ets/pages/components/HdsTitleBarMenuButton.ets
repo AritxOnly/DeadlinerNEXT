@@ -61,7 +61,10 @@ export struct HdsTitleBarMenuButton {
       .height(this.buttonSize)
       .attributeModifier(
         new BlurBackgroundModifier((!!this.customBg && this.api23), $r('sys.color.comp_background_tertiary')))
-      .attributeModifier(new ImmersiveMaterialModifier())
+      .attributeModifier(new ImmersiveMaterialModifier({
+        interactive: true,
+        lightEffect: true
+      }))
       .onClick(() => {
         this.handleClick();
       })

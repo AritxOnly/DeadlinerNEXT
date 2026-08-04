@@ -1,0 +1,6 @@
+{
+  "name": "libdeadliner_persistence.so",
+  "version": "1.0.0",
+  "description": "ArkTS declarations for the Deadliner KMP persistence NAPI bridge.",
+  "main": "index.d.ts"
+}

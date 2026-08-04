@@ -1,433 +1,321 @@
-import { DatabaseHelper, DDLInsertParams } from '../data/DatabaseHelper';
-import { SyncService } from '../sync/SyncService';
-import { WebUtils } from '../network/WebUtils';
 import { LocalValues } from '../local/LocalValues';
 import { DDLItem, DeadlineType, SubTask } from '../../model/DDLModels';
-import { TaskStateAction } from '../../model/TaskStateMachine';
+import { TaskState, TaskStateAction } from '../../model/TaskStateMachine';
 import { common } from '@kit.AbilityKit';
 import { WidgetUpdater } from '../../utils/WidgetUpdater';
 import { ReminderScheduler } from '../../utils/notification/ReminderScheduler';
-import { ISyncProvider } from '../sync/SyncProvider';
-import { CloudSyncProvider } from '../sync/CloudSyncProvider';
-import { WebDavProvider } from '../sync/WebDavProvider';
+import { KmpTaskRepositoryAdapter, TaskCreateParams } from '../kmp/KmpTaskRepositoryAdapter';
+import { KmpPersistenceService } from '../kmp/KmpPersistenceService';
+import { KmpMigrationService } from '../migration/KmpMigrationService';
 
+interface KmpWebDavSyncOutcome {
+  succeeded: boolean;
+  remoteApplied: number;
+  remoteIgnored: number;
+  failureMessage?: string | null;
+}
+
+/** KMP is the sole task source; this repository only keeps the ArkTS-facing API stable. */
 export class TaskRepository {
   private static instance: TaskRepository;
-  private db: DatabaseHelper;
   private context: common.Context | null = null;
-
-  // 去抖动定时器
+  private readonly kmpTasks: KmpTaskRepositoryAdapter = new KmpTaskRepositoryAdapter();
+  private taskCache: DDLItem[] | null = null;
+  private pendingTaskRead: Promise<DDLItem[]> | null = null;
   private syncTimer: number = -1;
-  private readonly SYNC_DELAY_MS = 400;
-
-  // Widget 更新的防抖定时器
+  private readonly syncDelayMs: number = 400;
   private widgetUpdateTimer: number = -1;
-  private readonly WIDGET_UPDATE_DELAY_MS = 500;
+  private readonly widgetUpdateDelayMs: number = 500;
+  private reminderUpdateTimer: number = -1;
+  private readonly reminderUpdateDelayMs: number = 800;
+  private isSyncing: boolean = false;
+  private hasPendingSync: boolean = false;
 
-  private isSyncing: boolean = false;      // 是否正在同步中
-  private hasPendingSync: boolean = false; // 是否在同步期间又有新请求
-
-  private constructor() {
-    this.db = DatabaseHelper.getInstance();
-  }
+  private constructor() {}
 
   public static getInstance(): TaskRepository {
-    if (!TaskRepository.instance) {
-      TaskRepository.instance = new TaskRepository();
-    }
+    if (!TaskRepository.instance) TaskRepository.instance = new TaskRepository();
     return TaskRepository.instance;
   }
 
-  public setContext(context: common.Context) {
+  public setContext(context: common.Context): void {
     this.context = context;
   }
 
-  private createSyncProvider(): ISyncProvider | null {
-    if (!this.context) {
-      console.warn('[TaskRepo] Context is null, cannot create SyncProvider.');
-      return null;
-    }
-
-    const syncMode = LocalValues.getInstance().getSyncMode();
-
-    if (syncMode === 'cloud') {
-      return new CloudSyncProvider(this.context);
-    } else if (syncMode === 'webdav') {
-      const url = LocalValues.getInstance().getWebDavUrl();
-      if (!url) {
-        console.warn('[TaskRepo] WebDAV URL not set.');
-        return null;
-      }
-      const webAuth = LocalValues.getInstance().getWebDavAuth();
-      const web = new WebUtils(url, webAuth.user, webAuth.pass);
-      return new WebDavProvider(web);
-    } else {
-      console.warn(`[TaskRepo] Unknown sync mode: ${syncMode}`);
-      return null;
-    }
-  }
-
-  private async ensureDbReady(): Promise<void> {
-    if (this.db.isReady()) return;
-
-    console.warn('[TaskRepo] DB not ready. Polling...');
-    if (this.context) {
-      this.db.init(this.context);
-    }
-
-    const maxRetries = 40;
-    for (let i = 0; i < maxRetries; i++) {
-      if (this.db.isReady()) return;
-      await new Promise<void>(resolve => setTimeout(resolve, 50));
-    }
-    throw new Error('[TaskRepo] Fatal: DB Init Timeout.');
+  private async initializeKmp(): Promise<void> {
+    if (this.context === null) throw new Error('TaskRepository context is required for KMP persistence');
+    await KmpMigrationService.getInstance().awaitReady();
+    await this.kmpTasks.initialize(this.context);
   }
 
   private inBasicMode(): boolean {
     return LocalValues.getInstance().getBasicMode();
   }
 
-  private notifyDataChange() {
-    if (this.context) {
-      console.log('[Event] notifyDataChange()');
-      this.context.eventHub.emit('sync_done');
-    }
+  private notifyDataChange(): void {
+    const currentRevision: number = AppStorage.get<number>('KmpDataRevision') ?? 0;
+    AppStorage.setOrCreate('KmpDataRevision', currentRevision + 1);
+    if (this.context !== null) this.context.eventHub.emit('sync_done');
   }
 
-  // ==========================================
-  // 核心：调度逻辑 (防抖 + 串行化)
-  // ==========================================
-  private scheduleSync() {
-    // 1. 防抖：如果有未执行的定时器，重置它
-    if (this.syncTimer !== -1) {
-      clearTimeout(this.syncTimer);
-    }
-
-    // 2. 检查开关
-    if (!LocalValues.getInstance().getCloudSyncEnable()) {
-      return;
-    }
-
-    // 3. 启动定时器
+  private scheduleSync(): void {
+    if (this.syncTimer !== -1) clearTimeout(this.syncTimer);
+    if (!LocalValues.getInstance().getCloudSyncEnable()) return;
     this.syncTimer = setTimeout(() => {
       this.performSync();
-    }, this.SYNC_DELAY_MS);
+    }, this.syncDelayMs);
   }
 
-  /**
-   * 真正执行同步的方法 (串行控制)
-   */
-  private async performSync() {
+  private async performSync(): Promise<void> {
     if (this.inBasicMode()) return;
-
-    // A. 如果当前正在同步，不要打断，标记“稍后再试”并退出
     if (this.isSyncing) {
-      console.info('[TaskRepo] Sync is running. Marking pending...');
       this.hasPendingSync = true;
       return;
     }
-
-    // B. 开始同步
     this.isSyncing = true;
-    this.hasPendingSync = false; // 清除标记
-
-    console.info('[TaskRepo] Starting auto-sync...');
-
+    this.hasPendingSync = false;
     try {
-      const provider = this.createSyncProvider();
-      if (!provider) return;
-
-      const syncService = new SyncService(this.db, provider);
-
-      await syncService.syncOnce();
-
-      console.info('[TaskRepo] Auto-sync success.');
-
-      if (this.context) {
-        this.context.eventHub.emit('sync_done');
-      }
-    } catch (e) {
-      console.error(`[TaskRepo] Auto-sync failed: ${e}`);
+      await this.initializeKmp();
+      await this.syncKmpWebDav();
+      this.invalidateTaskCache();
+      this.notifyDataChange();
+    } catch (error) {
+      console.error('[TaskRepo] KMP auto-sync failed: ' + String(error));
     } finally {
-      // C. 同步结束，释放锁
       this.isSyncing = false;
-
-      // D. 检查在同步期间是否有新请求
-      if (this.hasPendingSync) {
-        console.info('[TaskRepo] Found pending request. Syncing again immediately...');
-        // 递归调用（或者再次 setTimeout），处理积压的变更
-        this.performSync();
-      }
+      if (this.hasPendingSync) this.performSync();
     }
   }
 
-  private triggerUpdates() {
+  private triggerUpdates(): void {
     this.notifyDataChange();
-    this.scheduleSync(); // 触发调度
+    this.scheduleSync();
     this.scheduleWidgetUpdate();
     this.scheduleReminderRefresh();
   }
 
-  public triggerExternalUpdates() {
+  public triggerExternalUpdates(): void {
     this.triggerUpdates();
   }
 
-  // ==========================================
-  // 增删改查
-  // ==========================================
-
-  async insertDDL(params: DDLInsertParams): Promise<number> {
-    await this.ensureDbReady();
-    const id = await this.db.insertDDL(params);
+  public async insertDDL(params: TaskCreateParams): Promise<number> {
+    await this.initializeKmp();
+    const id: number = await this.kmpTasks.create(params);
+    this.invalidateTaskCache();
     this.triggerUpdates();
     return id;
   }
 
-  async createDDLWithSubTasks(ddlParams: DDLInsertParams, subTasks: string[]): Promise<number> {
-    await this.ensureDbReady();
-
-    // 使用 runInTransaction 保证原子性
-    const resultId = await this.db.runInTransaction(async () => {
-      // 1. 创建父任务
-      const ddlId = await this.db.insertDDL(ddlParams);
-      if (ddlId <= 0) return -1;
-
-      // 2. 批量创建子任务
-      for (let i = 0; i < subTasks.length; i++) {
-        const content = subTasks[i];
-        await this.db.insertSubTask({
-          ddlId: ddlId,
-          content: content,
-          isCompleted: false,
-          sortOrder: i // 保持顺序
-        });
-      }
-      return ddlId;
-    });
-
-    if (resultId && resultId > 0) {
-      this.triggerUpdates();
+  public async createDDLWithSubTasks(ddlParams: TaskCreateParams, subTasks: string[]): Promise<number> {
+    await this.initializeKmp();
+    const ddlId: number = await this.kmpTasks.create(ddlParams);
+    for (let index = 0; index < subTasks.length; index++) {
+      await this.kmpTasks.insertSubtask(ddlId, subTasks[index], index);
     }
-    return resultId ?? -1;
+    this.invalidateTaskCache();
+    this.triggerUpdates();
+    return ddlId;
   }
 
-  async updateDDL(item: DDLItem): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.updateDDL(item);
-    if (!ReminderScheduler.shouldScheduleDDLReminder(item)) {
-      await ReminderScheduler.cancelDDLReminder(item.id);
-    }
+  public async updateDDL(item: DDLItem): Promise<void> {
+    await this.initializeKmp();
+    await this.kmpTasks.update(item);
+    this.invalidateTaskCache();
+    if (!ReminderScheduler.shouldScheduleDDLReminder(item)) await ReminderScheduler.cancelDDLReminder(item.id);
     this.triggerUpdates();
   }
 
-  async deleteDDL(id: number): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.deleteDDL(id);
+  public async deleteDDL(id: number): Promise<void> {
+    await this.initializeKmp();
+    if (!await this.kmpTasks.delete(id)) throw new Error('KMP task not found for deletion');
+    this.invalidateTaskCache();
     await ReminderScheduler.cancelDDLReminder(id);
     this.triggerUpdates();
   }
 
-  async getAllDDLs(): Promise<DDLItem[]> {
-    await this.ensureDbReady();
-    return this.db.getAllDDLs();
+  public async getAllDDLs(): Promise<DDLItem[]> {
+    return this.readTasks();
   }
 
-  async getDDLsByType(type: DeadlineType): Promise<DDLItem[]> {
-    await this.ensureDbReady();
-    return this.db.getDDLsByType(type);
+  public async getDDLsByType(type: DeadlineType): Promise<DDLItem[]> {
+    if (type !== DeadlineType.TASK) return [];
+    return this.readTasks();
   }
 
-  async getMainListDDLsByType(type: DeadlineType): Promise<DDLItem[]> {
-    await this.ensureDbReady();
-    return this.db.getMainListDDLsByType(type);
+  public async getMainListDDLsByType(type: DeadlineType): Promise<DDLItem[]> {
+    if (type !== DeadlineType.TASK) return [];
+    const tasks: DDLItem[] = await this.readTasks();
+    return tasks.filter((item: DDLItem): boolean => item.state === TaskState.ACTIVE || item.state === TaskState.COMPLETED || item.state === TaskState.ABANDONED);
   }
 
-  async getArchivedDDLs(): Promise<DDLItem[]> {
-    await this.ensureDbReady();
-    return this.db.getArchivedDDLs();
+  public async getArchivedDDLs(): Promise<DDLItem[]> {
+    const tasks: DDLItem[] = await this.readTasks();
+    return tasks.filter((item: DDLItem): boolean => item.state === TaskState.ARCHIVED || item.state === TaskState.ABANDONED_ARCHIVED);
   }
 
-  async getDDLById(id: number): Promise<DDLItem | null> {
-    await this.ensureDbReady();
-    return this.db.getDDLById(id);
-  }
-
-  async transitionDDL(id: number, action: TaskStateAction): Promise<DDLItem> {
-    await this.ensureDbReady();
-    const item = await this.db.transitionDDLState(id, action);
-    if (!ReminderScheduler.shouldScheduleDDLReminder(item)) {
-      await ReminderScheduler.cancelDDLReminder(item.id);
+  public async getDDLById(id: number): Promise<DDLItem | null> {
+    const tasks: DDLItem[] = await this.readTasks();
+    for (let index = 0; index < tasks.length; index++) {
+      if (tasks[index].id === id) return tasks[index];
     }
+    return null;
+  }
+
+  public async transitionDDL(id: number, action: TaskStateAction): Promise<DDLItem> {
+    await this.initializeKmp();
+    const updated: DDLItem | null = await this.kmpTasks.applyAction(id, action);
+    if (updated === null) throw new Error('KMP task not found for state transition');
+    this.invalidateTaskCache();
+    if (!ReminderScheduler.shouldScheduleDDLReminder(updated)) await ReminderScheduler.cancelDDLReminder(updated.id);
     this.triggerUpdates();
-    return item;
+    return updated;
   }
 
-  private scheduleWidgetUpdate() {
-    // 1. 如果已有挂起的更新任务，取消它（重新计时）
-    if (this.widgetUpdateTimer !== -1) {
-      clearTimeout(this.widgetUpdateTimer);
-    }
-
-    // 2. 启动新的定时器
-    this.widgetUpdateTimer = setTimeout(() => {
-      this.performWidgetUpdate();
-    }, this.WIDGET_UPDATE_DELAY_MS);
+  public async getSubTasks(ddlId: number): Promise<SubTask[]> {
+    await this.initializeKmp();
+    const subtasks: SubTask[] | null = await this.kmpTasks.subtasksForTask(ddlId);
+    if (subtasks === null) throw new Error('KMP task not found for subtask query');
+    return subtasks;
   }
 
-  private performWidgetUpdate() {
-    const context = this.context;
-    if (context) {
-      console.info('[TaskRepo] Updating widgets now...');
-      WidgetUpdater.updateAllWidgets(context);
-    }
-    this.widgetUpdateTimer = -1;
-  }
-
-  async getSubTasks(ddlId: number): Promise<SubTask[]> {
-    await this.ensureDbReady();
-    return this.db.getSubTasksByDDL(ddlId);
-  }
-
-  async insertSubTask(ddlId: number, content: string, order: number): Promise<number> {
-    await this.ensureDbReady();
-    const id = await this.db.insertSubTask({
-      ddlId: ddlId,
-      content: content,
-      isCompleted: false,
-      sortOrder: order
-    });
+  public async insertSubTask(ddlId: number, content: string, order: number): Promise<number> {
+    await this.initializeKmp();
+    const id: number = await this.kmpTasks.insertSubtask(ddlId, content, order);
+    this.invalidateTaskCache();
     this.triggerUpdates();
     return id;
   }
 
-  async toggleSubTask(subTask: SubTask): Promise<void> {
-    await this.ensureDbReady();
-
-    await this.db.updateSubTaskStatus(subTask.id, !subTask.isCompleted);
-
+  public async toggleSubTask(subTask: SubTask): Promise<void> {
+    await this.initializeKmp();
+    if (!await this.kmpTasks.toggleSubtask(subTask.id, !subTask.isCompleted)) throw new Error('KMP subtask not found');
+    this.invalidateTaskCache();
     this.triggerUpdates();
   }
 
-  async deleteSubTask(subTaskId: number): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.deleteSubTask(subTaskId);
+  public async deleteSubTask(subTaskId: number): Promise<void> {
+    await this.initializeKmp();
+    if (!await this.kmpTasks.deleteSubtask(subTaskId)) throw new Error('KMP subtask not found');
+    this.invalidateTaskCache();
     this.triggerUpdates();
   }
 
-  async updateSubTaskContent(subTaskId: number, content: string): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.updateSubTaskContent(subTaskId, content);
+  public async updateSubTaskContent(subTaskId: number, content: string): Promise<void> {
+    await this.initializeKmp();
+    if (!await this.kmpTasks.updateSubtaskContent(subTaskId, content)) throw new Error('KMP subtask not found');
+    this.invalidateTaskCache();
     this.triggerUpdates();
   }
 
-  // ==========================================
-  // 手动同步
-  // ==========================================
-  async syncNow(): Promise<boolean> {
-    await this.ensureDbReady();
-
-    // 取消由于防抖挂起的任务，直接插队执行
+  public async syncNow(): Promise<boolean> {
     if (this.syncTimer !== -1) {
       clearTimeout(this.syncTimer);
       this.syncTimer = -1;
     }
-
-    // 复用串行逻辑，防止手动和自动冲突
-    // 但 syncNow 需要返回结果，所以这里特殊处理一下，等待 performSync 完成不太容易
-    // 简单起见，手动同步强制执行逻辑（需注意，如果正在自动同步，可能会冲突，
-    // 更好的做法是让 syncNow 也走 performSync 逻辑，或者等待锁释放）
-
-    // 这里采用简单策略：如果正在同步，直接报错或返回 false
-    if (this.isSyncing) {
-      console.warn('[TaskRepo] Sync already running. Manual sync ignored.');
-      return false;
-    }
-
+    if (this.isSyncing) return false;
     this.isSyncing = true;
     try {
-      const provider = this.createSyncProvider();
-      if (!provider) return false;
-
-      const syncService = new SyncService(this.db, provider);
-      const result = await syncService.syncOnce();
-
-      if (result.success && result.hasLocalChanges && this.context) {
-        this.notifyDataChange();
-        this.performWidgetUpdate();
-        this.scheduleReminderRefresh();
-      }
-      return result.success;
+      await this.initializeKmp();
+      await this.syncKmpWebDav();
+      this.invalidateTaskCache();
+      this.notifyDataChange();
+      this.performWidgetUpdate();
+      this.scheduleReminderRefresh();
+      return true;
+    } catch (error) {
+      console.error('[TaskRepo] KMP manual sync failed: ' + String(error));
+      return false;
     } finally {
       this.isSyncing = false;
-      // 手动同步完，也检查一下pending
-      if (this.hasPendingSync) {
-        this.performSync();
-      }
+      if (this.hasPendingSync) this.performSync();
     }
   }
 
-  private reminderUpdateTimer: number = -1;
-  private readonly REMINDER_UPDATE_DELAY_MS = 800;
-
-  private scheduleReminderRefresh() {
-    // 1. 如果有挂起的任务，取消重置
-    if (this.reminderUpdateTimer !== -1) {
-      clearTimeout(this.reminderUpdateTimer);
+  private async syncKmpWebDav(): Promise<void> {
+    if (LocalValues.getInstance().getSyncMode() !== 'webdav') {
+      throw new Error('KMP persistence currently supports changelog sync through WebDAV only');
     }
+    const url: string = LocalValues.getInstance().getWebDavUrl();
+    if (url.length === 0) throw new Error('WebDAV URL not set');
+    const auth = LocalValues.getInstance().getWebDavAuth();
+    const rawResult: string = await KmpPersistenceService.getInstance().syncWebDavChangeLogJson(url, auth.user, auth.pass);
+    const result: KmpWebDavSyncOutcome = JSON.parse(rawResult) as KmpWebDavSyncOutcome;
+    if (!result.succeeded) {
+      throw new Error(result.failureMessage ?? 'KMP WebDAV changelog sync failed');
+    }
+  }
 
-    // 2. 启动定时器
+  /** Coalesces first-frame consumers so ArkUI crosses the synchronous NAPI boundary only once. */
+  private async readTasks(): Promise<DDLItem[]> {
+    await this.initializeKmp();
+    if (this.taskCache !== null) return this.taskCache;
+    if (this.pendingTaskRead !== null) return this.pendingTaskRead;
+
+    const pending: Promise<DDLItem[]> = this.loadTasksIntoCache();
+    this.pendingTaskRead = pending;
+    try {
+      return await pending;
+    } finally {
+      this.pendingTaskRead = null;
+    }
+  }
+
+  private async loadTasksIntoCache(): Promise<DDLItem[]> {
+    const tasks: DDLItem[] = await this.kmpTasks.listTasks();
+    this.taskCache = tasks;
+    return tasks;
+  }
+
+  private invalidateTaskCache(): void {
+    this.taskCache = null;
+  }
+
+  private scheduleWidgetUpdate(): void {
+    if (this.widgetUpdateTimer !== -1) clearTimeout(this.widgetUpdateTimer);
+    this.widgetUpdateTimer = setTimeout(() => {
+      this.performWidgetUpdate();
+    }, this.widgetUpdateDelayMs);
+  }
+
+  private performWidgetUpdate(): void {
+    if (this.context !== null) WidgetUpdater.updateAllWidgets(this.context);
+    this.widgetUpdateTimer = -1;
+  }
+
+  private scheduleReminderRefresh(): void {
+    if (this.reminderUpdateTimer !== -1) clearTimeout(this.reminderUpdateTimer);
     this.reminderUpdateTimer = setTimeout(() => {
       this.performReminderRefresh();
-    }, this.REMINDER_UPDATE_DELAY_MS);
+    }, this.reminderUpdateDelayMs);
   }
 
-  private async performReminderRefresh() {
+  private async performReminderRefresh(): Promise<void> {
     try {
-      await this.ensureDbReady();
-      console.info('[TaskRepo] Triggering Reminder Scheduler...');
-
-      // 1. 获取所有数据 (Scheduler 内部会过滤已完成和已删除的)
-      const allDDLs = await this.db.getAllDDLs();
-
-      // 2. 交给调度器计算
-      await ReminderScheduler.refreshReminders(allDDLs);
-
-    } catch (e) {
-      console.error(`[TaskRepo] Reminder refresh failed: ${e}`);
+      await ReminderScheduler.refreshReminders(await this.getAllDDLs());
+    } catch (error) {
+      console.error('[TaskRepo] Reminder refresh failed: ' + String(error));
     } finally {
       this.reminderUpdateTimer = -1;
     }
   }
 
-  public async initialReminderCheck() {
-    console.info('[TaskRepo] performing initial reminder check...');
-
+  public async initialReminderCheck(): Promise<void> {
     this.scheduleReminderRefresh();
   }
 
-  /**
-   * 检查并执行自动归档
-   */
-  public async checkAndAutoArchive() {
-    // 1. 获取用户设置的归档天数 (从 LocalValues)
-    const archiveDays = LocalValues.getInstance().getAutoArchiveDays(); // 假设你已实现此方法
-
+  public async checkAndAutoArchive(): Promise<void> {
+    const archiveDays: number = LocalValues.getInstance().getAutoArchiveDays();
     if (archiveDays <= 0) return;
-
-    try {
-      await this.ensureDbReady();
-      const archivedCount = await this.db.autoArchiveDDLs(archiveDays);
-
-      if (archivedCount > 0) {
-        // 2. 如果有变更，通知 UI
-        this.notifyDataChange();
-        // 3. 触发同步和 Widget 更新
-        this.scheduleSync();
-        this.scheduleWidgetUpdate();
-        this.scheduleReminderRefresh();
-      }
-    } catch (e) {
-      console.error(`[TaskRepo] checkAndAutoArchive failed: ${e}`);
+    const threshold: number = Date.now() - archiveDays * 24 * 60 * 60 * 1000;
+    const tasks: DDLItem[] = await this.getAllDDLs();
+    let archivedCount: number = 0;
+    for (let index = 0; index < tasks.length; index++) {
+      const task: DDLItem = tasks[index];
+      if (task.state !== TaskState.COMPLETED || task.completeTime.length === 0) continue;
+      if (new Date(task.completeTime).getTime() > threshold) continue;
+      const archived: DDLItem | null = await this.kmpTasks.applyAction(task.id, TaskStateAction.MARK_ARCHIVE);
+      if (archived !== null) archivedCount++;
     }
+    if (archivedCount > 0) this.triggerUpdates();
   }
 }

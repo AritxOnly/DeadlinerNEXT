@@ -45,6 +45,8 @@ struct Index {
   // 全局路由栈
   @Provide('appPathStack') appPathStack: NavPathStack = new NavPathStack();
   @Provide('isAiFlowShown') isAiFlowShown: boolean = false;
+  @Provide('searchRouteOpacity') searchRouteOpacity: number = 1;
+  @Provide('isEnteringSearchRoute') isEnteringSearchRoute: boolean = true;
 
   @StorageProp('IsAppDataReady') @Watch('onDataReady') isAppDataReady: boolean = false;
   @StorageProp(C.KEY_PRIVACY_AGREE) privacyAgreed: boolean = false;
@@ -83,6 +85,37 @@ struct Index {
     if (this.topAvoidExtraHeight !== nextTopAvoidExtraHeight) {
       AppStorage.setOrCreate('topAvoidExtraHeight', nextTopAvoidExtraHeight);
     }
+  }
+
+  private searchRouteFadeTransition(from: NavContentInfo, to: NavContentInfo): NavigationAnimatedTransition | undefined {
+    if (from.name !== 'search' && to.name !== 'search') {
+      return undefined;
+    }
+
+    const enteringSearch: boolean = to.name === 'search';
+    const transitionTimeout: number = enteringSearch ? 600 : 350;
+    const transitionDuration: number = enteringSearch ? 500 : 300;
+    return {
+      timeout: transitionTimeout,
+      transition: (transitionProxy: NavigationTransitionProxy): void => {
+        this.isEnteringSearchRoute = enteringSearch;
+        this.searchRouteOpacity = enteringSearch ? 0 : 1;
+        this.getUIContext().animateTo({
+          duration: transitionDuration,
+          curve: Curve.EaseInOut,
+          onFinish: () => {
+            transitionProxy.finishTransition();
+          }
+        }, () => {
+          this.searchRouteOpacity = enteringSearch ? 1 : 0;
+        });
+      },
+      onTransitionEnd: (_success: boolean): void => {
+        if (!enteringSearch) {
+          this.searchRouteOpacity = 1;
+        }
+      }
+    };
   }
 
   private applyBreakpoint(nextBreakpoint: AppBreakpoint): void {
@@ -184,10 +217,6 @@ struct Index {
     if (this.isLoggedIn) {
       this.checkAndRepairUserProfile();
     }
-
-    TaskRepository.getInstance().checkAndAutoArchive().catch((e: Error) => {
-      console.error(`[Index] checkAndAutoArchive failed: ${e.message}`);
-    });
 
     if (this.isAppDataReady) {
       void this.maybeShowGuideSheet();
@@ -560,6 +589,9 @@ struct Index {
           }
         }
         .mode(NavigationMode.Stack)
+        .customNavContentTransition((from: NavContentInfo, to: NavContentInfo, _operation: NavigationOperation) => {
+          return this.searchRouteFadeTransition(from, to);
+        })
         .titleBar({
           avoidLayoutSafeArea: false,
           enableComponentSafeArea: false

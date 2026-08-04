@@ -1,9 +1,12 @@
-import { DatabaseHelper } from '../data/DatabaseHelper';
 import { InspirationItem } from '../../model/InspirationModels';
+import { common } from '@kit.AbilityKit';
+import { KmpCaptureRepositoryAdapter } from '../kmp/KmpCaptureRepositoryAdapter';
+import { KmpMigrationService } from '../migration/KmpMigrationService';
 
 export class InspirationRepository {
   private static instance: InspirationRepository;
-  private db: DatabaseHelper = DatabaseHelper.getInstance();
+  private context: common.Context | null = null;
+  private readonly kmpCapture: KmpCaptureRepositoryAdapter = new KmpCaptureRepositoryAdapter();
 
   public static getInstance(): InspirationRepository {
     if (!InspirationRepository.instance) {
@@ -12,44 +15,37 @@ export class InspirationRepository {
     return InspirationRepository.instance;
   }
 
-  private async ensureDbReady(): Promise<void> {
-    if (this.db.isReady()) {
-      return;
-    }
-
-    const maxRetries = 40;
-    for (let i = 0; i < maxRetries; i++) {
-      if (this.db.isReady()) {
-        return;
-      }
-      await new Promise<void>((resolve) => setTimeout(resolve, 50));
-    }
-
-    throw new Error('[InspirationRepository] DB Init Timeout.');
-  }
+  public setContext(context: common.Context): void { this.context = context; }
 
   async getAllInspirations(): Promise<InspirationItem[]> {
-    await this.ensureDbReady();
-    return this.db.getAllInspirations();
+    await this.usesKmpCapture();
+    return this.kmpCapture.list();
   }
 
   async getInspirationById(id: number): Promise<InspirationItem | null> {
-    await this.ensureDbReady();
-    return this.db.getInspirationById(id);
+    await this.usesKmpCapture();
+    return this.kmpCapture.find(id);
   }
 
   async createInspiration(text: string): Promise<number> {
-    await this.ensureDbReady();
-    return this.db.insertInspiration(text);
+    await this.usesKmpCapture();
+    return this.kmpCapture.create(text);
   }
 
   async updateInspiration(item: InspirationItem): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.updateInspiration(item);
+    await this.usesKmpCapture();
+    await this.kmpCapture.update(item);
   }
 
   async deleteInspiration(id: number): Promise<void> {
-    await this.ensureDbReady();
-    await this.db.deleteInspiration(id);
+    await this.usesKmpCapture();
+    await this.kmpCapture.delete(id);
+  }
+
+  private async usesKmpCapture(): Promise<boolean> {
+    if (this.context === null) throw new Error('InspirationRepository context is required for KMP persistence');
+    await KmpMigrationService.getInstance().awaitReady();
+    await this.kmpCapture.initialize(this.context);
+    return true;
   }
 }

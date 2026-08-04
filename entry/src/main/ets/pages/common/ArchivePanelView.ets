@@ -1,5 +1,11 @@
-import { promptAction, SegmentButton, SegmentButtonOptions, SegmentButtonItemTuple, ItemRestriction,
-  SegmentButtonTextItem } from '@kit.ArkUI';
+import {
+  ColorMetrics,
+  LengthMetrics,
+  promptAction,
+  SegmentButtonV2Items,
+  TabSegmentButtonV2,
+  uiMaterial
+} from '@kit.ArkUI';
 import { TaskRepository } from '../../common/repository/TaskRepository';
 import { HabitRepository } from '../../common/repository/HabitRepository';
 import { DDLItem, Habit, HabitPeriod, HabitGoalType } from '../../model/DDLModels';
@@ -8,6 +14,7 @@ import { ITheme } from '../../common/theme/ThemeModel';
 import { TaskStateAction, TaskStateMachine } from '../../model/TaskStateMachine';
 import { DialogCompat } from '../../common/ui/DialogCompat';
 import { Toast } from '../../common/ui/Toast';
+import { buildImmersiveMaterial, canUseSystemMaterial } from '../../common/style/SystemMaterialCompat';
 
 @Component
 export struct ArchivePanelView {
@@ -17,12 +24,10 @@ export struct ArchivePanelView {
   @State @Watch('onTabChange') selectedIndexes: number[] = [0];
 
   // 分段按钮的配置选项
-  @State tabOptions: SegmentButtonOptions = SegmentButtonOptions.tab({
-    buttons: [{ text: '任务' }, { text: '习惯' }] as ItemRestriction<SegmentButtonTextItem>,
-    backgroundBlurStyle: BlurStyle.NONE,
-    selectedBackgroundColor: $r('sys.color.segment_button_v2_tab_selected_item_background'),
-    buttonPadding: 8
-  })
+  readonly tabItems: SegmentButtonV2Items = new SegmentButtonV2Items([
+    { text: '任务' },
+    { text: '习惯' }
+  ]);
 
   @State archivedTasks: DDLItem[] = [];
   @State archivedHabits: Habit[] = [];
@@ -40,6 +45,47 @@ export struct ArchivePanelView {
     // 确保有选中项才刷新（防止异常情况）
     if (this.selectedIndexes.length > 0) {
       this.refreshData();
+    }
+  }
+
+  private onSelectedIndexChange(index: number): void {
+    this.selectedIndexes = [index];
+  }
+
+  @Builder
+  private buildTabSegment() {
+    if (canUseSystemMaterial()) {
+      TabSegmentButtonV2({
+        items: this.tabItems,
+        selectedIndex: this.selectedIndexes[0],
+        $selectedIndex: (index: number): void => {
+          this.onSelectedIndexChange(index);
+        },
+        itemSelectedBackgroundColor: ColorMetrics.rgba(255, 255, 255, 0.16),
+        itemMinHeight: LengthMetrics.vp(32),
+        buttonBackgroundColor: ColorMetrics.rgba(0, 0, 0, 0),
+        buttonMinHeight: LengthMetrics.vp(40),
+        buttonPadding: LengthMetrics.vp(4),
+        backgroundSystemMaterial: buildImmersiveMaterial({
+          style: uiMaterial.ImmersiveStyle.THIN,
+          interactive: true,
+          lightEffect: true
+        }),
+        enableStateAnimation: true
+      })
+    } else {
+      TabSegmentButtonV2({
+        items: this.tabItems,
+        selectedIndex: this.selectedIndexes[0],
+        $selectedIndex: (index: number): void => {
+          this.onSelectedIndexChange(index);
+        },
+        itemSelectedBackgroundColor: ColorMetrics.resourceColor(
+          $r('sys.color.segment_button_v2_tab_selected_item_background')
+        ),
+        buttonPadding: LengthMetrics.vp(8),
+        enableStateAnimation: true
+      })
     }
   }
 
@@ -181,13 +227,14 @@ export struct ArchivePanelView {
 
   build() {
     Column() {
-      // 顶部 SegmentButton
+      // 顶部 SegmentButtonV2
       Column() {
-        SegmentButton({
-          options: this.tabOptions,
-          selectedIndexes: $selectedIndexes // 这里使用了双向绑定，配合 @Watch 即可
-        })
+        Column() {
+          this.buildTabSegment()
+        }
           .width('80%')
+          .height(48)
+          .justifyContent(FlexAlign.Center)
           .margin({ top: 12, bottom: 12 })
       }
 

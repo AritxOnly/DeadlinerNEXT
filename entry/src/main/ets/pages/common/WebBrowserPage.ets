@@ -3,6 +3,7 @@ import { LengthMetrics, router } from '@kit.ArkUI';
 import { HdsNavDestination, HdsNavDestinationTitleMode, HdsNavDestinationAttribute,
   ScrollEffectType } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../components/TopSafeContainer';
+import { getImmersiveTitleBarStyle } from '../../common/style/NavStyles';
 
 export interface WebParams {
   url: string;
@@ -20,10 +21,11 @@ struct WebBrowserPage {
 
   private onCloseCallback?: () => void;
 
-
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
 
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
   build() {
     HdsNavDestination() {
@@ -37,27 +39,8 @@ struct WebBrowserPage {
       }
     }
     .titleBar({
-      avoidLayoutSafeArea: true,
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        // --- 初始状态样式 (透明) ---
-        originalStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
-          },
-        },
-        // --- 滚动生效后样式 (模糊) ---
-        scrollEffectStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
-          },
-        },
-      },
+      avoidLayoutSafeArea: this.isWideScreen,
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: {
         title: {
           mainTitle: this.title

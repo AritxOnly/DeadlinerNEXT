@@ -1,4 +1,4 @@
-import { DDLInsertParams } from '../../common/data/DatabaseHelper';
+import { TaskCreateParams } from '../../common/kmp/KmpTaskRepositoryAdapter';
 import { HabitRepository } from '../../common/repository/HabitRepository';
 import { TaskRepository } from '../../common/repository/TaskRepository';
 import {
@@ -387,7 +387,7 @@ export class DeadlinerToolAdapter {
       }
 
       const normalized = validation.normalized;
-      const params: DDLInsertParams = {
+      const params: TaskCreateParams = {
         name: normalized.name,
         startTime: DateTimeUtils.toLocalISOString(new Date()),
         endTime: DateTimeUtils.toLocalISOString(normalized.dueDate),
@@ -549,7 +549,7 @@ export class DeadlinerToolAdapter {
 
       const normalized = validation.normalized;
       try {
-        const ddlParams: DDLInsertParams = {
+        const ddlParams: TaskCreateParams = {
           name: normalized.name,
           startTime: DateTimeUtils.toLocalISOString(new Date()),
           endTime: DateTimeUtils.toLocalISOString(new Date()),

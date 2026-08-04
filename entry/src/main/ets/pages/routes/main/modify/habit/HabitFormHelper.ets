@@ -2,7 +2,6 @@ import { promptAction } from '@kit.ArkUI';
 import { i18n } from '@kit.LocalizationKit';
 import { HabitRepository } from '../../../../../common/repository/HabitRepository';
 import { TaskRepository } from '../../../../../common/repository/TaskRepository';
-import { DatabaseHelper } from '../../../../../common/data/DatabaseHelper';
 import { DeadlineType, HabitGoalType, HabitPeriod } from '../../../../../model/DDLModels';
 import { AIService } from '../../../../../ai/AIServcice';
 import { DateTimeUtils } from '../../../../../utils/DateTimeUtils';

@@ -2,6 +2,7 @@ import { LengthMetrics } from '@kit.ArkUI';
 import { HdsNavDestination, HdsNavDestinationTitleMode, ScrollEffectType, HdsNavDestinationAttribute } from '@kit.UIDesignKit';
 import { TopSafeContainer } from '../components/TopSafeContainer';
 import { util } from '@kit.ArkTS'; // 用于解码文本文件
+import { getImmersiveTitleBarStyle } from '../../common/style/NavStyles';
 
 export interface CodeTextParams {
   fileName: string; // rawfile 中的文件名，例如 "LICENSE.txt"
@@ -17,6 +18,8 @@ struct CodeTextPage {
 
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
   readonly TITLE_BAR_CONTENT_HEIGHT: number = 18;
+
+  @StorageLink('isWideScreen') isWideScreen: boolean = false;
 
   // 读取 RawFile 文件内容
   private async loadRawFile(fileName: string) {
@@ -51,25 +54,8 @@ struct CodeTextPage {
       }
     }
     .titleBar({
-      avoidLayoutSafeArea: true,
-      style: {
-        scrollEffectOpts: {
-          enableScrollEffect: true,
-          scrollEffectType: ScrollEffectType.COMMON_BLUR,
-          blurEffectiveStartOffset: LengthMetrics.vp(0),
-          blurEffectiveEndOffset: LengthMetrics.vp(10)
-        },
-        originalStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_background_transparent'),
-          },
-        },
-        scrollEffectStyle: {
-          backgroundStyle: {
-            backgroundColor: $r('sys.color.ohos_id_color_navigation_background_blur'),
-          },
-        },
-      },
+      avoidLayoutSafeArea: this.isWideScreen,
+      style: getImmersiveTitleBarStyle(this.isWideScreen),
       content: {
         title: {
           mainTitle: this.title

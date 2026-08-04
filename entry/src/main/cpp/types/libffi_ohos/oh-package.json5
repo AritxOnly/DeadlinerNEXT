@@ -1,6 +1,0 @@
-{
-  "name": "libffi_ohos.so",
-  "version": "1.0.0",
-  "description": "Type definitions for the local Deadliner OHOS NAPI module.",
-  "main": "index.d.ts"
-}

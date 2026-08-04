@@ -9,7 +9,9 @@ import { fileIo as fs } from '@kit.CoreFileKit';
 import { HudWidgetData } from '../widget/model/HudWidgetData';
 import { HabitRepository } from '../common/repository/HabitRepository';
 import { Habit, HabitRecordStatus, HabitStatus } from '../model/DDLModels';
+import { TaskState } from '../model/TaskStateMachine';
 import { ThemeManager } from '../common/theme/ThemeManager';
+import { KmpMigrationService } from '../common/migration/KmpMigrationService';
 
 export class WidgetUpdater {
 
@@ -31,13 +33,15 @@ export class WidgetUpdater {
       // 2. 准备通用业务数据 (Repo)
       const repo = TaskRepository.getInstance();
       repo.setContext(context);
+      await KmpMigrationService.getInstance().start(context);
 
       const allTasks = await repo.getAllDDLs();
       const now = new Date().getTime();
 
-      // 过滤：未完成、未归档、未删除、非习惯
+      // KMP task state is authoritative. This also replaces stale FormExtension process data
+      // before calculating counts or overdue labels.
       const activeTasks = allTasks
-        .filter(t => !t.isArchived && !t.deleted && t.type !== 'habit')
+        .filter(t => t.state === TaskState.ACTIVE && !t.deleted)
         .sort((a, b) => {
           const tA = new Date(a.endTime).getTime();
           const tB = new Date(b.endTime).getTime();
@@ -46,8 +50,7 @@ export class WidgetUpdater {
           return vA - vB;
         });
 
-      const validTasks = activeTasks
-        .filter(t => !t.isCompleted);
+      const validTasks = activeTasks;
       
       // 这里的排序其实在 activeTasks 已经做过了，但为了保险（如果上面逻辑变了）也可以保留或合并
 
@@ -56,7 +59,7 @@ export class WidgetUpdater {
       capsuleData.themeKey = currentThemeKey;
 
       // 1. activeCount: 所有活跃任务数 (即 validTasks 的总数)
-      capsuleData.activeCount = activeTasks.length;
+      capsuleData.activeCount = validTasks.length;
       capsuleData.remainingCount = validTasks.length;
 
       // 2. nearbyCount: 计算24小时内到期的任务数

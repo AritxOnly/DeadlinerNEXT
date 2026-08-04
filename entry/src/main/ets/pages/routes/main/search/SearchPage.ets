@@ -2,7 +2,7 @@ import {
   BottomBuilderShowType,
   HdsNavDestination
 } from '@kit.UIDesignKit';
-import { ItemRestriction, SegmentButtonTextItem } from '@kit.ArkUI';
+import { SegmentButtonV2Items } from '@kit.ArkUI';
 import { TopSafeContainer } from '../../../components/TopSafeContainer';
 import { HdsTitleBarSegment } from '../../../components/HdsTitleBarSegment';
 import { TaskRepository } from '../../../../common/repository/TaskRepository';
@@ -216,6 +216,8 @@ export struct SearchPage {
   @StorageProp('currentTheme') theme: ITheme = {} as ITheme;
 
   @Consume('appPathStack') appPathStack: NavPathStack;
+  @Consume('searchRouteOpacity') searchRouteOpacity: number = 1;
+  @Consume('isEnteringSearchRoute') isEnteringSearchRoute: boolean = true;
   @StorageLink('statusBarHeight') statusBarHeight: number = 38;
 
   @State bgColor: Resource | Color | ResourceColor = this.theme.bgPrimary;
@@ -257,11 +259,11 @@ export struct SearchPage {
   readonly SEARCH_LIST_APPEND_CHUNK_SIZE: number = 3;
 
   readonly SEARCH_INPUT_ID = 'search_input';
-  readonly scopeButtons: ItemRestriction<SegmentButtonTextItem> = [
+  readonly scopeButtons: SegmentButtonV2Items = new SegmentButtonV2Items([
     { text: '全部' },
     { text: '清单' },
     { text: '归档' }
-  ] as ItemRestriction<SegmentButtonTextItem>;
+  ]);
   @StorageLink(C.KEY_EXPERIMENTAL_COMPONENTS) experimentalComponents: boolean = EXPERIMENTAL_COMPONENTS_DEFAULT;
   @StorageProp(C.KEY_ENABLE_API23) api23: boolean = API23_UI_DEFAULT;
   @StorageProp(C.KEY_API23_MATERIAL_LEVEL) materialLevel: string = 'EXQUISITE';
@@ -777,11 +779,21 @@ export struct SearchPage {
         })
       }
       .padding({ left: 64, right: 16 })
+      .transition(
+        TransitionEffect.OPACITY
+          .combine(TransitionEffect.translate({ x: -52, y: 72 }))
+          .animation({ duration: 400, curve: Curve.EaseInOut })
+      )
     } else {
       Row() {
         this.searchInputContent()
       }
       .padding({ left: 64, right: 16 })
+      .transition(
+        TransitionEffect.OPACITY
+          .combine(TransitionEffect.translate({ x: -52, y: 72 }))
+          .animation({ duration: 400, curve: Curve.EaseInOut })
+      )
     }
   }
 
@@ -835,7 +847,7 @@ export struct SearchPage {
   private buildSearchScopeRow() {
     Column() {
       HdsTitleBarSegment({
-        buttons: this.scopeButtons,
+        items: this.scopeButtons,
         selectedIndexes: $selectedScopeIndexes,
         onItemClicked: (index: number) => {
           this.onScopeSegmentClick(index);
@@ -1200,6 +1212,7 @@ export struct SearchPage {
       }
     }
     .backgroundColor(this.bgColor)
+    .opacity(this.searchRouteOpacity)
     .titleBar({
       content: {
         title: { mainTitle: '' },

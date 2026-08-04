@@ -1,15 +1,22 @@
 import { LocalValues } from '../../../common/local/LocalValues';
-import { TaskRepository } from '../../../common/repository/TaskRepository';
-import { DDLItem, DeadlineType, isTaskAbandonedState } from '../../../model/DDLModels';
+import { DDLItem } from '../../../model/DDLModels';
 import { AIService } from '../../../ai/AIServcice';
 import { MonthlyAnalysisResult } from '../../../ai/model/AIModels';
 import {
-  safeParseOptionalDate, extractTimeBucket,
-  computeDailyCompletedCounts, computeMonthlyTaskStats, computeWeeklyCompletedCounts,
-  computeContributionStats, computeLastMonthDailyStats,
   DailyStat, MonthlyStat, WeeklyStat, ContributionDay,
-  generateDashboardMetrics, Metric
+  Metric
 } from '../../../utils/OverviewUtils';
+import { KmpPersistenceService } from '../../../common/kmp/KmpPersistenceService';
+import {
+  KmpOverviewCompletionBucket,
+  KmpOverviewContributionDay,
+  KmpOverviewDailyStat,
+  KmpOverviewMonthlyMetrics,
+  KmpOverviewMonthlyStat,
+  KmpOverviewState,
+  KmpOverviewStateReader,
+  KmpOverviewWeeklyStat
+} from './KmpOverviewModels';
 
 // 1. 定义卡片 ID (为下一步拖拽排序做准备)
 export enum OverviewCard {
@@ -46,7 +53,6 @@ export class OverviewViewModel {
   public contributionStats: ContributionDay[] = [];
 
   // --- Dashboard 数据 ---
-  public allItems: DDLItem[] = []; // Dashboard 需要原始数据
   public lastMonthDailyStats: DailyStat[] = [];
   public metrics: Metric[] = [];
   public lastMonthName: string = '';
@@ -122,110 +128,161 @@ export class OverviewViewModel {
     return normalized;
   }
 
-  // 原封不动搬运过来的数据加载逻辑
   public async loadData() {
     this.isLoading = true;
     const loadToken = ++this.analysisLoadToken;
-    let loadedItems: DDLItem[] | null = null;
+    let completedTaskTitles: string[] | null = null;
 
     try {
-      const items = await TaskRepository.getInstance().getDDLsByType(DeadlineType.TASK);
-      loadedItems = items;
-      this.allItems = items;
-      this.dailyStats = computeDailyCompletedCounts(items, 7);
-      this.monthlyStats = computeMonthlyTaskStats(items, 12);
-      this.weeklyStats = computeWeeklyCompletedCounts(items, 4);
-      this.contributionStats = computeContributionStats(items, 150);
-      this.lastMonthDailyStats = computeLastMonthDailyStats(items);
-      this.metrics = generateDashboardMetrics(items);
-      this.lastMonthName = this.buildLastMonthName();
-
-      const now = new Date();
-      const bucketCounts = new Map<string, number>();
-      bucketCounts.set('深夜', 0);
-      bucketCounts.set('上午', 0);
-      bucketCounts.set('下午', 0);
-      bucketCounts.set('晚上', 0);
-
-      const overdueItems: DDLItem[] = [];
-      let completedToday: number = 0;
-      let todayTodo: number = 0;
-      let todayOverdue: number = 0;
-      let activeAbandoned: number = 0;
-      let historyCompleted: number = 0;
-      let historyAbandoned: number = 0;
-      let historyIncomplete: number = 0;
-      let historyOverdue: number = 0;
-
-      let index: number = 0;
-      while (index < items.length) {
-        const item = items[index];
-        const endDate = safeParseOptionalDate(item.endTime);
-        const completeDate = safeParseOptionalDate(item.completeTime);
-        const isAbandoned = isTaskAbandonedState(item.state);
-
-        if (item.isCompleted) {
-          historyCompleted += 1;
-          if (completeDate !== null) {
-            const bucket = extractTimeBucket(item.completeTime);
-            bucketCounts.set(bucket, (bucketCounts.get(bucket) || 0) + 1);
-            if (!item.isArchived && this.isSameDay(completeDate, now)) {
-              completedToday += 1;
-            }
-          }
-        } else if (isAbandoned) {
-          historyAbandoned += 1;
-          if (!item.isArchived) {
-            activeAbandoned += 1;
-          }
-        } else {
-          historyIncomplete += 1;
-        }
-
-        if (!item.isArchived && !item.isCompleted && !isAbandoned && endDate !== null) {
-          if (endDate.getTime() >= now.getTime()) {
-            todayTodo += 1;
-          } else {
-            historyOverdue += 1;
-            overdueItems.push(item);
-            if (this.isSameDay(endDate, now)) {
-              todayOverdue += 1;
-            }
-          }
-        }
-
-        index += 1;
+      const payload: string = await KmpPersistenceService.getInstance().overviewViewModelJson();
+      const state: KmpOverviewState = new KmpOverviewStateReader().parse(payload);
+      if (state.error !== undefined && state.error !== null && state.error.length > 0) {
+        throw new Error(state.error);
       }
 
-      this.todayCompleted = completedToday;
-      this.todayTodo = todayTodo;
-      this.todayOverdue = todayOverdue;
-      this.activeAbandoned = activeAbandoned;
-      this.overdueItems = overdueItems;
+      this.todayCompleted = state.summary.completedToday;
+      this.todayTodo = state.summary.pendingDueFromNow;
+      this.todayOverdue = state.summary.overdueToday;
+      this.activeAbandoned = state.summary.activeAbandoned;
+      this.overdueItems = [];
 
       const newHistoryStats = new Map<string, number>();
-      newHistoryStats.set('累计完成', historyCompleted);
-      newHistoryStats.set('当前待办', historyIncomplete);
-      newHistoryStats.set('累计放弃', historyAbandoned);
-      newHistoryStats.set('累计逾期', historyOverdue);
+      newHistoryStats.set('累计完成', state.history.completed);
+      newHistoryStats.set('当前待办', state.history.pending);
+      newHistoryStats.set('累计放弃', state.history.abandoned);
+      newHistoryStats.set('累计逾期', state.history.overdue);
       this.historyStats = newHistoryStats;
 
-      this.completionTimeStats = [
-        ['深夜', bucketCounts.get('深夜') || 0],
-        ['上午', bucketCounts.get('上午') || 0],
-        ['下午', bucketCounts.get('下午') || 0],
-        ['晚上', bucketCounts.get('晚上') || 0]
-      ];
-
+      this.completionTimeStats = this.mapCompletionBuckets(state.completionBuckets);
+      this.dailyStats = this.mapDailyStats(state.daily);
+      this.monthlyStats = this.mapMonthlyStats(state.monthly);
+      this.weeklyStats = this.mapWeeklyStats(state.weekly);
+      this.contributionStats = this.mapContributionStats(state.contribution);
+      this.lastMonthDailyStats = this.mapLastMonthDailyStats(state.lastMonth.daily);
+      this.metrics = this.mapMetrics(state.lastMonth.metrics);
+      this.lastMonthName = this.monthLabel(state.lastMonth.monthStart);
+      completedTaskTitles = state.lastMonth.completedTaskTitles;
     } catch (e) {
-      console.error(`[OverviewViewModel] Load data error: ${e}`);
+      console.error('[OverviewViewModel] Load KMP state error: ' + String(e));
     } finally {
       this.isLoading = false;
     }
 
-    if (loadedItems !== null) {
-      this.loadMonthlyAnalysisInBackground(loadedItems, loadToken);
+    if (completedTaskTitles !== null) {
+      this.loadMonthlyAnalysisInBackground(completedTaskTitles, loadToken);
     }
+  }
+
+  private mapCompletionBuckets(items: KmpOverviewCompletionBucket[]): Array<[string, number]> {
+    const result: Array<[string, number]> = [];
+    for (const item of items) result.push([this.periodLabel(item.period), item.completedCount]);
+    return result;
+  }
+
+  private mapDailyStats(items: KmpOverviewDailyStat[]): DailyStat[] {
+    const result: DailyStat[] = [];
+    for (const item of items) {
+      const label: string = item.date.length >= 10 ? item.date.substring(5, 10) : item.date;
+      const stat: DailyStat = {
+        dateStr: label,
+        fullDate: item.date,
+        completed: item.completedCount,
+        overdue: item.overdueCount
+      };
+      result.push(stat);
+    }
+    return result;
+  }
+
+  private mapMonthlyStats(items: KmpOverviewMonthlyStat[]): MonthlyStat[] {
+    const result: MonthlyStat[] = [];
+    for (const item of items) {
+      const monthValue: number = item.monthStart.length >= 7 ? Number(item.monthStart.substring(5, 7)) : 0;
+      const stat: MonthlyStat = {
+        monthStr: monthValue.toString() + '月',
+        total: item.totalCount,
+        completed: item.completedCount,
+        overdue: item.overdueCompletedCount
+      };
+      result.push(stat);
+    }
+    return result;
+  }
+
+  private mapLastMonthDailyStats(items: KmpOverviewDailyStat[]): DailyStat[] {
+    const result: DailyStat[] = [];
+    for (const item of items) {
+      const label: string = item.date.length >= 10 ? item.date.substring(8, 10) : item.date;
+      const stat: DailyStat = {
+        dateStr: label,
+        fullDate: item.date,
+        completed: item.completedCount,
+        overdue: item.overdueCount
+      };
+      result.push(stat);
+    }
+    return result;
+  }
+
+  private mapWeeklyStats(items: KmpOverviewWeeklyStat[]): WeeklyStat[] {
+    const result: WeeklyStat[] = [];
+    for (let index: number = 0; index < items.length; index += 1) {
+      const distance: number = items.length - index - 1;
+      const label: string = distance === 0 ? '本周' : distance.toString() + '周前';
+      const stat: WeeklyStat = { weekLabel: label, completed: items[index].completedCount };
+      result.push(stat);
+    }
+    return result;
+  }
+
+  private mapContributionStats(items: KmpOverviewContributionDay[]): ContributionDay[] {
+    const result: ContributionDay[] = [];
+    for (const item of items) {
+      const day: ContributionDay = { date: new Date(item.date + 'T00:00:00'), count: item.completedCount };
+      result.push(day);
+    }
+    return result;
+  }
+
+  private mapMetrics(metrics: KmpOverviewMonthlyMetrics): Metric[] {
+    const result: Metric[] = [];
+    result.push(this.comparisonMetric('上月任务数', metrics.totalTasks.toString(), metrics.totalTasks, metrics.previousTotalTasks));
+    result.push(this.comparisonMetric('上月完成', metrics.completedTasks.toString(), metrics.completedTasks, metrics.previousCompletedTasks));
+    result.push(this.comparisonMetric('上月完成率', metrics.completionRate.toFixed(1) + '%', metrics.completionRate, metrics.previousCompletionRate));
+    result.push(this.comparisonMetric('上月逾期数', metrics.overdueTasks.toString(), metrics.overdueTasks, metrics.previousOverdueTasks));
+    if (metrics.mostActivePeriod !== undefined && metrics.mostActivePeriod !== null) {
+      const activeMetric: Metric = {
+        label: '最活跃时段',
+        value: this.periodLabel(metrics.mostActivePeriod),
+        change: '完成 ' + metrics.mostActivePeriodCompletedCount.toString() + ' 个'
+      };
+      result.push(activeMetric);
+    }
+    if (metrics.averageCompletionMinutes !== undefined && metrics.averageCompletionMinutes !== null) {
+      const minutes: number = metrics.averageCompletionMinutes;
+      const duration: string = minutes < 60 ? minutes.toString() + ' 分钟' : (minutes / 60).toFixed(1) + ' 小时';
+      const durationMetric: Metric = { label: '平均耗时', value: duration };
+      result.push(durationMetric);
+    }
+    return result;
+  }
+
+  private comparisonMetric(label: string, value: string, current: number, previous: number): Metric {
+    if (previous <= 0 || current === previous) return { label: label, value: value };
+    const percent: string = (Math.abs(current - previous) / previous * 100).toFixed(1) + '%';
+    return { label: label, value: value, change: percent, isDown: current < previous };
+  }
+
+  private periodLabel(period: string): string {
+    if (period === 'OVERNIGHT') return '深夜';
+    if (period === 'MORNING') return '上午';
+    if (period === 'AFTERNOON') return '下午';
+    return '晚上';
+  }
+
+  private monthLabel(monthStart?: string | null): string {
+    if (monthStart === undefined || monthStart === null || monthStart.length < 7) return '';
+    return Number(monthStart.substring(5, 7)).toString() + '月';
   }
 
   /**
@@ -280,13 +337,13 @@ export class OverviewViewModel {
     LocalValues.getInstance().setTrendCardOrder(this.trendCardOrder);
   }
 
-  private loadMonthlyAnalysisInBackground(items: DDLItem[], loadToken: number): void {
-    this.loadMonthlyAnalysis(items, loadToken).catch((e: Error) => {
-      console.error(`[OverviewViewModel] Background monthly analysis error: ${e}`);
+  private loadMonthlyAnalysisInBackground(completedTaskTitles: string[], loadToken: number): void {
+    this.loadMonthlyAnalysis(completedTaskTitles, loadToken).catch((e: Error) => {
+      console.error('[OverviewViewModel] Background monthly analysis error: ' + e.message);
     });
   }
 
-  public async loadMonthlyAnalysis(items: DDLItem[], loadToken: number): Promise<void> {
+  public async loadMonthlyAnalysis(completedTaskTitles: string[], loadToken: number): Promise<void> {
     const monthKey = this.buildPreviousMonthKey();
     if (loadToken !== this.analysisLoadToken) {
       return;
@@ -302,14 +359,19 @@ export class OverviewViewModel {
           return;
         }
       } catch (e) {
-        console.error(`[OverviewViewModel] Decode monthly analysis error: ${e}`);
+        console.error('[OverviewViewModel] Decode monthly analysis error: ' + String(e));
       }
     }
 
-    await this.generateMonthlyAnalysis(items, monthKey, this.lastMonthName, loadToken);
+    await this.generateMonthlyAnalysis(completedTaskTitles, monthKey, this.lastMonthName, loadToken);
   }
 
-  public async generateMonthlyAnalysis(items: DDLItem[], monthKey: string, monthLabel: string, loadToken: number): Promise<void> {
+  public async generateMonthlyAnalysis(
+    completedTaskTitles: string[],
+    monthKey: string,
+    monthLabel: string,
+    loadToken: number
+  ): Promise<void> {
     if (this.isAnalyzing || loadToken !== this.analysisLoadToken) {
       return;
     }
@@ -321,25 +383,14 @@ export class OverviewViewModel {
 
     this.isAnalyzing = true;
     try {
-      const range = this.buildLastMonthRange();
-      const lastMonthItems = items.filter((item: DDLItem) => {
-        const endDate = safeParseOptionalDate(item.endTime);
-        return endDate !== null &&
-          endDate.getTime() >= range[0].getTime() &&
-          endDate.getTime() <= range[1].getTime();
-      });
-
-      const completedTaskNames = lastMonthItems
-        .filter((item: DDLItem) => item.isCompleted)
-        .map((item: DDLItem) => item.name);
       const metricsSummary = this.metrics
-        .map((metric: Metric) => `${metric.label}: ${metric.value} (${metric.change || '无变化'})`)
+        .map((metric: Metric) => metric.label + ': ' + metric.value + ' (' + (metric.change || '无变化') + ')')
         .join('\n');
 
       const result = await AIService.getInstance().generateMonthlyAnalysis(
         monthLabel,
         metricsSummary,
-        completedTaskNames
+        completedTaskTitles
       );
       const finalResult: MonthlyAnalysisResult = {
         month: monthKey,
@@ -354,16 +405,10 @@ export class OverviewViewModel {
       await LocalValues.getInstance().setMonthlyAnalysis(JSON.stringify(finalResult));
       await LocalValues.getInstance().setLastAnalyzedMonth(monthKey);
     } catch (e) {
-      console.error(`[OverviewViewModel] Generate monthly analysis error: ${e}`);
+      console.error('[OverviewViewModel] Generate monthly analysis error: ' + String(e));
     } finally {
       this.isAnalyzing = false;
     }
-  }
-
-  private isSameDay(left: Date, right: Date): boolean {
-    return left.getFullYear() === right.getFullYear() &&
-      left.getMonth() === right.getMonth() &&
-      left.getDate() === right.getDate();
   }
 
   private buildPreviousMonthKey(): string {
@@ -371,20 +416,8 @@ export class OverviewViewModel {
     const firstDayOfThisMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const firstDayOfLastMonth = new Date(firstDayOfThisMonth.getFullYear(), firstDayOfThisMonth.getMonth() - 1, 1);
     const year = firstDayOfLastMonth.getFullYear();
-    const month = `${firstDayOfLastMonth.getMonth() + 1}`.padStart(2, '0');
-    return `${year}-${month}`;
+    const month = (firstDayOfLastMonth.getMonth() + 1).toString().padStart(2, '0');
+    return year.toString() + '-' + month;
   }
 
-  private buildLastMonthName(): string {
-    const now = new Date();
-    const lastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    return `${lastMonth.getMonth() + 1}月`;
-  }
-
-  private buildLastMonthRange(): [Date, Date] {
-    const now = new Date();
-    const start = new Date(now.getFullYear(), now.getMonth() - 1, 1);
-    const end = new Date(now.getFullYear(), now.getMonth(), 0, 23, 59, 59, 999);
-    return [start, end];
-  }
 }

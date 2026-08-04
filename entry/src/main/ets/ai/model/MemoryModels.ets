@@ -1,6 +1,10 @@
-import preferences from '@ohos.data.preferences';
 import util from '@ohos.util';
 import common from '@ohos.app.ability.common';
+import { KmpPersistenceService } from '../../common/kmp/KmpPersistenceService';
+
+interface KmpMemoryPayload { uid: string; content: string; category: string; createdAt: string; importance: number; updatedAt: string; isDeleted: boolean; }
+interface KmpProfilePayload { uid: string; nickname: string; avatarFileName: string | null; tier: string; createdAt: string; updatedAt: string; isDeleted: boolean; }
+interface KmpMemoryProfileState { fragments: KmpMemoryPayload[]; profiles: KmpProfilePayload[]; }
 
 export interface MemoryFragment {
   id: string;          // 替代 UUID
@@ -16,14 +20,7 @@ export class MemoryBank {
   public fragments: MemoryFragment[] = [];
   public userProfile: string = "";
 
-  private readonly storageKey = "deadliner_local_memories";
-  private readonly storageProfileKey = "deadliner_user_profile";
-  private readonly prefName = "deadliner_memory_store";
-
-  private readonly maxFragments = 60;
-  private readonly maxAgeDays = 120;
-
-  private pref: preferences.Preferences | null = null;
+  private initialized: boolean = false;
 
   private constructor() {}
 
@@ -40,10 +37,9 @@ export class MemoryBank {
    * 建议在 EntryAbility 的 onCreate 或应用首页的 aboutToAppear 中调用
    */
   public async init(context: common.Context): Promise<void> {
-    if (this.pref) return; // 避免重复初始化
-    this.pref = await preferences.getPreferences(context, this.prefName);
-    await this.loadFromDisk();
-    await this.loadProfileFromDisk();
+    if (this.initialized) return;
+    this.refreshFromKmp();
+    this.initialized = true;
   }
 
   // MARK: - Core Functions
@@ -59,17 +55,15 @@ export class MemoryBank {
       importance: 3
     };
 
-    this.fragments.push(newFrag);
-    this.pruneMemories();
-    await this.saveToDisk();
+    KmpPersistenceService.getInstance().memorySaveJson(JSON.stringify(this.toKmpFragment(newFrag)));
+    this.refreshFromKmp();
   }
 
   public async saveUserProfile(profile: string): Promise<void> {
     const trimmed = profile.trim();
     if (!trimmed) return;
 
-    this.userProfile = trimmed;
-    await this.saveProfileToDisk();
+    await this.setUserProfileAllowEmpty(trimmed);
   }
 
   public getLongTermContext(maxProfileChars: number = 420, maxBullets: number = 6, maxTotalChars: number = 900): string {
@@ -96,13 +90,17 @@ export class MemoryBank {
   // MARK: - Editing / Deleting
 
   public async setUserProfileAllowEmpty(profile: string): Promise<void> {
-    this.userProfile = profile.trim();
-    await this.saveProfileToDisk();
+    const now = new Date().toISOString();
+    const state: KmpMemoryProfileState = this.readKmpState();
+    const current: KmpProfilePayload | null = state.profiles.length > 0 ? state.profiles[0] : null;
+    const profilePayload: KmpProfilePayload = { uid: current === null ? util.generateRandomUUID(true) : current.uid, nickname: profile.trim(), avatarFileName: null, tier: 'FREE', createdAt: current === null ? now : current.createdAt, updatedAt: now, isDeleted: false };
+    KmpPersistenceService.getInstance().profileSaveJson(JSON.stringify(profilePayload));
+    this.refreshFromKmp();
   }
 
   public async deleteFragment(id: string): Promise<void> {
-    this.fragments = this.fragments.filter(f => f.id !== id);
-    await this.saveToDisk();
+    KmpPersistenceService.getInstance().memoryDeleteJson(id, new Date().toISOString());
+    this.refreshFromKmp();
   }
 
   public async updateFragment(id: string, newContent: string, newCategory?: string, newImportance?: number): Promise<void> {
@@ -111,80 +109,44 @@ export class MemoryBank {
     if (idx === -1) return;
 
     const old = this.fragments[idx];
-    this.fragments[idx] = {
+    const updated: MemoryFragment = {
       id: old.id,
       content: !trimmed ? old.content : trimmed,
       category: newCategory ?? old.category,
       timestamp: old.timestamp,
       importance: newImportance ?? old.importance
     };
-
-    await this.saveToDisk();
+    KmpPersistenceService.getInstance().memorySaveJson(JSON.stringify(this.toKmpFragment(updated)));
+    this.refreshFromKmp();
   }
 
   public async replaceAllFragments(newList: MemoryFragment[]): Promise<void> {
-    this.fragments = newList;
-    await this.saveToDisk();
+    for (let index = 0; index < this.fragments.length; index++) await this.deleteFragment(this.fragments[index].id);
+    for (let index = 0; index < newList.length; index++) KmpPersistenceService.getInstance().memorySaveJson(JSON.stringify(this.toKmpFragment(newList[index])));
+    this.refreshFromKmp();
   }
 
   public async clearAllMemories(): Promise<void> {
-    this.fragments = [];
-    this.userProfile = "";
-    if (this.pref) {
-      await this.pref.delete(this.storageKey);
-      await this.pref.delete(this.storageProfileKey);
-      await this.pref.flush();
+    for (let index = 0; index < this.fragments.length; index++) KmpPersistenceService.getInstance().memoryDeleteJson(this.fragments[index].id, new Date().toISOString());
+    await this.setUserProfileAllowEmpty('');
+  }
+
+  private refreshFromKmp(): void {
+    const state: KmpMemoryProfileState = this.readKmpState();
+    const result: MemoryFragment[] = [];
+    for (let index = 0; index < state.fragments.length; index++) {
+      const item: KmpMemoryPayload = state.fragments[index];
+      if (!item.isDeleted) result.push({ id: item.uid, content: item.content, category: item.category, timestamp: Date.parse(item.createdAt), importance: item.importance });
     }
+    this.fragments = result;
+    this.userProfile = state.profiles.length > 0 ? state.profiles[0].nickname : '';
   }
 
-  // MARK: - Private Helpers
+  private readKmpState(): KmpMemoryProfileState { return JSON.parse(KmpPersistenceService.getInstance().memoryProfileStateJson()) as KmpMemoryProfileState; }
 
-  private pruneMemories() {
-    // 1) 先按时间过期淘汰
-    const cutoff = Date.now() - (this.maxAgeDays * 24 * 60 * 60 * 1000);
-    this.fragments = this.fragments.filter(f => f.timestamp >= cutoff);
-
-    // 2) 超容量：优先删“低重要度 + 更旧”的
-    if (this.fragments.length > this.maxFragments) {
-      this.fragments.sort((a, b) => {
-        if (a.importance !== b.importance) {
-          return b.importance - a.importance; // 重要度高的排前面
-        }
-        return b.timestamp - a.timestamp; // 时间新的排前面
-      });
-      this.fragments = this.fragments.slice(0, this.maxFragments);
-    }
+  private toKmpFragment(fragment: MemoryFragment): KmpMemoryPayload {
+    const createdAt: string = new Date(fragment.timestamp).toISOString();
+    return { uid: fragment.id, content: fragment.content, category: fragment.category, createdAt: createdAt, importance: fragment.importance, updatedAt: new Date().toISOString(), isDeleted: false };
   }
 
-  // MARK: - Local Persistence
-
-  private async saveToDisk(): Promise<void> {
-    if (!this.pref) return;
-    const encoded = JSON.stringify(this.fragments);
-    await this.pref.put(this.storageKey, encoded);
-    await this.pref.flush();
-  }
-
-  private async loadFromDisk(): Promise<void> {
-    if (!this.pref) return;
-    const data = await this.pref.get(this.storageKey, "") as string;
-    if (data) {
-      try {
-        this.fragments = JSON.parse(data) as MemoryFragment[];
-      } catch (e) {
-        console.error("MemoryBank", "Failed to parse memories from disk");
-      }
-    }
-  }
-
-  private async saveProfileToDisk(): Promise<void> {
-    if (!this.pref) return;
-    await this.pref.put(this.storageProfileKey, this.userProfile);
-    await this.pref.flush();
-  }
-
-  private async loadProfileFromDisk(): Promise<void> {
-    if (!this.pref) return;
-    this.userProfile = await this.pref.get(this.storageProfileKey, "") as string;
-  }
 }
